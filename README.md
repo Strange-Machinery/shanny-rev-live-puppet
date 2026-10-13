@@ -24,3 +24,7 @@ Normal requests queue per actor. An explicit interrupt stops both actors' old sp
 The launcher/Whisper/Qwen interfaces are prepared contracts; their full pipelines and episode-player handoff are not implemented here. Never treat passing mock tests or CI as proof of actual audible or visible Unity playback. Hardware evidence is reported separately.
 
 Measured hardware acceptance and remaining limits: [RESULTS.md](docs/RESULTS.md).
+
+## Experimental donation pre-generation branch
+
+This feature branch includes a backwards-compatible, held-WAV prepare/release path and source-only donation/Qwen reaction coordinator. It is not connected to Buff's donation service, OBS, microphone or episode launcher. See [donation pre-generation](docs/DONATION_PREFETCH.md) and the new fixture tests before deployment.

@@ -9,6 +9,7 @@ const MAX_BODY = 4096;
 const MAX_CLIPS = 20;
 const MAX_AUDIO_MEMORY = 32 * 1024 * 1024;
 const CLIP_TTL_MS = 120_000;
+const PREPARED_TTL_MS = 60_000;
 
 class HttpError extends Error {
   constructor(status, message) { super(message); this.status = status; }
@@ -79,6 +80,7 @@ export function createLiveServer({ provider, token, host = '127.0.0.1', port = 8
   const queue = [];
   const events = [];
   const clips = new Map();
+  const prepared = new Map();
   const latencySamples = [];
   const playback = [];
   let stage = null;
@@ -98,6 +100,7 @@ export function createLiveServer({ provider, token, host = '127.0.0.1', port = 8
     counters.cancelled += queue.length;
     queue.length = 0;
     clips.clear();
+    prepared.clear();
     jobs.clear();
     emit(type);
   }
@@ -134,8 +137,8 @@ export function createLiveServer({ provider, token, host = '127.0.0.1', port = 8
         });
         const wav = Buffer.from(generated.wav ?? generated);
         const meta = inspectWav(wav);
-        if (job.epoch !== epoch || closed) {
-          counters.cancelled++;
+        if (job.epoch !== epoch || closed || job.cancelled) {
+          if (!job.cancelCounted) counters.cancelled++;
           return;
         }
         storeClip(job.id, wav);
@@ -143,14 +146,23 @@ export function createLiveServer({ provider, token, host = '127.0.0.1', port = 8
         latencySamples.push(latency);
         if (latencySamples.length > 200) latencySamples.shift();
         counters.ready++;
-        emit('speech.ready', { id: job.id, actor: job.actor,
+        if (job.prepareOnly) {
+          prepared.set(job.id, {
+            state: 'prepared', actor: job.actor, epoch: job.epoch,
+            expires: Date.now() + PREPARED_TTL_MS,
+            duration_ms: Math.round(meta.duration_ms)
+          });
+        }
+        emit(job.prepareOnly ? 'speech.prepared' : 'speech.ready', {
+          id: job.id, actor: job.actor,
           provider_timings: generated.timings ?? null,
-          delivery: job.delivery, audio_path: '/v1/audio/' + job.id,
+          delivery: job.delivery,
+          audio_path: job.prepareOnly ? null : '/v1/audio/' + job.id,
           duration_ms: Math.round(meta.duration_ms),
           request_to_ready_ms: Math.round(latency * 100) / 100 });
       } catch (error) {
-        if (job.epoch !== epoch || closed) {
-          counters.cancelled++;
+        if (job.epoch !== epoch || closed || job.cancelled) {
+          if (!job.cancelCounted) counters.cancelled++;
           return;
         }
         counters.failed++;
@@ -184,7 +196,8 @@ export function createLiveServer({ provider, token, host = '127.0.0.1', port = 8
     if (req.method === 'GET' && url.pathname === '/v1/status') {
       json(res, 200, { schema_version: SCHEMA, cursor,
         provider: provider.name || 'custom',
-        pending: queue.length + Number(running), epoch, muted, session_id: sessionId,
+        pending: queue.length + Number(running), prepared: [...prepared.values()].filter(p => p.state === 'prepared').length,
+        epoch, muted, session_id: sessionId,
         events_retained: events.length }); return;
     }
     if (req.method === 'GET' && url.pathname === '/v1/events') {
@@ -242,8 +255,19 @@ export function createLiveServer({ provider, token, host = '127.0.0.1', port = 8
           row[key] = body[key];
         }
       }
+      if (job.playbackState === body.state) {
+        json(res, 200, { status: 'duplicate' }); return;
+      }
+      if (body.state === 'started' && job.playbackState) {
+        throw new HttpError(409, 'Playback already terminated');
+      }
+      if (body.state !== 'started' && job.playbackState !== 'started') {
+        throw new HttpError(409, 'Playback finish/stop without started receipt');
+      }
+      job.playbackState = body.state;
       playback.push(row);
       if (playback.length > 200) playback.shift();
+      emit('playback.' + body.state, { id: body.id, actor: job.actor });
       json(res, 200, { status: 'recorded' }); return;
     }
     if (req.method === 'GET' && /^\/v1\/audio\/[a-f0-9-]{36}$/.test(url.pathname)) {
@@ -269,19 +293,83 @@ export function createLiveServer({ provider, token, host = '127.0.0.1', port = 8
       if (body.delivery !== undefined && !['queue', 'interrupt'].includes(body.delivery)) {
         throw new HttpError(400, 'delivery must be queue or interrupt');
       }
+      if (body.prepare_only !== undefined && typeof body.prepare_only !== 'boolean') {
+        throw new HttpError(400, 'prepare_only must be boolean');
+      }
+      if (body.prepare_only === true && body.delivery === 'interrupt') {
+        throw new HttpError(400, 'Prepared speech cannot interrupt until released');
+      }
       if (body.delivery !== 'interrupt' && queue.length + Number(running) >= maxPending) {
         throw new HttpError(429, 'Voice worker queue is full');
       }
       const id = randomUUID();
       if (body.delivery === 'interrupt') invalidate('interrupt');
       const job = { id, actor: body.actor, text: body.text.trim(),
-        delivery: body.delivery || 'queue', epoch, submittedAt: performance.now() };
+        delivery: body.delivery || 'queue', prepareOnly: body.prepare_only === true,
+        cancelled: false, epoch, submittedAt: performance.now() };
       queue.push(job);
       jobs.set(id, job);
       if (jobs.size > 256) jobs.delete(jobs.keys().next().value);
       counters.accepted++;
       json(res, 202, { schema_version: SCHEMA, request_id: id, status: 'queued' });
       pump(); return;
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/release') {
+      const body = await parseBody(req);
+      if (typeof body.id !== 'string' || !/^[a-f0-9-]{36}$/.test(body.id)) {
+        throw new HttpError(400, 'Valid prepared speech ID required');
+      }
+      if (body.session_id !== sessionId || body.epoch !== epoch) {
+        throw new HttpError(409, 'Stale release session or epoch');
+      }
+      if (muted) throw new HttpError(423, 'Stage muted');
+      const entry = prepared.get(body.id);
+      if (!entry || entry.epoch !== epoch) {
+        throw new HttpError(409, 'Unknown or not-ready prepared audio');
+      }
+      if (entry.expires < Date.now() || !clips.has(body.id)) {
+        prepared.delete(body.id);
+        clips.delete(body.id);
+        throw new HttpError(410, 'Prepared audio expired');
+      }
+      if (entry.state === 'released') {
+        json(res, 200, { status: 'already_released' }); return;
+      }
+      entry.state = 'released';
+      emit('speech.ready', { id: body.id, actor: entry.actor,
+        delivery: 'queue', audio_path: '/v1/audio/' + body.id,
+        duration_ms: entry.duration_ms, prepared_release: true });
+      json(res, 200, { status: 'released' }); return;
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/discard') {
+      const body = await parseBody(req);
+      if (typeof body.id !== 'string' || !/^[a-f0-9-]{36}$/.test(body.id)) {
+        throw new HttpError(400, 'Valid prepared speech ID required');
+      }
+      if (body.session_id !== sessionId || body.epoch !== epoch) {
+        throw new HttpError(409, 'Stale discard session or epoch');
+      }
+      const job = jobs.get(body.id);
+      if (!job || !job.prepareOnly || job.epoch !== epoch) {
+        throw new HttpError(404, 'Unknown prepared speech job');
+      }
+      if (prepared.get(body.id)?.state === 'released') {
+        throw new HttpError(409, 'Cannot discard already released speech');
+      }
+      if (job.cancelled) {
+        json(res, 200, { status: 'already_discarded' }); return;
+      }
+      job.cancelled = true;
+      const index = queue.indexOf(job);
+      if (index >= 0) {
+        queue.splice(index, 1);
+        counters.cancelled++;
+        job.cancelCounted = true;
+      }
+      prepared.delete(body.id);
+      clips.delete(body.id);
+      emit('speech.discarded', { id: body.id, actor: job.actor });
+      json(res, 200, { status: 'discarded' }); return;
     }
     if (req.method === 'POST' && url.pathname === '/v1/panic') {
       muted = true;

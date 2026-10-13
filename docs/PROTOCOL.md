@@ -84,3 +84,23 @@ POST `/v1/stage` carries a bounded heartbeat: instance ID, session, epoch, both 
 Ready events include optional provider timings: worker spawn-to-READY cold startup, worker-reported model generation, and GENERATE-to-complete-WAV-read. Complete WAV measurement includes conversion and file I/O; gateway request-to-ready also includes queue wait. Warm samples have null cold startup. Quantiles use nearest-rank actual samples.
 
 Playback ACK and explicit resume are additive v1 routes. PCM streaming, Whisper and Qwen remain deferred.
+
+## Feature branch: held speech for donation reactions
+
+POST /v1/speak now accepts optional prepare_only:true, which MUST use delivery:"queue".
+On synthesis completion it emits speech.prepared with audio_path:null, duration_ms
+from the verified WAV, the existing session_id/epoch and speech id.
+Unity ignores speech.prepared and does not play it.
+
+POST /v1/release and POST /v1/discard accept JSON:
+{"id":"<speak request_id>","session_id":"<current gateway session>","epoch":0}
+Release emits one speech.ready with prepared_release:true and the existing
+authenticated clip URL. A repeated release returns already_released.
+Discard rejects an already released clip. Both require the current session
+and epoch. A missing/expired clip cannot be released. Panic and interrupt
+invalidate prepared audio, including late worker completions.
+
+POST /v1/playback emits playback.started / playback.finished / playback.stopped
+only for valid state transitions. Duplicated receipts are idempotent.
+Downstream controllers MUST authorize release only on playback.finished.
+The new source-only coordinator also checks WAV duration and mode lifetime.
