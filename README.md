@@ -22,3 +22,5 @@ Normal requests queue per actor. An explicit interrupt stops both actors' old sp
 [Protocol](docs/PROTOCOL.md) · [Local setup and hardware test](docs/LOCAL_SETUP.md) · [Validation](docs/VALIDATION.md) · [Streaming investigation](docs/STREAMING.md) · [Buff launcher and next-work packet](docs/NEXT_WORK.md)
 
 The launcher/Whisper/Qwen interfaces are prepared contracts; their full pipelines and episode-player handoff are not implemented here. Never treat passing mock tests or CI as proof of actual audible or visible Unity playback. Hardware evidence is reported separately.
+
+Measured hardware acceptance and remaining limits: [RESULTS.md](docs/RESULTS.md).
