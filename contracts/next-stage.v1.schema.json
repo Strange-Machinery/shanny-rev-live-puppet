@@ -1,0 +1,313 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:strange-machinery:live-puppet:next-stage:v1",
+  "description": "Prepared adapter contracts; these do not activate Whisper, Qwen, episode generation or microphone capture.",
+  "$defs": {
+    "donation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "shanny-rev-live-puppet/donation/v1"
+        },
+        "session_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "mode_epoch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "correlation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "donation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "received_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "schema_version",
+        "session_id",
+        "mode_epoch",
+        "correlation_id",
+        "donation_id",
+        "text",
+        "received_unix_ms"
+      ]
+    },
+    "microphone": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "shanny-rev-live-puppet/microphone/v1"
+        },
+        "session_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "mode_epoch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "correlation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "utterance_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "source": {
+          "const": "BUFF_ISOLATED_MIC"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "final": {
+          "const": true
+        },
+        "vad_start_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "vad_end_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "schema_version",
+        "session_id",
+        "mode_epoch",
+        "correlation_id",
+        "utterance_id",
+        "source",
+        "text",
+        "final",
+        "vad_start_unix_ms",
+        "vad_end_unix_ms"
+      ]
+    },
+    "reaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "shanny-rev-live-puppet/reaction/v1"
+        },
+        "session_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "mode_epoch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "correlation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "actor": {
+          "enum": [
+            "SHANNY",
+            "REV"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "target_duration_ms": {
+          "type": "integer",
+          "minimum": 8000,
+          "maximum": 12000
+        },
+        "expires_unix_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "delivery": {
+          "enum": [
+            "queue",
+            "interrupt"
+          ]
+        },
+        "emotion": {
+          "enum": [
+            "neutral",
+            "amused",
+            "irritated",
+            "defensive",
+            "sad",
+            "surprised"
+          ]
+        },
+        "intensity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "persona_id": {
+          "enum": [
+            "blackout-shanny/v1",
+            "rev/v1"
+          ]
+        },
+        "context_revision": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "schema_version",
+        "session_id",
+        "mode_epoch",
+        "correlation_id",
+        "actor",
+        "text",
+        "target_duration_ms",
+        "expires_unix_ms",
+        "delivery",
+        "emotion",
+        "intensity",
+        "persona_id",
+        "context_revision"
+      ]
+    },
+    "launcher": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "shanny-rev-live-puppet/launcher/v1"
+        },
+        "session_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "mode_epoch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "correlation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "action": {
+          "enum": [
+            "episode.request",
+            "live.enable",
+            "show.resume",
+            "panic"
+          ]
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "schema_version",
+        "session_id",
+        "mode_epoch",
+        "correlation_id",
+        "action",
+        "request_id"
+      ]
+    },
+    "delivery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "shanny-rev-live-puppet/episode-delivery/v1"
+        },
+        "job_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "state": {
+          "enum": [
+            "queued",
+            "generating",
+            "ready",
+            "failed"
+          ]
+        },
+        "download_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "expires_unix_ms": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "schema_version",
+        "job_id",
+        "state",
+        "download_url",
+        "expires_unix_ms",
+        "sha256"
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/donation"
+    },
+    {
+      "$ref": "#/$defs/microphone"
+    },
+    {
+      "$ref": "#/$defs/reaction"
+    },
+    {
+      "$ref": "#/$defs/launcher"
+    },
+    {
+      "$ref": "#/$defs/delivery"
+    }
+  ]
+}

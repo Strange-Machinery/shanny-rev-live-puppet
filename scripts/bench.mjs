@@ -43,8 +43,9 @@ for (const [actor, text] of prompts) {
   if (!ready) throw new Error('Timeout waiting for ' + id);
   const audio = await fetch(base + ready.audio_path, { headers });
   if (!audio.ok) throw new Error('Audio not retrievable');
+  const downloadStart = performance.now();
   await audio.arrayBuffer();
-  samples.push({ actor, request_to_ready_ms: ready.request_to_ready_ms,
+  samples.push({ actor, audio_transport_ms: performance.now() - downloadStart, provider_timings: ready.provider_timings, request_to_ready_ms: ready.request_to_ready_ms,
     client_roundtrip_ms: Math.round(performance.now() - start),
     audio_duration_ms: ready.duration_ms });
 }
@@ -53,3 +54,4 @@ const pick = q => sorted[Math.ceil(q * sorted.length) - 1];
 console.log(JSON.stringify({ schema_version: 'shanny-rev-live-puppet/benchmark/v1',
   note: 'Complete WAV ready; excludes Unity download/decode/playback and microphone ASR.',
   p50_ms: pick(0.5), p95_ms: pick(0.95), samples }, null, 2));
+

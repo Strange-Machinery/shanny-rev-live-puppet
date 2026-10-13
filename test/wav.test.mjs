@@ -22,3 +22,8 @@ test('malformed and contradictory audio fails closed', () => {
   broken.write('NOTW', 8, 'ascii');
   assert.throws(() => inspectWav(broken));
 });
+
+test('trailing incomplete RIFF chunk is rejected', () => {
+ const original=mockSpeechWav('test');const wav=Buffer.concat([original,Buffer.from([1,2,3])]);
+ wav.writeUInt32LE(wav.length-8,4);assert.throws(()=>inspectWav(wav),/Incomplete/);
+});

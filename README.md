@@ -102,3 +102,9 @@ interfaces. This repo contains **no** private corpus, character models,
 saved voice prompts or model weights.
 
 See docs/PROTOCOL.md, docs/ARCHITECTURE.md and docs/VALIDATION.md.
+
+## Current implementation
+
+See [LOCAL_SETUP.md](docs/LOCAL_SETUP.md) for environment-based token handling, private rig hookup and hardware acceptance, and [NEXT_WORK.md](docs/NEXT_WORK.md) for Buff's unified episode/download/live-response launcher contract. Panic is latched until explicit resume. Interrupt cuts both actors' queued speech. Playback receipts and stage heartbeat now measure the actual Unity path.
+
+The earlier Inspector-token instruction above belongs to the imported prototype: the current client instead reads LIVE_PUPPET_TOKEN from its process environment so tokens are not saved into scenes.

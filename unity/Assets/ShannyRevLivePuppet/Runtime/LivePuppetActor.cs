@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 using UnityEngine;
 
 namespace ShannyRev.LivePuppet
@@ -12,7 +13,7 @@ namespace ShannyRev.LivePuppet
     {
         [SerializeField] private AudioSource voice;
         [SerializeField] private SkinnedMeshRenderer face;
-        [SerializeField] private string jawBlendshape = "JawOpen";
+        [SerializeField] private string jawBlendshape = "";
         [SerializeField] private string wideBlendshape = "";
         [SerializeField] private string puckerBlendshape = "";
         [SerializeField, Range(0f, 100f)] private float jawMaximum = 72f;
@@ -31,6 +32,21 @@ namespace ShannyRev.LivePuppet
         private float jaw;
         private float wide;
         private float pucker;
+        public event Action<string, string, float, int, float, float> Playback;
+        private readonly Queue<string> ids = new Queue<string>();
+        private string activeId;
+        private float peakJaw, maxFrame, elapsed;
+        private int maxSample, frames;
+        public bool IsPlaying => voice != null && voice.isPlaying;
+        public float JawWeight => jaw;
+
+        public void Configure(AudioSource source, SkinnedMeshRenderer mesh, string exactJaw)
+        {
+            voice = source; face = mesh; jawBlendshape = exactJaw;
+            voice.playOnAwake = false; voice.loop = false; voice.spatialBlend = 0;
+            Awake();
+            if (jawIndex < 0) throw new InvalidOperationException("Exact jaw morph not present: " + exactJaw);
+        }
 
         private void Awake()
         {
@@ -44,15 +60,19 @@ namespace ShannyRev.LivePuppet
                 puckerIndex = mesh.GetBlendShapeIndex(puckerBlendshape);
         }
 
-        public void Enqueue(AudioClip clip, bool interrupt)
+        public bool Enqueue(AudioClip clip, bool interrupt, string id = "")
         {
-            if (clip == null) return;
+            if (clip == null) return false;
+            if (!isActiveAndEnabled || voice == null || (!interrupt && pending.Count >= 8)) { Destroy(clip); return false; }
             if (interrupt) StopAll();
             pending.Enqueue(clip);
+            ids.Enqueue(id);
+            return true;
         }
 
         public void StopAll()
         {
+            Report("stopped");
             if (voice != null)
             {
                 voice.Stop();
@@ -62,19 +82,29 @@ namespace ShannyRev.LivePuppet
             activeClip = null;
             while (pending.Count > 0)
                 Destroy(pending.Dequeue());
+            ids.Clear();
             jaw = wide = pucker = 0f;
             SetWeights();
         }
 
         private void OnDisable() { StopAll(); }
 
-        private void Update()
+        private void Report(string state)
+        {
+            if (activeId == null) return;
+            Playback?.Invoke(activeId, state, peakJaw, maxSample, elapsed > 0 ? frames / elapsed : 0, maxFrame * 1000);
+            if (state != "started") activeId = null;
+        }
+
+        private void LateUpdate()
         {
             if (voice == null) return;
             if (!voice.isPlaying)
             {
                 if (activeClip != null)
                 {
+                    jaw = wide = pucker = 0f; SetWeights();
+                    Report("finished");
                     voice.clip = null;
                     Destroy(activeClip);
                     activeClip = null;
@@ -82,8 +112,11 @@ namespace ShannyRev.LivePuppet
                 if (pending.Count > 0)
                 {
                     activeClip = pending.Dequeue();
+                    activeId = ids.Dequeue();
+                    peakJaw = maxFrame = elapsed = 0; maxSample = frames = 0;
                     voice.clip = activeClip;
                     voice.Play();
+                    Report("started");
                 }
             }
 
@@ -92,6 +125,9 @@ namespace ShannyRev.LivePuppet
             float puckerTarget = 0f;
             if (voice.isPlaying)
             {
+                maxSample = Mathf.Max(maxSample, voice.timeSamples);
+                elapsed += Time.unscaledDeltaTime; frames++;
+                maxFrame = Mathf.Max(maxFrame, Time.unscaledDeltaTime);
                 voice.GetOutputData(samples, 0);
                 float energy = 0f;
                 for (int i = 0; i < samples.Length; i++)
@@ -117,10 +153,12 @@ namespace ShannyRev.LivePuppet
                 }
             }
 
-            float alpha = 1f - Mathf.Exp(-Mathf.Max(1f, smoothingHz) * Time.deltaTime);
+            float alpha = 1f - Mathf.Exp(-Mathf.Max(1f, smoothingHz) * Time.unscaledDeltaTime);
             jaw = Mathf.Lerp(jaw, jawTarget, alpha);
             wide = Mathf.Lerp(wide, wideTarget, alpha);
             pucker = Mathf.Lerp(pucker, puckerTarget, alpha);
+            if (!voice.isPlaying) jaw = wide = pucker = 0f;
+            peakJaw = Mathf.Max(peakJaw, jaw);
             SetWeights();
         }
 

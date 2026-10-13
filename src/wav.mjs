@@ -15,7 +15,8 @@ export function inspectWav(input) {
   if (declaredSize !== wav.length) throw new Error('WAV RIFF length mismatch');
   let fmt = null;
   let dataBytes = null;
-  for (let offset = 12; offset + 8 <= wav.length;) {
+  let offset = 12;
+  for (; offset + 8 <= wav.length;) {
     const kind = wav.toString('ascii', offset, offset + 4);
     const size = wav.readUInt32LE(offset + 4);
     const start = offset + 8;
@@ -37,6 +38,7 @@ export function inspectWav(input) {
     }
     offset = start + size + (size & 1);
   }
+  if (offset !== wav.length) throw new Error('Incomplete WAV chunk or padding');
   if (!fmt || fmt.format !== 1 || fmt.channels !== 1 ||
       fmt.rate !== SAMPLE_RATE || fmt.bits !== 16 ||
       fmt.blockAlign !== 2 || fmt.bytesPerSec !== SAMPLE_RATE * 2 ||

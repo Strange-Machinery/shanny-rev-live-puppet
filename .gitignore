@@ -12,3 +12,15 @@ Build/
 Builds/
 Logs/
 UserSettings/
+
+evidence.local/
+*.local.ps1
+*.local.json
+*.pt
+*.safetensors
+*.onnx
+*.fbx
+*.asset
+*.png
+*.exe
+

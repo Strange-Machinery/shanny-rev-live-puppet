@@ -109,3 +109,55 @@ test('bounded queue backpressure', async () => {
     assert.equal((await send({ actor: 'REV', text: 'two' })).status, 429);
   } finally { finish(); await server.close(); }
 });
+
+test('panic latches mute until explicit resume', async () => {
+  const {server,get,post}=await harness();
+  try {
+    await post('/v1/panic');
+    assert.equal((await post('/v1/speak',{actor:'SHANNY',text:'blocked'})).status,423);
+    assert.equal((await (await get('/v1/status')).json()).muted,true);
+    await post('/v1/resume');
+    assert.equal((await post('/v1/speak',{actor:'SHANNY',text:'allowed'})).status,202);
+  } finally {await server.close();}
+});
+
+test('interrupt bypasses full backlog and invalidates old Rev generation', async () => {
+  let finish;
+  const gate=new Promise(resolve=>{finish=resolve;});
+  const mock=new MockVoiceProvider(); let count=0;
+  const {server,get,post}=await harness({generate:async req=>{if(count++===0)await gate;return mock.generate(req);},close:async()=>finish()});
+  try {
+    for(let i=0;i<4;i++)assert.equal((await post('/v1/speak',{actor:'REV',text:'old'})).status,202);
+    const response=await post('/v1/speak',{actor:'SHANNY',text:'my turn',delivery:'interrupt'});
+    assert.equal(response.status,202); const {request_id}=await response.json();
+    const interrupted=await waitFor(get,'interrupt'); assert.equal(interrupted.epoch,1);
+    finish(); const ready=await waitFor(get,'speech.ready'); assert.equal(ready.id,request_id);
+    const page=await (await get('/v1/events')).json();
+    assert.equal(page.events.filter(e=>e.type==='speech.ready').length,1);
+  } finally {finish();await server.close();}
+});
+
+test('session mismatch and stale playback fail closed', async () => {
+  const {server,get,post}=await harness();
+  try {
+    assert.equal((await get('/v1/events?session=old')).status,409);
+    const status=await (await get('/v1/status')).json();
+    await post('/v1/speak',{actor:'REV',text:'receipt'});
+    const ready=await waitFor(get,'speech.ready');
+    const receipt={id:ready.id,actor:'REV',session_id:status.session_id,epoch:0,state:'started',transport_decode_ms:2};
+    assert.equal((await post('/v1/playback',receipt)).status,200);
+    assert.equal((await post('/v1/playback',{...receipt,transport_decode_ms:-1})).status,400);
+    await post('/v1/panic'); assert.equal((await post('/v1/playback',receipt)).status,409);
+  } finally {await server.close();}
+});
+
+test('stage heartbeat validates identity, flags and bounded weights', async () => {
+ const {server,get,post}=await harness();try{
+  const status=await (await get('/v1/status')).json();
+  const row={session_id:status.session_id,epoch:0,instance_id:'fixture',shanny_playing:false,rev_playing:false,muted:false,shanny_jaw:0,rev_jaw:0};
+  assert.equal((await post('/v1/stage',row)).status,200);
+  assert.equal((await post('/v1/stage',{...row,shanny_jaw:101})).status,400);
+  assert.equal((await post('/v1/stage',{...row,epoch:1})).status,409);
+  assert.equal((await (await get('/v1/metrics')).json()).stage.instance_id,'fixture');
+ }finally{await server.close();}
+});

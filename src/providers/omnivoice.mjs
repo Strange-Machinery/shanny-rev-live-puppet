@@ -3,6 +3,7 @@ import { createInterface } from 'node:readline';
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { performance } from 'node:perf_hooks';
 
 /**
  * Thin client for the EXISTING /LIVE/python/omnivoice_live_worker.py protocol.
@@ -34,6 +35,8 @@ export class OmniVoiceProvider {
     this.pending = new Map();
     this.stderrTail = '';
     this.stopping = false;
+    this.busy = false;
+    this.startupMs = null;
   }
 
   async #ensureWorker() {
@@ -44,6 +47,7 @@ export class OmniVoiceProvider {
       this.readyResolve = resolve;
       this.readyReject = reject;
       const c = this.config;
+      this.startedAt = performance.now();
       const child = spawn(c.python, [
         c.workerScript, '--app-root', c.appRoot,
         '--output-root', c.outputRoot,
@@ -56,12 +60,13 @@ export class OmniVoiceProvider {
         this.#fail(new Error('OmniVoice model startup timed out'));
       }, c.startupMs);
       const reader = createInterface({ input: child.stdout, crlfDelay: Infinity });
-      reader.on('line', line => this.#handleLine(line));
+      reader.on('line', line => { if (this.child === child) this.#handleLine(line); });
+      child.stdin.on('error', error => { if (this.child === child) this.#fail(error); });
       child.stderr.setEncoding('utf8');
       child.stderr.on('data', value => {
         this.stderrTail = (this.stderrTail + value).slice(-1000);
       });
-      child.once('error', error => this.#fail(error));
+      child.once('error', error => { if (this.child === child) this.#fail(error); });
       child.once('exit', (code, signal) => {
         if (this.child === child) {
           this.#fail(new Error('OmniVoice worker exited: ' + code + '/' + signal));
@@ -81,6 +86,7 @@ export class OmniVoiceProvider {
       return;
     }
     if (message.type === 'READY') {
+      this.startupMs = performance.now() - this.startedAt;
       if (this.startTimer) clearTimeout(this.startTimer);
       this.startTimer = null;
       this.readyResolve?.();
@@ -130,11 +136,20 @@ export class OmniVoiceProvider {
 
   async generate({ actor, text }) {
     if (!['SHANNY', 'REV'].includes(actor)) throw new Error('Unknown actor');
+    if (this.busy) throw new Error('OmniVoice worker is busy');
+    this.busy = true;
+    try { return await this.#generate(actor, text); }
+    finally { this.busy = false; }
+  }
+
+  async #generate(actor, text) {
+    const cold = !this.ready;
     await this.#ensureWorker();
     if (!this.child) throw new Error('Worker not running');
     const id = randomUUID();
     const relative = 'requests/' + id + '.wav';
-    await new Promise((resolve, reject) => {
+    const started = performance.now();
+    const result = await new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.#fail(new Error('OmniVoice generation timeout'));
       }, this.config.requestMs);
@@ -153,7 +168,12 @@ export class OmniVoiceProvider {
       throw new Error('Worker output escaped configured root');
     }
     try {
-      return await fs.readFile(real);
+      const stat = await fs.stat(real);
+      if (!stat.isFile() || stat.size > 24 * 1024 * 1024) throw new Error('Worker WAV exceeds bounded file size');
+      const wav = await fs.readFile(real);
+      return { wav, timings: { worker_cold_startup_ms: cold ? this.startupMs : null,
+        generation_ms: result.generation_ms ?? null,
+        request_to_complete_wav_ms: performance.now() - started } };
     } finally {
       await fs.rm(real, { force: true });
     }

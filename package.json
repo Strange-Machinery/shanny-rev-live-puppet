@@ -4,10 +4,12 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Low-latency always-on Shanny & Rev audio puppet stage",
-  "engines": {"node": ">=22"},
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "node src/cli.mjs",
-    "test": "node --test",
+    "test": "node --test test/*.test.mjs",
     "bench": "node scripts/bench.mjs"
   }
 }

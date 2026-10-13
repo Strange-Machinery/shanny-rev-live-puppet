@@ -68,3 +68,19 @@ GPU cancellation is not guaranteed.**
 The v1 protocol has no streaming PCM, playout ACK, synchronized dyad
 timeline, Whisper microphone capture or Qwen Director. Those require
 explicit versioned additions, not overload of audio_path.
+
+## Implemented control and telemetry additions
+
+Status and event pages include `session_id`, `epoch` and `muted`. Pollers should send `session` alongside `after`. A session mismatch returns 409. Unity mutes and re-baselines after any poll failure, including a restart with a lower cursor; it never resumes old queued audio. Audio URLs are exact local UUID routes, with redirects disabled.
+
+`delivery: interrupt` invalidates both actors' queued/prepared speech immediately, emits `interrupt`, and admits the new job ahead of the old backlog, even when full. This is the explicit cross-character interruption policy: Shanny can cut Rev off. In-flight GPU work is allowed to finish and is discarded; the persistent worker is not killed on each interrupt. New audio waits for that worker. Normal queued speech remains independent per actor in Unity.
+
+Panic is now latched. `/v1/panic` invalidates all work and rejects speak with 423 until POST `/v1/resume`. Both routes require the same bearer token. A local Unity panic sets a local latch before making any network request. Automatic reconnect cannot clear that latch.
+
+POST `/v1/playback` records authenticated `started`, `finished`, `stopped` observations for a known job in the current epoch/session. Metrics include a bounded receipt list with transport+decode time, enqueue-to-Play time, request-to-ACK time, audio sample progress, peak jaw weight, idle jaw weight, average FPS and maximum frame interval. These are client observations, not physical microphone measurements. Transport and Unity decode are a combined UnityWebRequest measurement; they are not falsely split into estimated components.
+
+POST `/v1/stage` carries a bounded heartbeat: instance ID, session, epoch, both playing flags, both current jaw weights and local mute state. Metrics expose its server receipt time; callers must reject stale heartbeats. The heartbeat is observational and grants no control authority.
+
+Ready events include optional provider timings: worker spawn-to-READY cold startup, worker-reported model generation, and GENERATE-to-complete-WAV-read. Complete WAV measurement includes conversion and file I/O; gateway request-to-ready also includes queue wait. Warm samples have null cold startup. Quantiles use nearest-rank actual samples.
+
+The original Deferred versions section describes the imported prototype. Playback ACK and explicit resume above are now implemented additive v1 routes. PCM streaming, Whisper and Qwen remain deferred.
