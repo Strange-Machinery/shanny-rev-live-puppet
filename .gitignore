@@ -1,0 +1,14 @@
+node_modules/
+.env
+*.local.json
+*.wav
+*.log
+coverage/
+.DS_Store
+Library/
+Temp/
+Obj/
+Build/
+Builds/
+Logs/
+UserSettings/

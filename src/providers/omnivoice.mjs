@@ -1,0 +1,169 @@
+import { spawn } from 'node:child_process';
+import { createInterface } from 'node:readline';
+import { randomUUID } from 'node:crypto';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
+/**
+ * Thin client for the EXISTING /LIVE/python/omnivoice_live_worker.py protocol.
+ * Model remains resident. Current worker emits a COMPLETE WAV, not PCM chunks.
+ * Does not copy model, weights, voice reference assets or production code.
+ */
+export class OmniVoiceProvider {
+  name = 'omnivoice-complete-wav';
+
+  constructor(config) {
+    for (const key of ['python', 'workerScript', 'appRoot', 'outputRoot',
+      'shannyReference', 'revReference']) {
+      if (typeof config[key] !== 'string' || !config[key].trim()) {
+        throw new Error('OmniVoice configuration missing ' + key);
+      }
+    }
+    for (const reference of [config.shannyReference, config.revReference]) {
+      if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(reference)) {
+        throw new Error('Invalid saved voice reference ID');
+      }
+    }
+    this.config = { ...config, startupMs: config.startupMs || 180_000,
+      requestMs: config.requestMs || 120_000 };
+    this.child = null;
+    this.ready = null;
+    this.readyResolve = null;
+    this.readyReject = null;
+    this.startTimer = null;
+    this.pending = new Map();
+    this.stderrTail = '';
+    this.stopping = false;
+  }
+
+  async #ensureWorker() {
+    if (this.stopping) throw new Error('OmniVoice provider is stopping');
+    if (this.ready) return this.ready;
+    await fs.mkdir(this.config.outputRoot, { recursive: true });
+    this.ready = new Promise((resolve, reject) => {
+      this.readyResolve = resolve;
+      this.readyReject = reject;
+      const c = this.config;
+      const child = spawn(c.python, [
+        c.workerScript, '--app-root', c.appRoot,
+        '--output-root', c.outputRoot,
+        '--shanny-reference', c.shannyReference,
+        '--rev-reference', c.revReference,
+        '--seed', String(c.seed || 73001)
+      ], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
+      this.child = child;
+      this.startTimer = setTimeout(() => {
+        this.#fail(new Error('OmniVoice model startup timed out'));
+      }, c.startupMs);
+      const reader = createInterface({ input: child.stdout, crlfDelay: Infinity });
+      reader.on('line', line => this.#handleLine(line));
+      child.stderr.setEncoding('utf8');
+      child.stderr.on('data', value => {
+        this.stderrTail = (this.stderrTail + value).slice(-1000);
+      });
+      child.once('error', error => this.#fail(error));
+      child.once('exit', (code, signal) => {
+        if (this.child === child) {
+          this.#fail(new Error('OmniVoice worker exited: ' + code + '/' + signal));
+        }
+      });
+    });
+    return this.ready;
+  }
+
+  #handleLine(line) {
+    if (!line.startsWith('LIVE_WORKER ')) return;
+    let message;
+    try {
+      message = JSON.parse(line.slice('LIVE_WORKER '.length));
+    } catch {
+      this.#fail(new Error('Malformed worker control message'));
+      return;
+    }
+    if (message.type === 'READY') {
+      if (this.startTimer) clearTimeout(this.startTimer);
+      this.startTimer = null;
+      this.readyResolve?.();
+      this.readyResolve = null;
+      this.readyReject = null;
+      return;
+    }
+    if (message.type === 'FATAL') {
+      this.#fail(new Error('OmniVoice startup failure: ' +
+        String(message?.error?.message || 'Unknown error').slice(0, 200)));
+      return;
+    }
+    if (message.type !== 'RESULT') return;
+    const pending = this.pending.get(message.id);
+    if (!pending) return;
+    clearTimeout(pending.timer);
+    this.pending.delete(message.id);
+    if (message.status !== 'SUCCEEDED') {
+      pending.reject(new Error('OmniVoice synthesis failed: ' +
+        String(message?.error?.message || 'Unknown error').slice(0, 200)));
+      return;
+    }
+    if (message.relative_path !== pending.path) {
+      pending.reject(new Error('OmniVoice returned unexpected output path'));
+      return;
+    }
+    pending.resolve(message);
+  }
+
+  #fail(error) {
+    if (this.startTimer) clearTimeout(this.startTimer);
+    this.startTimer = null;
+    const reject = this.readyReject;
+    this.readyResolve = null;
+    this.readyReject = null;
+    this.ready = null;
+    reject?.(error);
+    for (const pending of this.pending.values()) {
+      clearTimeout(pending.timer);
+      pending.reject(error);
+    }
+    this.pending.clear();
+    const child = this.child;
+    this.child = null;
+    try { child?.kill(); } catch {}
+  }
+
+  async generate({ actor, text }) {
+    if (!['SHANNY', 'REV'].includes(actor)) throw new Error('Unknown actor');
+    await this.#ensureWorker();
+    if (!this.child) throw new Error('Worker not running');
+    const id = randomUUID();
+    const relative = 'requests/' + id + '.wav';
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.#fail(new Error('OmniVoice generation timeout'));
+      }, this.config.requestMs);
+      this.pending.set(id, { resolve, reject, timer, path: relative });
+      this.child.stdin.write(JSON.stringify({
+        type: 'GENERATE', id, actor, text, relative_path: relative
+      }) + '\n', error => {
+        if (error) this.#fail(error);
+      });
+    });
+    const root = await fs.realpath(this.config.outputRoot);
+    const expected = path.resolve(root, relative);
+    const real = await fs.realpath(expected);
+    const rel = path.relative(root, real);
+    if (rel.startsWith('..') || path.isAbsolute(rel)) {
+      throw new Error('Worker output escaped configured root');
+    }
+    try {
+      return await fs.readFile(real);
+    } finally {
+      await fs.rm(real, { force: true });
+    }
+  }
+
+  async close() {
+    this.stopping = true;
+    if (this.child) {
+      try { this.child.stdin.write('{"type":"SHUTDOWN"}\n'); } catch {}
+    }
+    this.#fail(new Error('OmniVoice worker closed'));
+  }
+}
