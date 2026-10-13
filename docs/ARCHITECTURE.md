@@ -26,7 +26,7 @@ Rhubarb stage protocol or episode Timeline.
   permit arbitrary C# commands or scene hierarchy paths from Qwen.
 - Prepare the reaction while the reading is playing, then play it when
   the donation ends, subject to expiry and current operator override.
-- Add playout acknowledgments to measure first audible sample and keep
+- Use playout acknowledgments to observe AudioSource start and keep
   dialog synchronized; current event readiness does **not** imply playout.
 
 ## Buff speaks / Whisper listens (later)

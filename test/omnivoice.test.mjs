@@ -27,3 +27,9 @@ test('unexpected output path and concurrent calls are rejected',async t=>{
  const active=p.generate({actor:'SHANNY',text:'one'});
  await assert.rejects(p.generate({actor:'REV',text:'two'}),/busy/);await active;
 });
+
+test('explicit warmup retains one worker for subsequent speech', async t => {
+ const {p}=await provider(t);const startup=await p.warmup();assert.ok(startup.worker_cold_startup_ms>0);
+ const pid=p.child.pid;const result=await p.generate({actor:'SHANNY',text:'already warm'});
+ assert.equal(p.child.pid,pid);assert.equal(result.timings.worker_cold_startup_ms,null);
+});

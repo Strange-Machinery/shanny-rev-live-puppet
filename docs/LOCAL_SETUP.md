@@ -43,3 +43,8 @@ node scripts/acceptance.mjs
 The acceptance runner starts a private ephemeral gateway and Unity player, checks synthetic audio first, then runs both real speakers. It closes its own player and worker afterward. Optional LIVE_CAPTURE_ROOT enables diagnostic stills; it does not record videos. First physical audible output requires a separately calibrated audio capture; AudioSource.Play/ACK does not establish that timestamp.
 
 For OBS, capture the continuously running player window or game. No utterance video generation or encoding occurs in the puppet pipeline. OBS capture/coexistence must be tested separately before a live broadcast.
+
+## One-command launcher
+Copy docs/demo-config.example.json to an ignored *.local.json file and fill in the approved local paths. Run scripts/start-demo.ps1 -Config <private-config.local.json>. It warms the existing OmniVoice worker before opening the interactive player, generates a session-only token, and stops its own gateway/worker when the player closes. Use -Provider mock for synthetic audio. The demo provides typed speech for either speaker, an interrupt toggle, and an immediate stop button. Microphone capture is not enabled.
+
+The isolated fixture also needs the source shaders' relative HLSL/CGINC includes, the approved standing-hold clips, and the serialized per-actor demoFacingYawDegrees from the source scene. Copy those dependencies with the assets. The builder samples those existing poses once and preserves their authored facing angles; it does not run an episode animation pipeline. The stage targets 30 FPS to leave GPU capacity for speech.

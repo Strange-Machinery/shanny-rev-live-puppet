@@ -1,0 +1,10 @@
+{
+  "player": "C:\\private-live-project\\Build\\LivePuppet.exe",
+  "port": 8770,
+  "OV_PYTHON": "C:\\existing-approved-runtime\\python.exe",
+  "OV_WORKER_SCRIPT": "C:\\private-engine\\LIVE\\python\\omnivoice_live_worker.py",
+  "OV_APP_ROOT": "C:\\private-engine\\outputs\\app",
+  "OV_OUTPUT_ROOT": "C:\\private-live-scratch",
+  "OV_SHANNY_REFERENCE": "approved-shanny-id",
+  "OV_REV_REFERENCE": "approved-rev-id"
+}

@@ -39,7 +39,8 @@ namespace ShannyRev.LivePuppet
         private long cursor;
         private int generation, epoch;
         private string session;
-        private bool baselineReady, locallyMuted;
+        private bool baselineReady, locallyMuted, controlPending;
+        public string OperatorStatus { get; private set; } = "";
         private readonly string instanceId = Guid.NewGuid().ToString("D");
         [Serializable] private sealed class StageHeartbeat {
             public string session_id, instance_id;
@@ -64,7 +65,11 @@ namespace ShannyRev.LivePuppet
             baselineReady = false;
             StartCoroutine(Run());
         }
-        private void OnDisable() { StopAllCoroutines(); baselineReady = false; StopLocal(); }
+        private void OnDisable() {
+            if (shanny != null) shanny.Playback -= OnPlayback;
+            if (rev != null) rev.Playback -= OnPlayback;
+            StopAllCoroutines(); baselineReady = false; controlPending = false; StopLocal();
+        }
         private void StopLocal() {
             generation++; shannyQueue.Clear(); revQueue.Clear();
             playing.Clear();
@@ -75,19 +80,38 @@ namespace ShannyRev.LivePuppet
             locallyMuted = true; StopLocal(); baselineReady = false;
             if (isActiveAndEnabled) StartCoroutine(Control("panic"));
         }
-        public void ResumeLive() { if (isActiveAndEnabled) StartCoroutine(Control("resume")); }
+        public void ResumeLive() { if (isActiveAndEnabled && !controlPending) StartCoroutine(Control("resume")); }
+        [Serializable] private sealed class SpeechRequest { public string actor, text, delivery; }
+        public void Speak(string actor, string text, bool interrupt) {
+            if (isActiveAndEnabled && baselineReady && !locallyMuted && !string.IsNullOrWhiteSpace(text))
+                StartCoroutine(SendSpeech(new SpeechRequest { actor=actor, text=text, delivery=interrupt?"interrupt":"queue" }));
+        }
+        private IEnumerator SendSpeech(SpeechRequest message) {
+            using (var req = Prepare(new UnityWebRequest(endpoint + "/v1/speak", "POST"))) {
+                req.uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(message)));
+                req.downloadHandler = new DownloadHandlerBuffer(); req.SetRequestHeader("Content-Type", "application/json");
+                yield return req.SendWebRequest();
+                OperatorStatus = req.result == UnityWebRequest.Result.Success ? "Speech queued for " + message.actor : "Speech rejected: " + req.responseCode;
+            }
+        }
         private UnityWebRequest Prepare(UnityWebRequest req) {
             req.SetRequestHeader("Authorization", "Bearer " + token);
             req.timeout = 5; req.redirectLimit = 0; return req;
         }
         private IEnumerator Control(string action) {
+            controlPending = true;
+            int captured = generation;
             using (var req = Prepare(new UnityWebRequest(endpoint + "/v1/" + action, "POST"))) {
                 req.downloadHandler = new DownloadHandlerBuffer();
                 yield return req.SendWebRequest();
+                controlPending = false;
                 if (req.result != UnityWebRequest.Result.Success) {
                     Debug.LogWarning("Live control failed; stage stays locally muted."); yield break;
                 }
-                if (action == "resume") locallyMuted = false;
+                if (action == "resume") {
+                    if (captured == generation) locallyMuted = false;
+                    else { locallyMuted = true; StartCoroutine(Control("panic")); }
+                }
                 baselineReady = false;
             }
         }

@@ -54,4 +54,3 @@ const pick = q => sorted[Math.ceil(q * sorted.length) - 1];
 console.log(JSON.stringify({ schema_version: 'shanny-rev-live-puppet/benchmark/v1',
   note: 'Complete WAV ready; excludes Unity download/decode/playback and microphone ASR.',
   p50_ms: pick(0.5), p95_ms: pick(0.95), samples }, null, 2));
-

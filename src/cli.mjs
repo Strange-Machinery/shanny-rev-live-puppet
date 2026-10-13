@@ -27,6 +27,11 @@ if (!Number.isInteger(port) || port < 1 || port > 65535) {
   throw new Error('LIVE_PUPPET_PORT must be in the range 1-65535');
 }
 const app = createLiveServer({ provider, token, port });
+if (provider.warmup) {
+  console.log('Loading existing private OmniVoice worker; gateway opens when ready.');
+  const startup = await provider.warmup();
+  console.log('Voice worker ready in ' + Math.round(startup.worker_cold_startup_ms) + ' ms.');
+}
 const endpoint = await app.start();
 
 console.log('Shanny & Rev Live Puppet — ' + provider.name);

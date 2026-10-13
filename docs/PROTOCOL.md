@@ -65,7 +65,7 @@ GPU cancellation is not guaranteed.**
 
 ### Deferred versions
 
-The v1 protocol has no streaming PCM, playout ACK, synchronized dyad
+The v1 protocol has no streaming PCM or synchronized dyad
 timeline, Whisper microphone capture or Qwen Director. Those require
 explicit versioned additions, not overload of audio_path.
 
@@ -83,4 +83,4 @@ POST `/v1/stage` carries a bounded heartbeat: instance ID, session, epoch, both 
 
 Ready events include optional provider timings: worker spawn-to-READY cold startup, worker-reported model generation, and GENERATE-to-complete-WAV-read. Complete WAV measurement includes conversion and file I/O; gateway request-to-ready also includes queue wait. Warm samples have null cold startup. Quantiles use nearest-rank actual samples.
 
-The original Deferred versions section describes the imported prototype. Playback ACK and explicit resume above are now implemented additive v1 routes. PCM streaming, Whisper and Qwen remain deferred.
+Playback ACK and explicit resume are additive v1 routes. PCM streaming, Whisper and Qwen remain deferred.

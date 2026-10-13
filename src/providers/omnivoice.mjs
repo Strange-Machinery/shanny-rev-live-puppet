@@ -43,6 +43,7 @@ export class OmniVoiceProvider {
     if (this.stopping) throw new Error('OmniVoice provider is stopping');
     if (this.ready) return this.ready;
     await fs.mkdir(this.config.outputRoot, { recursive: true });
+    if (this.stopping) throw new Error('OmniVoice provider is stopping');
     this.ready = new Promise((resolve, reject) => {
       this.readyResolve = resolve;
       this.readyReject = reject;
@@ -139,6 +140,13 @@ export class OmniVoiceProvider {
     if (this.busy) throw new Error('OmniVoice worker is busy');
     this.busy = true;
     try { return await this.#generate(actor, text); }
+    finally { this.busy = false; }
+  }
+
+  async warmup() {
+    if (this.busy) throw new Error('OmniVoice worker is busy');
+    this.busy = true;
+    try { await this.#ensureWorker(); return { worker_cold_startup_ms: this.startupMs }; }
     finally { this.busy = false; }
   }
 

@@ -25,6 +25,7 @@ async function utterance(actor,text,mode){const {request_id:id}=await post('/v1/
  if(ready&&finished)break;await sleep(100);}
  if(!finished)throw Error('No completed Unity playback for '+actor);
  if(!(finished.peak_jaw_weight>0&&finished.max_audio_sample>0&&finished.idle_jaw_weight===0))throw Error('No measured audio-driven face motion for '+actor);
+ if(process.env.LIVE_SAVE_AUDIO==='1' && mode==='omnivoice'){const audio=await fetch(base+ready.audio_path,{headers});if(!audio.ok)throw Error('Evidence audio expired');await fs.writeFile(path.join(out,actor+'-'+id+'.wav'),Buffer.from(await audio.arrayBuffer()));}
  const sample={mode,actor,id,ready,started,finished};samples.push(sample);console.log(JSON.stringify({mode,actor,request_to_ready_ms:ready.request_to_ready_ms,provider_timings:ready.provider_timings,finished}));
  await fs.writeFile(path.join(out,'acceptance.json'),JSON.stringify(report,null,2));await sleep(350);
 }
@@ -33,7 +34,7 @@ try{
  async function waitStage(predicate, timeout=15000){const end=Date.now()+timeout;while(Date.now()<end){const stage=(await get('/v1/metrics')).stage;if(stage && Date.now()-stage.received_unix_ms<1500 && predicate(stage))return stage;await sleep(50);}throw Error('Stage state timed out');}
  if(!process.env.LIVE_PLAYER)throw Error('LIVE_PLAYER required');
  const playerLog=path.join(out,'player.log');
- player=spawn(process.env.LIVE_PLAYER,['-screen-fullscreen','0','-logFile',playerLog],{windowsHide:true,stdio:'ignore',env:{...process.env,LIVE_PUPPET_TOKEN:token,LIVE_PUPPET_URL:base}});
+ player=spawn(process.env.LIVE_PLAYER,['-force-d3d11','-screen-fullscreen','0','-logFile',playerLog],{windowsHide:false,stdio:'ignore',env:{...process.env,LIVE_PUPPET_TOKEN:token,LIVE_PUPPET_URL:base}});
  player.on('error',e=>console.error(e.message));await waitStage(s=>!s.muted,60000);
  if(player.exitCode!==null)throw Error('Unity player exited '+player.exitCode);
  report.player_pid=player.pid;report.stage_instance_id=(await get('/v1/metrics')).stage.instance_id;
@@ -56,7 +57,10 @@ try{
  for(const [actor,text] of [['SHANNY','Buff, are you listening to me?'],['REV','Yes, I am listening to you.'],['SHANNY','I wanted to finish what I was saying.'],['REV','Go ahead. I will wait for my turn.'],['SHANNY','All right, Buff. We can get back to the show.'],['REV','That sounds good. Let us get back to the show.']])await utterance(actor,text,'omnivoice');
  }
  report.same_stage_instance=(await get('/v1/metrics')).stage.instance_id===report.stage_instance_id;
- report.status='PASSED_AUDIO_SOURCE_AND_FACE';report.same_player_through_all_samples=player.exitCode===null;
+ report.same_player_through_all_samples=player.exitCode===null;
+ if(!report.same_stage_instance||!report.same_player_through_all_samples)throw Error('Stage instance changed during acceptance');
+ const log=await fs.readFile(playerLog,'utf8');if(/(?:^|\n)(?:\w*Exception:|Error:)/.test(log))throw Error('Unity runtime exception/error in player log');
+ report.status='PASSED_AUDIO_SOURCE_AND_FACE';
 }catch(error){report.status='FAILED';report.error=error.message;process.exitCode=1;console.error(error.message);}
 finally{clearInterval(timer);await post('/v1/panic').catch(()=>{});player?.kill();await server.close();
  const q=(xs,p)=>xs.length?[...xs].sort((a,b)=>a-b)[Math.ceil(xs.length*p)-1]:null;
