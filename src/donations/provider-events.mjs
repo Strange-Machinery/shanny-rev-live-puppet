@@ -12,7 +12,7 @@ export const DEFAULT_DONATION_AUTHORITY=Object.freeze({
 
 function id(value) {
   if(typeof value==='number'&&Number.isSafeInteger(value)&&value>=0)value=String(value);
-  return typeof value==='string'&&value.length>0&&value.length<=120&&
+  return typeof value==='string'&&value.length>0&&value.length<=100&&
     /^[a-zA-Z0-9._:-]+$/.test(value)?value:null;
 }
 function currency(value) {return typeof value==='string'&&/^[A-Z]{3}$/.test(value)?value:null;}
@@ -36,7 +36,8 @@ function speech(value,donor,sum,unit) {
 }
 function paid({donation_id,source,kind,external_id,timestamp,donor,message,sum,unit}) {
   if(!donation_id||!external_id||sum===null||!unit)return null;
-  return Object.freeze({donation_id,source,kind,external_id,timestamp,donor,
+  return Object.freeze({donation_id,source,kind,external_id,
+    timestamp:timestamp||new Date().toISOString(),timestamp_source:timestamp?'provider':'received',donor,
     text:speech(message,donor,sum,unit),amount:sum,currency:unit});
 }
 function allow(authority,key,source) {return authority[key]===source;}
