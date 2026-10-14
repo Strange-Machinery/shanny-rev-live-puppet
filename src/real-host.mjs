@@ -117,6 +117,10 @@ export async function serveRealHost(config){
       if(data.action?.startsWith('media-')){if(!media)throw new Error('Stage feed not configured');return media.viewer(data);}
       if(data.action==='animations')return animations.menu();
       if(data.action==='stop'){animations.stop();await session.stop();return {stopped:true};}
+      // Operator-only hard interrupt; unlike STOP it leaves the host ready for the next TTS.
+      // Never treat donation text as a voice command.
+      if(data.action==='silence'||(data.action==='transcript'&&!data.audioPath&&
+          typeof data.text==='string'&&/^\s*shut\s+up[.!?]*\s*$/i.test(data.text)))return session.silence();
       if(data.action==='arm'){
         const result=await session.arm();
         await waitUntil(async()=>{const {stage}=await gateway.metrics();return stage&&!stage.muted&&Date.now()-stage.received_unix_ms<2500;},5000);
