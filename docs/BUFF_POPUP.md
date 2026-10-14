@@ -35,6 +35,21 @@ ownership remains native. The browser sends a bounded ready/visible receipt
 before the host releases the first prepared voice; remote OBS autoplay must
 still be tested with Buff.
 
+**Mucus HUD art pass (separate draft):** the header is branded
+**STANK TANK AI**, beneath **STRANGE MACHINERY PRESENTS**; the miniature live
+camera bug continues to say **THE STANK TANK**. Four self-contained SVG
+coatings add volume-shaded acid-green mucus to the outer frame: a thin top
+film, two lower-side rails and a denser bottom reservoir. Five narrow,
+independently phased strands slowly stretch and recoil; two microbeads release
+occasionally below the bottom edge. Wet highlights, cast shadows and a metal
+bevel are layered without a fluid shader, external fonts, sprites or video
+assets. The camera window and donor/subtitle content remain structurally
+unchanged and unobstructed. `prefers-reduced-motion` disables all slime
+animation while retaining the static frame; an idle or stopped OBS popup
+remains entirely hidden. `node scripts/preview-stank-popup.mjs` offers
+visual-only `/donation` and `/hotmic` examples, optionally with
+`?backdrop=1` for a simulated dark stream beneath the alert.
+
 `scripts/prepare-buff-presentation.mjs` requires private build configuration with
 `project`, `productionUnity`, `contractPath`, `templateTrack` and `rainTrack`.
 `project` must be an isolated presentation copy carrying its existing marker.
