@@ -101,7 +101,7 @@ export async function serveRealHost(config){
           // eventual recovery; optional gesture failure must never abort TTS.
           const selected=cameraFlipGate.select(event);
           if(selected)return media.animate({id:selected.id,targets:selected.targets})
-            .catch(()=>{process.stderr.write('BUFF_CAMERA_FLIP_SKIPPED: native live gesture unavailable\\n');});
+            .catch(()=>{process.stderr.write('BUFF_CAMERA_FLIP_SKIPPED: native live gesture unavailable\n');});
         }else if(event.type==='line.finished')media.setCaption(null);
       },
       presentation:media?{
