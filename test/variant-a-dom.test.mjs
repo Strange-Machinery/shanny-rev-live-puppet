@@ -11,9 +11,10 @@ test('actual OBS DOM hides/clears audio and text, shows donor only for paid aler
   const elements={};
   class Element {
     constructor(){this.hidden=false;this.style={};this.dataset={};
-      this.textContent='';this.muted=true;this.paused=false;this.readyState=3;this.srcObject=null;}
+      this.textContent='';this.muted=true;this.paused=true;this.readyState=3;this.srcObject=null;this.currentTime=0;}
     set innerHTML(_) {throw new Error('Untrusted popup content must never use innerHTML');}
     play(){this.paused=false;return Promise.resolve();}
+    pause(){this.paused=true;}
   }
   const $=id=>elements[id]??(elements[id]=new Element());
   try {
@@ -42,9 +43,20 @@ test('actual OBS DOM hides/clears audio and text, shows donor only for paid aler
     assert.equal($('subtitle-words').textContent,'I read your donation!');
     assert.equal($('stage').muted,false);
     assert.equal(sent.at(-1).action,'media-presented');
+    // $100 rain starts the locally hosted soundtrack BEFORE any TTS.
+    const rain={...donation,presentation_nonce:'rain-01',presentation_mode:'rain'};
+    player.onPresentation(true,rain);
+    assert.equal($('rain-cue').paused,false);
+    assert.equal($('rain-cue').currentTime,0);
+    // Native M16 seated_response is still the SAME popup, not a new donor
+    // event. The voice can release only after the rain audio has stopped.
+    player.onPresentation(true,{...rain,presentation_nonce:'desk-02',presentation_mode:'seated'});
+    assert.equal($('rain-cue').paused,true);
+    assert.equal($('rain-cue').currentTime,0);
     player.onPresentation(false,{available:true,presentation_visible:false,popup:null});
     assert.equal($('stank-popup').hidden,true);
     assert.equal($('stage').muted,true);
+    assert.equal($('rain-cue').paused,true);
     assert.equal($('donation-message').textContent,'');
     assert.equal($('subtitle-words').textContent,'');
     // A hotmic response must never disclose what Whisper transcribed.
