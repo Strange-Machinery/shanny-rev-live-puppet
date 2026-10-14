@@ -147,19 +147,19 @@ body{position:relative;font-family:Arial,"Segoe UI",sans-serif}
 }
 .stank-popup[data-art="painted"] .plaque-kicker{display:none}
 .stank-popup[data-art="painted"] #donor-name{
-  font:900 20px/1.1 Impact,"Arial Black",sans-serif;
+  font:900 17px/1.08 Impact,"Arial Black",sans-serif;
   color:#f0ffd9;max-height:24px;
 }
 .stank-popup[data-art="painted"] .donation-amount{
-  font:800 17px/1.14 "Arial Black",Arial,sans-serif;
-  color:#aefe60;padding-top:3px
+  font:800 14px/1.06 "Arial Black",Arial,sans-serif;
+  color:#b6fa78;padding-top:2px
 }
 .stank-popup[data-art="painted"] .message-viewport{
   height:47px;max-height:47px;overflow:hidden;
   padding:1px 1px 0 0
 }
 .stank-popup[data-art="painted"] #donation-message{
-  font:700 16px/1.25 "Segoe UI",Arial,sans-serif;
+  font:700 15px/1.27 "Segoe UI",Arial,sans-serif;
   color:#f4fff1;margin:0;padding:0 17px 0 0;
   overflow:visible;max-height:none;
   display:block;-webkit-line-clamp:unset;line-clamp:unset;
