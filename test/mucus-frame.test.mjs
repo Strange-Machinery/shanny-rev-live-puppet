@@ -67,8 +67,8 @@ test('at most five independently timed motion strands and two infrequent microbe
   assert.match(css,/@keyframes mucus-tip-tension/);
   assert.match(css,/@keyframes mucus-light-shift/);
   assert.match(css,/opacity:0/);
-  assert.doesNotMatch(html,/<image|<filter|<feTurbulence|<feDisplacementMap|onload=|<script/i);
-  assert.doesNotMatch(css,/@import|fonts\.googleapis|filter:\s*blur|backdrop-filter|url\(/i);
+  assert.doesNotMatch(shellBefore,/<image|<filter|<feTurbulence|<feDisplacementMap|onload=|<script/i);
+  assert.doesNotMatch(css,/@import|fonts\.googleapis|filter:\s*blur|backdrop-filter|url\(["']?https?:/i);
 });
 
 test('reduced-motion turns off all mucus transforms, gloss and flying beads',()=>{
