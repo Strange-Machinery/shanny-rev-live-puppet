@@ -26,8 +26,20 @@ function showDonations(d){
  donationsEnabled=Boolean(d.enabled);
  const labels={youtube:'YouTube',streamlabs:'Streamlabs',streamelements:'StreamElements'};
  const states=Object.entries(d.providers||{}).map(([p,v])=>(labels[p]||p)+': '+(v==='not_configured'?'needs connection':v)).join(' · ');
+ const intake=d.intake_diagnostics;
+ const counters=Object.values(intake?.counts||{});
+ const observed=counters.reduce((n,c)=>n+(c.observed||0),0);
+ const accepted=counters.reduce((n,c)=>n+(c.accepted||0),0);
+ const ignored=counters.reduce((n,c)=>n+(c.ignored||0),0);
+ // A Streamlabs/SE dashboard "test alert" may only reach their widget and
+ // never deliver an authenticated paid-event packet to OUR socket. Make
+ // that visible without exposing donor names, amounts or private tokens.
+ const diagnostics=observed?' · Provider packets '+observed+
+  ' · accepted '+accepted+' · ignored '+ignored:
+  ' · No paid-source packets observed yet';
  $('donation-status').textContent=(d.enabled?'Automatic reactions ENABLED':'Automatic reactions OFF')+
-  (d.pending?' · '+d.pending+' waiting':'')+(states?' · '+states:'')+(d.error?' · '+d.error:'');
+  (d.pending?' · '+d.pending+' waiting':'')+(states?' · '+states:'')+
+  diagnostics+(d.error?' · '+d.error:'');
  $('donation-enable').disabled=!online||d.enabled||d.requires_setup;
  $('donation-stop').disabled=!online||!d.enabled;
 }
