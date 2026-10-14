@@ -116,6 +116,11 @@ body{position:relative;font-family:Arial,"Segoe UI",sans-serif}
   width:calc(100% + 36px);height:116px;
   z-index:5;
 }
+/* Dilute the continuous film. Mass accumulates at the corners and strand
+   anchors rather than making a solid neon hose along the entire lip. */
+.mucus-reservoir{opacity:.74}
+.mucus-cast-shadow{opacity:.57}
+
 /* The pooled glaze stays static. Stringy tension (not a cartoon teardrop)
    grows/recoils independently under gravity and surface adhesion.
    Fill-box origins are local to each tiny SVG group, no layout reflow. */
