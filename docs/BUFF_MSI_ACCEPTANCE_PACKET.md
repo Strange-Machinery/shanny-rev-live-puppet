@@ -67,6 +67,9 @@ Open the printed localhost URL in Chrome/Edge ON THE MSI.
 - Manual Test donation under $100: FULL held Qwen and OmniVoice
   preparation while hidden; reveal seated, TTS read, angry rebuttal,
   exact final speech receipt hides/mutes.
+- Authenticated real $5 paid event: if OBS video has not acknowledged
+  a visible/unmuted frame, held TTS must NOT release; the producer
+  sees a failure instead of claiming the unseen donation was played.
 - Paid-threshold synthetic $100: native rain appears FIRST,
   OBS media-presented receipt → actual audio.play() start receipt →
   exact audio.ended receipt. Qwen and all OmniVoice clips prepare
