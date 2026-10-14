@@ -323,3 +323,32 @@ test('STOP during delayed OBS soundtrack receipt cancels rain and prevents ANY r
  assert.equal(f.released.length,0);
  assert.deepEqual(events,['stop']);
 });
+
+test('blocked OBS rain music fails FAST instead of waiting for nominal 24s; no TTS escapes',async()=>{
+ let releaseNominal,gateCalled=false;
+ const f=fixture({generate:async()=>({lines:[
+  {actor:'SHANNY',text:'You trolls are ungrateful!',mood:'rage'},
+  {actor:'REV',text:'I refuse to entertain you!',mood:'irritated'}
+ ],rev_reason:'Rev disputes viewers'})});
+ const calls=[];
+ f.session.pause=()=>new Promise(resolve=>{releaseNominal=resolve;});
+ f.session.presentation={
+  begin:async()=>({duration_ms:20000}),
+  waitVisible:async()=>{},
+  waitRainEnd:async()=>{gateCalled=true;throw Error('OBS rain autoplay refused');},
+  seat:async()=>{calls.push('seat');},
+  end:async()=>{calls.push('end');},
+  stop:()=>{calls.push('stop');}
+ };
+ await f.session.initialize();
+ const scope=await f.session.arm();
+ const answer=await f.session.submit({kind:'donation',make_it_rain:true,
+  text:'You should be polite!',...scope});
+ assert.equal(answer.status,'accepted');
+ await until(()=>gateCalled);
+ await until(()=>!f.session.turn);
+ assert.equal(f.released.length,0,'NO prepared voices released when music failed');
+ assert.deepEqual(calls,['stop'],'fail closed, no native seat/TTS behind failed song');
+ assert.equal(f.session.mode,'muted');
+ releaseNominal?.();
+});
