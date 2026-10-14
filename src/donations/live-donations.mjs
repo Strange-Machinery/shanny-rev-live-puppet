@@ -44,7 +44,12 @@ export class LiveDonations {
  }
  status(){
   const base=this.queue.status();
-  const configured=Object.fromEntries(PROVIDERS.map(p=>[p,Boolean(this.sources.get(p))]));
+  const configured=Object.fromEntries(PROVIDERS.map(p=>{
+   const credentials=p==='youtube'?Boolean(this.config.youtube?.liveChatId&&this.config.youtube?.accessToken):
+    p==='streamlabs'?Boolean(this.config.streamlabs?.socketToken||this.config.streamlabs?.accessToken):
+    Boolean(this.config.streamelements?.room&&this.config.streamelements?.token);
+   return [p,Boolean(this.sources.get(p))||credentials];
+  }));
   const providers={...base.providers};
   for(const p of PROVIDERS)if(!configured[p])providers[p]='not_configured';
   return {...base,providers,configured,make_it_rain:this.make_it_rain,
