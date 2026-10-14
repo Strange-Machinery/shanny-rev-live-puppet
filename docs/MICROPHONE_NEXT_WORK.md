@@ -1,5 +1,12 @@
 # Next work: Buff's isolated microphone and sustained offline conversation
 
+Deployment: Buff captures in his thin browser launcher; **Whisper, Qwen and voice
+generation run on the producer machine**. The remote testing upload boundary now
+accepts bounded PCM48k utterances and returns producer-side transcription results.
+Buff needs no Whisper/model/runtime installation. Qualify that HTTPS/browser path
+alongside the producer's local offline microphone tab. Production streamed character
+audio/video is still a separate unfinished integration.
+
 Start in the installed Testing tab; no YouTube session is involved. Local Whisper
 small.en CPU configuration is prepared privately on this machine. The default
 response and WAV path stays a clearly labelled fixture until private services are selected.

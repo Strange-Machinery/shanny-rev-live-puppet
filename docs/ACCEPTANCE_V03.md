@@ -1,5 +1,33 @@
 # v0.3 verification — 2026-10-13, America/Chicago
 
+## Button-only deployment follow-up
+
+The producer owns the model bundle and host app. Buff receives a browser shortcut
+generated only after the authenticated HTTPS connection passes the owner's sharing
+check. There is no existing deployed Buff launcher to discover. Current remote
+scope is testing and producer-side Whisper, not production audio/video delivery.
+
+- Local source tests now pass **77 Node + 8 Python tests**. Remote cases verify
+  authentication/origin checks, prohibition of arbitrary local file access,
+  bounded WAV uploads, scratch cleanup, and Stop winning delayed arm completion.
+- Animation cases verify unavailable catalog entries, a single synchronized Both
+  command, selected context, stale catalog/scope rejection, and Stop invalidating
+  a late player completion. The producer and browser menus read MotionLab metadata;
+  no accepted real animation player is attached, so all playback stays disabled.
+- The Windows installer has passed fresh-directory extraction, payload/file hash
+  verification, bundled runtime/CPU-model readiness, and shortcut creation checks.
+- The packaged GUI has passed automatic muted startup, one-button donation/replay,
+  Stop and actual bundled CPU Whisper using synthetic speech, with external
+  Python/Node removed from PATH. No actual microphone was recorded.
+- Public HTTPS sharing is opt-in and has not been activated by this development
+  session. The live Tailscale Funnel and Buff's physical microphone/browser need
+  acceptance; source tests do not substitute for it.
+- These portability checks use the producer's Windows installation. A clean
+  Windows VM and other producer-machine native-runtime dependencies are not
+  independently qualified. Buff's browser requires none of those runtimes.
+
+The earlier core implementation results below remain historical evidence.
+
 ## Passed
 
 - Exact starting commit `cc3f66b6b9229025c1fd467061f063e098bbfa38`: all original 29 Node tests.

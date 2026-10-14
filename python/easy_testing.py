@@ -7,6 +7,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 
 from testing_tab import TestingPanel, ROOT
+from remote_sharing import RemoteSharing
 
 
 def bundled_settings(bundle):
@@ -14,10 +15,14 @@ def bundled_settings(bundle):
     bundle = Path(bundle).resolve()
     repo = bundle / 'app'
     config = repo / 'offline-testing.local.json'
-    config.write_text(json.dumps({'whisper': {
+    data = {'whisper': {
         'python': str(bundle / 'runtime/python/python.exe'),
         'modelPath': str(bundle / 'models/whisper-small.en')
-    }}, indent=2), encoding='utf-8')
+    }}
+    catalog = repo / 'data/animation-repertoire.json'
+    if catalog.is_file():
+        data['animationCatalog'] = str(catalog)
+    config.write_text(json.dumps(data, indent=2), encoding='utf-8')
     return repo, str(bundle / 'runtime/node/node.exe'), config
 
 
@@ -30,7 +35,7 @@ class EasyTesting(ttk.Frame):
         self.busy = False
         self.awaiting_result = False
         self.heading = tk.StringVar(self, 'Getting ready…')
-        ttk.Label(self, text='Buff Testing', font=('Segoe UI', 24, 'bold')).pack(anchor='w')
+        ttk.Label(self, text='Producer — testing and connection', font=('Segoe UI', 24, 'bold')).pack(anchor='w')
         ttk.Label(self, text='Private practice. No YouTube, OBS, or internet needed.', font=('Segoe UI', 11)).pack(anchor='w', pady=(2, 10))
         ttk.Label(self, textvariable=self.heading, font=('Segoe UI', 12, 'bold'), wraplength=750).pack(anchor='w', pady=8)
         self.tabs = ttk.Notebook(self); self.tabs.pack(fill='both', expand=True)
@@ -43,6 +48,15 @@ class EasyTesting(ttk.Frame):
         self.engine.on_ready = self.services_ready
         self.engine.on_result = self.result
         self.engine.on_error = self.show_error
+        self.sharing = RemoteSharing(self.engine, lambda message: self.engine.events.put(('sharing', message)))
+        share = ttk.Frame(self.tabs, padding=16); self.tabs.add(share, text='Connect Buff')
+        ttk.Label(share, text='Your computer runs the models. Buff opens a tiny launcher.', font=('Segoe UI', 16, 'bold'), wraplength=760).pack(anchor='w')
+        ttk.Label(share, text='Start sharing, then send Buff the generated launcher. He needs a browser and microphone; no Python, Node, Whisper, or model install.', wraplength=760).pack(anchor='w', pady=14)
+        ttk.Button(share, text='Share testing with Buff', command=self.share).pack(anchor='w', pady=6, ipady=10)
+        ttk.Button(share, text='Open Buff launcher folder', command=self.sharing.open_folder).pack(anchor='w', pady=6, ipady=10)
+        ttk.Button(share, text='Stop sharing', command=self.sharing.close).pack(anchor='w', pady=6)
+        ttk.Label(share, textvariable=self.engine.sharing_status, wraplength=760).pack(anchor='w', pady=14)
+        ttk.Label(share, text='This connects the testing panel. Real character audio/video and the production show are not yet connected. Local testing works without internet; Buff needs internet to reach this computer.', wraplength=760).pack(anchor='w', pady=14)
         ttk.Label(home, text='Microphone', font=('Segoe UI', 14, 'bold')).pack(anchor='w')
         ttk.Label(home, text='Use headphones. Choose your microphone below; recording only starts when you press Test microphone.', wraplength=740).pack(anchor='w', pady=(4, 8))
         row = ttk.Frame(home); row.pack(fill='x')
@@ -63,6 +77,16 @@ class EasyTesting(ttk.Frame):
         ttk.Button(row, text='Test donation', command=lambda: self.begin('donate')).pack(side='left', ipady=6)
         ttk.Button(row, text='Test typed response', command=lambda: self.begin('transcript')).pack(side='left', padx=8, ipady=6)
         ttk.Button(row, text='Hear text (Windows voice)', command=self.speak).pack(side='left', ipady=6)
+        animation_row = ttk.Frame(home); animation_row.pack(fill='x', pady=8)
+        self.animation_button = ttk.Menubutton(animation_row, text='Animations ▾')
+        self.animation_button.pack(side='left', ipady=6)
+        self.animation_menu = tk.Menu(self.animation_button, tearoff=False,
+                                      postcommand=lambda: self.engine.action('animations') if self.ready else None)
+        self.animation_button.configure(menu=self.animation_menu)
+        self.animation_children = []
+        self.animation_menu.add_command(label='Loading MotionLab catalog…', state='disabled')
+        self.animation_note = tk.StringVar(self, 'MotionLab defines the gestures; unavailable clips stay disabled.')
+        ttk.Label(animation_row, textvariable=self.animation_note, wraplength=580).pack(side='left', padx=10)
         ttk.Label(home, text='Included: real offline speech recognition. Character replies, character audio, and episode playback are simulated in this package.', wraplength=740, foreground='#745300').pack(anchor='w', pady=14)
         self.output = tk.Text(home, height=6, wrap='word', state='disabled', font=('Segoe UI', 11))
         self.output.pack(fill='both', expand=True)
@@ -77,9 +101,17 @@ class EasyTesting(ttk.Frame):
         self.engine.refresh_devices()
         self.picker.configure(values=list(self.engine.devices))
 
+    def share(self):
+        if not self.ready:
+            self.engine.sharing_status.set('Wait until local testing is ready, then try again.')
+            return
+        self.engine.sharing_status.set('Starting the producer connection…')
+        self.sharing.start()
+
     def services_ready(self):
         self.ready = True
         self.heading.set('Ready. Choose a test below.')
+        self.engine.action('animations')
 
     def show_error(self, message):
         if self.ready:
@@ -124,7 +156,9 @@ class EasyTesting(ttk.Frame):
         self.begin('microphone')
 
     def result(self, action, result):
-        if action == 'arm' and self.pending:
+        if action == 'animations':
+            self.animation_catalog(result)
+        elif action == 'arm' and self.pending:
             action, text = self.pending
             self.pending = None
             if action == 'microphone':
@@ -155,6 +189,32 @@ class EasyTesting(ttk.Frame):
             elif action == 'donate':
                 self.display('Test donation accepted. Watch the Advanced tests tab for read → prepared response → playback events.')
 
+    def animation_catalog(self, catalog):
+        self.animation_note.set(catalog.get('message', 'MotionLab catalog'))
+        self.animation_menu.delete(0, 'end')
+        for menu in reversed(self.animation_children):
+            menu.destroy()
+        self.animation_children.clear()
+        for target, name in [('SHANNY', 'Shanny'), ('REV', 'Rev'), ('BOTH', 'Both')]:
+            actors = tk.Menu(self.animation_menu, tearoff=False)
+            self.animation_children.append(actors)
+            self.animation_menu.add_cascade(label=name, menu=actors)
+            rows = [row for row in catalog['items'] if row['target'] == target]
+            if not rows:
+                actors.add_command(label='Awaiting MotionLab definitions', state='disabled')
+            for category in sorted({row['category'] for row in rows}):
+                groups = tk.Menu(actors, tearoff=False); actors.add_cascade(label=category, menu=groups)
+                self.animation_children.append(groups)
+                group_rows = [row for row in rows if row['category'] == category]
+                for context in sorted({context for row in group_rows for context in row['contexts']}):
+                    gestures = tk.Menu(groups, tearoff=False); groups.add_cascade(label=context, menu=gestures)
+                    self.animation_children.append(gestures)
+                    for row in group_rows:
+                        if context in row['contexts']:
+                            gestures.add_command(label=row['label'] + ('' if row['playable'] else ' — unavailable'),
+                                state='normal' if row['playable'] else 'disabled',
+                                command=lambda item=row, selected_context=context: self.engine.action('animate', id=item['id'], target=item['target'], context=selected_context, catalogRevision=catalog['revision']))
+
     def display(self, text):
         self.output.configure(state='normal'); self.output.delete('1.0', 'end')
         self.output.insert('1.0', text); self.output.configure(state='disabled')
@@ -167,6 +227,7 @@ class EasyTesting(ttk.Frame):
     def stop(self):
         self.pending = None; self.busy = False; self.record_requested = False
         self.awaiting_result = False
+        self.sharing.close()
         self.engine.stop()
         self.mic_button.configure(text='Test microphone')
         self.heading.set('Stopped. Microphone off. Press a test button when you want to continue.')
@@ -184,13 +245,14 @@ class EasyTesting(ttk.Frame):
             self.meter_timer = self.after(100, self.update_meter)
 
     def close(self):
+        self.sharing.close()
         self.after_cancel(self.start_timer)
         self.after_cancel(self.meter_timer)
         self.engine.close()
 
 
 def main():
-    root = tk.Tk(); root.title('Buff Testing'); root.geometry('1000x850'); root.minsize(850, 750)
+    root = tk.Tk(); root.title('Producer — Buff connection and testing'); root.geometry('1000x850'); root.minsize(850, 750)
     try:
         bundle = Path(__file__).resolve().parents[2]
         settings = bundled_settings(bundle) if (bundle / 'runtime/node/node.exe').is_file() else (ROOT, None, None)

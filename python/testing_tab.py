@@ -28,6 +28,7 @@ class TestingPanel(ttk.Frame):
         self.starting_process = None
         self.generation = 0; self.closed = False; self.record_stop = threading.Event(); self.recording = False
         self.mic_armed = False; self.tts_process = None
+        self.sharing_status = tk.StringVar(self, 'Sharing is off. Nothing is published until you press Share testing with Buff.')
         self.configuration = str(self.repo / 'offline-testing.local.json') if (self.repo / 'offline-testing.local.json').is_file() else None
         if config:
             self.configuration = str(config)
@@ -307,6 +308,8 @@ class TestingPanel(ttk.Frame):
                 kind, value = self.events.get_nowait()
                 if kind == 'level':
                     self.level['value'] = value
+                elif kind == 'sharing':
+                    self.sharing_status.set(value)
                 elif kind == 'ready':
                     if value == self.generation:
                         self.on_ready()

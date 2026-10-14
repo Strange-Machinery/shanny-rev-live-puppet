@@ -1,5 +1,12 @@
 # Buff live-show integration v0.3
 
+Deployment clarification: Buff has no existing launcher. The producer hosts the
+models and services; Buff receives a thin HTTPS launcher. The new remote testing
+panel implements this split for tests and producer-side Whisper. It does not yet
+serve production character audio/video or episode delivery. See
+[button-only deployment](EASY_DEPLOYMENT.md). Older discovery findings below describe
+the inspected producer Studio, not a deployed Buff client.
+
 The executable controller is `node src/show-cli.mjs <private show.local.json>`.
 Start the existing OmniVoice gateway separately. It now boots muted. The controller
 also panics on startup, keeps microphone admission disabled, and never resumes from

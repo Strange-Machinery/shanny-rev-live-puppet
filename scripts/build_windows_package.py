@@ -69,19 +69,33 @@ def build(args):
 
 
 def package(repo, stage, payload, args, dependencies):
+    # Remove only the prior explicitly named bootstrap when migrating staged builds.
+    old_stub = payload / 'Buff Testing.exe'
+    if old_stub.is_file():
+        old_stub.unlink()
     app = payload / 'app'; app.mkdir(exist_ok=True)
     shutil.copytree(repo / 'src', app / 'src', dirs_exist_ok=True)
     shutil.copytree(repo / 'python', app / 'python', dirs_exist_ok=True, ignore=shutil.ignore_patterns('__pycache__', '*.pyc', 'test_*.py'))
     shutil.copy2(repo / 'package.json', app / 'package.json')
+    if args.catalog:
+        source = json.loads(Path(args.catalog).read_text(encoding='utf-8-sig'))
+        allowed = {'id', 'kind', 'status', 'actors', 'contexts', 'roles', 'format', 'binding', 'bindings'}
+        snapshot = {'revision': str(source.get('revision', 'MotionLab snapshot')),
+                    'items': [{key: value for key, value in row.items() if key in allowed} for row in source['items']]}
+        (app / 'data').mkdir(exist_ok=True)
+        (app / 'data/animation-repertoire.json').write_text(json.dumps(snapshot, indent=2), encoding='utf-8')
     (payload / 'READ-ME.txt').write_text(
-        'Double-click Buff Testing.exe. No other installation is needed.\n'
+        'Double-click Producer.exe. No other installation is needed.\n'
+        'PRODUCER COMPUTER ONLY. Keep the models here.\n'
+        'Connect Buff > Share testing with Buff > Open Buff launcher folder. Send Buff Launcher.url to Buff.\n'
+        'The HTTPS sharing button uses an existing signed-in Tailscale installation on the producer computer.\n'
         'Real offline Whisper speech recognition is included. Character replies/audio and the show player are simulated.\n'
         'This private test package does not connect to YouTube or change episode production.\n'
         'Use Test microphone to record, Finish recording to transcribe, and STOP to cancel.\n'
         'Third-party notices: licenses/, runtime/python/LICENSE.txt, runtime/python/Lib/site-packages/*.dist-info/.\n'
         'Whisper conversion: https://huggingface.co/Systran/faster-whisper-small.en\n', encoding='utf-8')
     compiler = Path(args.compiler)
-    stub = payload / 'Buff Testing.exe'
+    stub = payload / 'Producer.exe'
     subprocess.run([str(compiler), '/nologo', '/target:winexe', '/platform:x64',
                     '/win32manifest:' + str(repo / 'scripts/windows/app.manifest'),
                     '/r:System.Windows.Forms.dll', '/r:System.Drawing.dll', '/r:System.IO.Compression.dll',
@@ -111,6 +125,7 @@ def package(repo, stage, payload, args, dependencies):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--refresh', action='store_true')
+    parser.add_argument('--catalog', help='Existing MotionLab repertoire; only menu metadata is packaged')
     for arg in ['stage', 'node', 'model', 'licenses', 'compiler', 'output']:
         parser.add_argument('--' + arg, required=True)
     build(parser.parse_args())

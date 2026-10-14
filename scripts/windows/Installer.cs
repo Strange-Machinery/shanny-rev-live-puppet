@@ -31,9 +31,9 @@ class BuffInstaller {
                 return 0;
             }
             using (var mutex = new Mutex(false, "Local\\StrangeMachineryBuffTestingSetup")) {
-                if (!mutex.WaitOne(0)) { MessageBox.Show("Setup is already running. Please use that window.", "Buff Testing"); return 0; }
+                if (!mutex.WaitOne(0)) { MessageBox.Show("Setup is already running. Please use that window.", "Strange Machinery Producer"); return 0; }
                 try {
-                    var window = new Form { Text = "Buff Testing — setup", Width = 560, Height = 205,
+                    var window = new Form { Text = "Strange Machinery Producer â€” setup", Width = 560, Height = 205,
                         StartPosition = FormStartPosition.CenterScreen, FormBorderStyle = FormBorderStyle.FixedDialog,
                         MaximizeBox = false, MinimizeBox = false };
                     var label = new Label { Left = 24, Top = 20, Width = 500, Height = 65,
@@ -47,8 +47,8 @@ class BuffInstaller {
                             string root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "StrangeMachinery", "BuffTesting");
                             string installed = await Task.Run(() => Install(self, root, message => window.BeginInvoke((Action)(() => label.Text = message))));
                             Shortcut(installed);
-                            Process.Start(new ProcessStartInfo(Path.Combine(installed, "Buff Testing.exe")) { UseShellExecute = false });
-                        } catch (Exception ex) { MessageBox.Show(window, "Setup could not finish. Reopen this installer to retry.\n\n" + ex.Message, "Buff Testing", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+                            Process.Start(new ProcessStartInfo(Path.Combine(installed, "Producer.exe")) { UseShellExecute = false });
+                        } catch (Exception ex) { MessageBox.Show(window, "Setup could not finish. Reopen this installer to retry.\n\n" + ex.Message, "Strange Machinery Producer", MessageBoxButtons.OK, MessageBoxIcon.Error); }
                         complete = true; window.Close();
                     };
                     Application.Run(window);
@@ -58,7 +58,7 @@ class BuffInstaller {
         } catch (Exception ex) {
             if (args.Length == 2 && args[0] == "--verify-install") {
                 Directory.CreateDirectory(args[1]); File.WriteAllText(Path.Combine(args[1], "install-error.txt"), ex.ToString());
-            } else MessageBox.Show("Buff Testing could not open. Run the installer again.\n\n" + ex.Message, "Buff Testing");
+            } else MessageBox.Show("Strange Machinery Producer could not open. Run the installer again.\n\n" + ex.Message, "Strange Machinery Producer");
             return 1;
         }
     }
@@ -83,7 +83,7 @@ class BuffInstaller {
                 if (drive.AvailableFreeSpace < 2200L * 1024 * 1024) throw new IOException("Free at least 2.2 GB of space, then reopen the installer.");
                 string payload = Path.Combine(stage, "payload.zip");
                 input.Position = input.Length - 48 - size;
-                status("Unpacking offline speech recognition and the app…\nNo internet connection is needed.");
+                status("Unpacking offline speech recognition and the appâ€¦\nNo internet connection is needed.");
                 using (var output = File.Create(payload)) {
                     byte[] buffer = new byte[1024 * 1024]; long remaining = size;
                     while (remaining > 0) { int n = input.Read(buffer, 0, (int)Math.Min(buffer.Length, remaining));
@@ -102,7 +102,7 @@ class BuffInstaller {
                     }
                 }
                 File.Delete(payload);
-                status("Checking speech recognition and the included runtimes…\nThe app will open automatically when ready.");
+                status("Checking speech recognition and the included runtimesâ€¦\nThe app will open automatically when ready.");
                 Check(stage);
                 File.WriteAllText(Path.Combine(stage, "installed.txt"), version);
                 return stage;
@@ -133,7 +133,7 @@ class BuffInstaller {
     static void Launch(string root) {
         // The tiny installed launcher stays alive and owns the single-instance mutex until the UI closes.
         using (var mutex = new Mutex(false, "Local\\StrangeMachineryBuffTestingApp")) {
-            if (!mutex.WaitOne(0)) { MessageBox.Show("Buff Testing is already open. Select its window on the taskbar.", "Buff Testing"); return; }
+            if (!mutex.WaitOne(0)) { MessageBox.Show("Strange Machinery Producer is already open. Select its window on the taskbar.", "Strange Machinery Producer"); return; }
             try {
                 using (var process = Process.Start(Python(root, true, "bundle_entry.py"))) {
                     process.WaitForExit();
@@ -150,9 +150,9 @@ class BuffInstaller {
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.StartMenu), "Programs") };
         foreach (string destination in destinations) {
             Directory.CreateDirectory(destination);
-            object shortcut = shellType.InvokeMember("CreateShortcut", BindingFlags.InvokeMethod, null, shell, new object[] { Path.Combine(destination, "Buff Testing.lnk") });
+            object shortcut = shellType.InvokeMember("CreateShortcut", BindingFlags.InvokeMethod, null, shell, new object[] { Path.Combine(destination, "Producer.lnk") });
             Type type = shortcut.GetType();
-            type.InvokeMember("TargetPath", BindingFlags.SetProperty, null, shortcut, new object[] { Path.Combine(root, "Buff Testing.exe") });
+            type.InvokeMember("TargetPath", BindingFlags.SetProperty, null, shortcut, new object[] { Path.Combine(root, "Producer.exe") });
             type.InvokeMember("WorkingDirectory", BindingFlags.SetProperty, null, shortcut, new object[] { root });
             type.InvokeMember("Description", BindingFlags.SetProperty, null, shortcut, new object[] { "Private offline microphone and donation testing" });
             type.InvokeMember("Save", BindingFlags.InvokeMethod, null, shortcut, null);

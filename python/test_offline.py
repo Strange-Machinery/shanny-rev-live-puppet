@@ -21,6 +21,8 @@ class OfflineTests(unittest.TestCase):
             panel.engine.record_start = MagicMock()
             self.assertFalse(panel.engine.mic_armed)
             panel.services_ready()
+            panel.engine.action.assert_called_once_with('animations')
+            panel.engine.action.reset_mock()
             panel.begin('donate')
             panel.engine.action.assert_called_once_with('arm')
             panel.result('arm', {})
@@ -37,7 +39,7 @@ class OfflineTests(unittest.TestCase):
 
     def test_portable_config_uses_extracted_machine_paths(self):
         with tempfile.TemporaryDirectory(prefix='Buff portable test ') as folder:
-            bundle = Path(folder); (bundle / 'app').mkdir()
+            bundle = Path(folder).resolve(); (bundle / 'app').mkdir()
             repo, node, config = bundled_settings(bundle)
             import json
             data = json.loads(config.read_text())

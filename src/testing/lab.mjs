@@ -8,8 +8,9 @@ import { OfflineConversation, createFileWhisper } from './conversation.mjs';
 import { createQwenCompletion } from '../providers/qwen.mjs';
 import { createReactionDirector } from '../donations/reaction.mjs';
 import { OmniVoiceProvider } from '../providers/omnivoice.mjs';
+import { AnimationMenu } from '../animation-menu.mjs';
 
-export async function createOfflineLab({ whisper, realDirector, voiceProvider, desktopAudio = false } = {}) {
+export async function createOfflineLab({ whisper, realDirector, voiceProvider, desktopAudio = false, animationCatalog } = {}) {
   let scenario='normal',lastDonation='',cursor=0,closed=false,driving=false;
   const trace=[],timers=new Set(),active=new Map();
   let generation=0;
@@ -36,6 +37,7 @@ export async function createOfflineLab({ whisper, realDirector, voiceProvider, d
   const director=realDirector || f.coordinator.director;
   if(realDirector)f.coordinator.director=realDirector;
   const conversation=new OfflineConversation({gateway:f.gateway,director,controller:f.controller,whisper});
+  const animations=new AnimationMenu({catalogPath:animationCatalog});
   async function call(path,data,donation=false) {
     const reply=await fetch(runnerOrigin+path,{method:data===undefined?'GET':'POST',headers:{Authorization:'Bearer '+(donation?donationToken:operatorToken),'Content-Type':'application/json'},body:data===undefined?undefined:JSON.stringify(data)});
     const result=await reply.json();if(!reply.ok)throw new Error(result.error);return result;
@@ -63,13 +65,15 @@ export async function createOfflineLab({ whisper, realDirector, voiceProvider, d
   }
   const pump=setInterval(()=>{void drive().catch(()=>{});},40);
   return {
-    async action({action,text='Buff, tell us what happened.',actor='SHANNY',audioPath,final=true,session_id,mode_epoch,id,state,source}) {
+    async action({action,text='Buff, tell us what happened.',actor='SHANNY',audioPath,final=true,session_id,mode_epoch,id,state,source,target,context,catalogRevision}) {
+      if(action==='animations')return animations.menu();
+      if(action==='animate')return animations.play({id,target,context,catalogRevision});
       if(action==='arm') {
         const result=await call('/live',{});
         cursor=(await f.gateway.status()).cursor;
         return {...result,session_id:f.coordinator.sessionId};
       }
-      if(action==='stop'){conversation.stop();clear();return call('/stop',{});}
+      if(action==='stop'){animations.stop();conversation.stop();clear();return call('/stop',{});}
       if(action==='scenario') {
         if(!['normal','delayed_qwen','late_qwen','timeout_qwen','invalid_duration','synthesis_failure','panic_during_synthesis'].includes(text))throw new Error('Unknown fixture scenario');
         scenario=text;return {scenario};
@@ -122,7 +126,7 @@ export async function createOfflineLab({ whisper, realDirector, voiceProvider, d
       if(!response.ok)throw new Error('Audio expired or cancelled');
       return Buffer.from(await response.arrayBuffer());
     },
-    async close(){closed=true;conversation.stop();clear();clearInterval(pump);await f.close();}
+    async close(){closed=true;animations.stop();conversation.stop();clear();clearInterval(pump);await f.close();}
   };
 }
 
@@ -141,7 +145,7 @@ export async function serveLab(config={}) {
     voiceProvider=new OmniVoiceProvider(config.omnivoice);
     try {await voiceProvider.warmup();}catch(error){await voiceProvider.close();throw error;}
   }
-  const lab=await createOfflineLab({whisper,realDirector,voiceProvider,desktopAudio:Boolean(voiceProvider)});
+  const lab=await createOfflineLab({whisper,realDirector,voiceProvider,desktopAudio:Boolean(voiceProvider),animationCatalog:config.animationCatalog});
   const token=randomBytes(24).toString('hex');
   const server=createServer((req,res)=>{
     void (async()=>{
