@@ -219,6 +219,12 @@ body{position:relative;font-family:Arial,"Segoe UI",sans-serif}
 /* Keep the complete message in the DOM. JavaScript scrolls this clipped
    interior without changing the plaque dimensions or underlying camera. */
 .message-viewport{max-height:4em;overflow:hidden;scroll-behavior:auto}
+.message-viewport #donation-message{
+  /* Scrolling must remain functional even while approved painted art is
+     temporarily unavailable and the minimal fallback chassis is visible. */
+  display:block;-webkit-line-clamp:unset;line-clamp:unset;
+  max-height:none;overflow:visible;white-space:pre-wrap
+}
 .message-progress{position:absolute;right:8px;top:8px;color:#b8f47f;font:800 10px Arial}
 .painted-strap{display:none}
 
