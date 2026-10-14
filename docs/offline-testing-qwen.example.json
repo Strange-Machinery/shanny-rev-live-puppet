@@ -1,0 +1,14 @@
+{
+  "whisper": {
+    "python": "C:/your-existing-whisper-runtime/python.exe",
+    "modelPath": "C:/your-existing-ctranslate2-whisper-model-folder"
+  },
+  "personaFile": "C:/private/approved-personas.local.json",
+  "qwen": {
+    "endpoint": "http://127.0.0.1:8080/v1/chat/completions",
+    "model": "YOUR_INSTALLED_QWEN35_2B_MODEL_ID",
+    "placement": "cpu",
+    "timeoutMs": 6000,
+    "maxTokens": 192
+  }
+}

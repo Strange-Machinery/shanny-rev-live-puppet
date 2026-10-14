@@ -26,7 +26,7 @@ const port = Number(process.env.LIVE_PUPPET_PORT || 8770);
 if (!Number.isInteger(port) || port < 1 || port > 65535) {
   throw new Error('LIVE_PUPPET_PORT must be in the range 1-65535');
 }
-const app = createLiveServer({ provider, token, port });
+const app = createLiveServer({ provider, token, port, startMuted: true });
 if (provider.warmup) {
   console.log('Loading existing private OmniVoice worker; gateway opens when ready.');
   const startup = await provider.warmup();

@@ -1,0 +1,17 @@
+{
+  "gatewayUrl": "http://127.0.0.1:8770",
+  "port": 8771,
+  "ledgerFile": "private/donations.ledger",
+  "personaFile": "private/approved-personas.local.json",
+  "qwen": {
+    "endpoint": "http://127.0.0.1:8080/v1/chat/completions",
+    "model": "YOUR_INSTALLED_QWEN35_4B_QUANTIZED_MODEL_ID",
+    "placement": "cpu",
+    "resourceHeadroomVerified": false,
+    "timeoutMs": 6000,
+    "maxTokens": 192
+  },
+  "adapterModule": null,
+  "adapters": {},
+  "deliveryOrigins": []
+}

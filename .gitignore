@@ -23,4 +23,9 @@ evidence.local/
 *.asset
 *.png
 *.exe
+__pycache__/
+*.pyc
+work/
+*.ledger
+*.ledger.lock
 

@@ -1,0 +1,7 @@
+{
+  "whisper": {
+    "python": "C:/your-existing-whisper-runtime/python.exe",
+    "modelPath": "C:/your-existing-ctranslate2-whisper-model-folder",
+    "timeoutMs": 60000
+  }
+}

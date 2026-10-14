@@ -1,3 +1,4 @@
+import { readJson } from '../http-json.mjs';
 /**
  * Authenticated HTTP client for the standalone puppet gateway.
  * No public-network transport, platform hooks or token persistence.
@@ -28,12 +29,7 @@ export function createLocalPuppetGateway({ url = 'http://127.0.0.1:8770',
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: ctrl.signal
       });
-      const raw = await reply.text();
-      if (raw.length > 64_000) throw new Error('Oversized gateway response');
-      let value;
-      try { value = JSON.parse(raw); } catch {
-        throw new Error('Malformed gateway JSON response');
-      }
+      const value = await readJson(reply);
       if (!reply.ok) {
         const message = typeof value.error === 'string'
           ? value.error : 'Unknown gateway error';
@@ -62,6 +58,6 @@ export function createLocalPuppetGateway({ url = 'http://127.0.0.1:8770',
     release: data => call('POST', '/v1/release', data),
     discard: data => call('POST', '/v1/discard', data),
     panic: () => call('POST', '/v1/panic'),
-    resume: () => call('POST', '/v1/resume')
+    resume: data => call('POST', '/v1/resume', data)
   });
 }
