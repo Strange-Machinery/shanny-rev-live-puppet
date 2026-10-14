@@ -12,7 +12,18 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
   const stopAnimations=()=>{controlEpoch++;presentationVisible=false;popup=null;caption=null;presentationNonce=null;for(const c of commands.values())c.finish(new Error('Animation stopped'));commands.clear();};
   const animate=({targets,id,signal})=>new Promise((resolve,reject)=>{
     const presentation=['make_it_rain','seated_response','presentation_end'].includes(id);
-    if(!info().available||!Array.isArray(targets)||!targets.length||targets.length>2||new Set(targets).size!==targets.length||targets.some(a=>!['SHANNY','REV'].includes(a))||!(presentation||/^m16_(conversation|directed_point|objection|open_explanation|quiet_listening|seated_listening)$/.test(id))||presentation&&targets.length!==2)return reject(new Error('Animation unavailable'));
+    const incensedCameraFlip=id==='flip_camera';
+    const allowedMotion=/^m16_(conversation|directed_point|objection|open_explanation|quiet_listening|seated_listening)$/.test(id);
+    if(!info().available||!Array.isArray(targets)||!targets.length||targets.length>2||
+       new Set(targets).size!==targets.length||targets.some(a=>!['SHANNY','REV'].includes(a))||
+       !(presentation||incensedCameraFlip||allowedMotion)||
+       presentation&&targets.length!==2||
+       // A finger at the audience is legal only while that SAME actor
+       // audibly speaks in a visible seated donation/hotmic response.
+       // It must never escape during full-body rain or after presentation_end.
+       incensedCameraFlip&&(targets.length!==1||!presentationVisible||
+         presentationMode!=='seated'||caption?.actor!==targets[0]))
+      return reject(new Error('Animation unavailable'));
     if(commands.size||signal?.aborted)return reject(new Error('Animation command busy or cancelled'));
     const request=randomUUID(),abort=()=>stopAnimations();
     const timer=setTimeout(()=>{controlEpoch++;finish(new Error('Player did not acknowledge animation'));},2500);
