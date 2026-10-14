@@ -173,11 +173,16 @@ export class ConversationSession {
       const duration=Math.max(RAIN_DANCE_MIN_MS,RAIN_CUE_DURATION_MS,
         Math.min(60000,performance?.duration_ms||RAIN_DANCE_MIN_MS))+RAIN_SEAT_SETTLE_MS;
       const remaining=duration-(this.now()-startedAt);
-      if(remaining>0)await this.pause(remaining,undefined,{signal:turn.abort.signal});
-      this.check(turn);
-      // Never speak over late-started OBS music. The native 20s dance and
-      // nominal 23.9s cue are a MINIMUM; actual browser ended must also pass.
-      await this.presentation.waitRainEnd?.({signal:turn.abort.signal});
+      // Run the nominal 23.9s choreography hold and browser music-ended
+      // verification concurrently. Failed audio can now stop the popup
+      // promptly instead of silently completing a 24-second dance.
+      const nominalHold=remaining>0
+        ?this.pause(remaining,undefined,{signal:turn.abort.signal})
+        :Promise.resolve();
+      const soundEnd=Promise.resolve().then(()=>this.presentation.waitRainEnd?.({
+        signal:turn.abort.signal,timeoutMs:RAIN_CUE_DURATION_MS+10000
+      }));
+      await Promise.all([nominalHold,soundEnd]);
       this.check(turn);
       if(typeof this.presentation.seat!=='function')
         throw new Error('Native desk recovery is required after manual rain');
@@ -285,12 +290,15 @@ export class ConversationSession {
         Number.isFinite(performance?.duration_ms)?performance.duration_ms:RAIN_DANCE_MIN_MS);
       const target=Math.max(choreography,RAIN_CUE_DURATION_MS)+RAIN_SEAT_SETTLE_MS;
       const remaining=target-(this.now()-visibleAt);
-      if(remaining>0)await this.pause(remaining,undefined,{signal:turn.abort.signal});
-      this.check(turn);
-      await this.presentation.waitRainEnd?.({signal:turn.abort.signal,
-        // A verified paid donation cannot silently proceed when OBS loses
-        // its viewer. Locally initiated producer rehearsal still can.
-        requireViewer:turn.popup?.type==='donation'});
+      const nominalHold=remaining>0
+        ?this.pause(remaining,undefined,{signal:turn.abort.signal})
+        :Promise.resolve();
+      const soundEnd=Promise.resolve().then(()=>this.presentation.waitRainEnd?.({
+        signal:turn.abort.signal,timeoutMs:RAIN_CUE_DURATION_MS+10000,
+        // Real paid events require an actual OBS viewer/music completion.
+        requireViewer:turn.popup?.type==='donation'
+      }));
+      await Promise.all([nominalHold,soundEnd]);
       this.check(turn);
       if(typeof this.presentation.seat!=='function')
         throw new Error('Native seated camera/desk recovery is required after rain');
