@@ -36,7 +36,7 @@ test('FULL simulated paid $100: Unity rain -> OBS played/ended -> seated camera 
     assert.equal(media.info().presentation_mode,'seated');
     assert.equal(media.info().rain_audio,null);
     assert.ok(log.includes('OBS-ended'),'no donor speech before verified music end');
-    assert.ok(log.includes('native-seated'),'no donor speech before accepted chair command');
+    assert.ok(log.includes('native-seated_response'),'no donor speech before accepted chair command');
     released.push(id);emit('playback.started',id);emit('playback.finished',id);
     return {status:'released'};
   }
@@ -115,7 +115,7 @@ test('FULL simulated paid $100: Unity rain -> OBS played/ended -> seated camera 
  media.viewer({action:'media-presented',id:obs.id,nonce:desk.presentation_nonce});
  await until(()=>released.length===3,'verbatim donor read and both replies');
  await until(()=>media.info().presentation_visible===false,'native hide after last speech');
- assert.ok(log.indexOf('OBS-ended')<log.indexOf('native-seated'));
+ assert.ok(log.indexOf('OBS-ended')<log.indexOf('native-seated_response'));
  assert.deepEqual([...clips.values()].map(x=>x.text),[
   'Give me a show!','Chat, quit acting entitled to my money!',
   'You viewers keep demanding more and more!']);
