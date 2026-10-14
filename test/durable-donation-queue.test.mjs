@@ -162,3 +162,30 @@ test('invalid/partial queue snapshot fails closed instead of losing replay prote
  writeFileSync(join(directory,'donations-queue.local.json'),'{"version":1,"items":[');
  assert.throws(()=>new DurableDonationQueue({directory,ledger,host:async()=>({})}));
 });
+
+test('real media keeps verified money queued until authenticated OBS viewer comes online',async t=>{
+ const directory=mkdtempSync(join(tmpdir(),'buff-viewer-gate-'));
+ const ledger=new DonationLedger(join(directory,'ledger.local'));
+ let mode='muted',obsViewers=0,donateCount=0;
+ const host=async request=>{
+  if(request.action==='arm'){mode='live';return {session_id:'test',mode_epoch:0};}
+  if(request.action==='stop'){mode='muted';return {stopped:true};}
+  if(request.action==='status')return {
+   mode,error:'',turn_busy:false,conversation_busy:false,
+   presentation_visible:false,media:{available:true,obs_viewers:obsViewers}
+  };
+  if(request.action==='donate'){donateCount++;return {status:'accepted'};}
+  throw Error('Unexpected event');
+ };
+ const queue=new DurableDonationQueue({directory,ledger,host,pollMs:10,timeoutMs:1500});
+ t.after(async()=>{await queue.close();ledger.close();rmSync(directory,{recursive:true,force:true});});
+ await queue.enable();
+ queue.ingest(payment('real-1','This donor must see a popup','streamlabs'));
+ await delay(75);
+ assert.equal(donateCount,0,'do not burn paid TTS to an invisible OBS stage');
+ assert.equal(queue.status().pending,1);
+ obsViewers=1;
+ await until(()=>donateCount===1,1200);
+ await until(()=>queue.status().pending===0&&queue.status().inflight===0,1200);
+ assert.equal(queue.status().enabled,true);
+});
