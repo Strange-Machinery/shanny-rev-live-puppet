@@ -14,6 +14,9 @@
     <!-- The 12-frame painted flipbook is the ONLY live artwork layer.
          Nine-sliced in CSS to preserve the 16:9 Unity camera and crisp wordmark. -->
     <div class="painted-frame" aria-hidden="true"></div>
+    <!-- Producer-supplied rain music is a LOCAL self-hosted audio asset.
+         It starts on the first OBS-visible RAIN presentation, never idle. -->
+    <audio id="rain-cue" preload="auto" src="/rain-intro.mp3"></audio>
     <div class="popup-rim">
       <header class="popup-header">
         <div class="brand-block">
