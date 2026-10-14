@@ -19,6 +19,17 @@ foreach ($tool in @('git','node','npm')) {
     throw "$tool is required. No files were modified."
   }
 }
+# Protect the producer's nearly-full MSI drive. A test clone must not
+# silently consume the remaining disk if Temp lives on the system volume.
+$nodeMajor = [int]((& node -p "process.versions.node.split('.')[0]").Trim())
+if ($nodeMajor -lt 22) {
+  throw "Node 22+ is required; found Node $nodeMajor. No files were modified."
+}
+$tempRoot = [System.IO.Path]::GetPathRoot([System.IO.Path]::GetFullPath($env:TEMP))
+$disk = [System.IO.DriveInfo]::new($tempRoot)
+if ($disk.IsReady -and $disk.AvailableFreeSpace -lt 2GB) {
+  throw "Less than 2 GiB free on the Temp volume ($tempRoot). Stop and reclaim space manually; do not delete producer work or Unity caches automatically."
+}
 Write-Host 'STANK TANK AI - SAFE PRE-MSI VALIDATION' -ForegroundColor Green
 Write-Host 'Clean throwaway clone; NO Unity build, accounts, payments or OBS changes.'
 & git clone --depth 1 --single-branch --branch $branch $repository $review
