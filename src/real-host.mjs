@@ -16,6 +16,8 @@ import {createConversationDirector} from './conversation-director.mjs';
 import {ConversationSession} from './conversation-session.mjs';
 import {AnimationMenu} from './animation-menu.mjs';
 import {waitForVoiceMemory} from './gpu-readiness.mjs';
+import {createStageMedia} from './stage-media.mjs';
+import {serveRemotePanel} from './remote-panel.mjs';
 
 async function freePort(){const socket=tcpServer();await new Promise((r,j)=>{socket.once('error',j);socket.listen(0,'127.0.0.1',r);});const port=socket.address().port;await new Promise(r=>socket.close(r));return port;}
 async function waitUntil(check,ms){const end=Date.now()+ms;while(Date.now()<end){if(await check())return;await delay(200);}throw new Error('A character service did not become ready');}
@@ -36,12 +38,13 @@ export async function serveRealHost(config){
     await unlink(lockPath);lock=await open(lockPath,'wx');
   }
   await lock.writeFile(JSON.stringify({pid:process.pid}));
-  const children=[],logs=[];let live,session,http,voice,whisper,monitor,closed=false;
+  const children=[],logs=[];let live,session,http,voice,whisper,monitor,media,preview,closed=false;
   const stopChildren=()=>{for(const child of children)if(child.exitCode===null)child.kill();};
   const close=async()=>{
     if(closed)return;closed=true;clearInterval(monitor);
-    await session?.stop().catch(()=>{});stopChildren();
+    await preview?.close();await session?.stop().catch(()=>{});stopChildren();
     await whisper?.close();
+    await media?.close();
     if(http){http.closeAllConnections();await new Promise(r=>http.close(r));}
     if(live)await live.close();else await voice?.close();
     for(const log of logs)await log.close();
@@ -80,10 +83,15 @@ export async function serveRealHost(config){
     progress('Loading offline speech recognition...');
     whisper=new PersistentWhisper({...config.whisper,workerScript:fileURLToPath(new URL('../python/whisper_file.py',import.meta.url))});
     await whisper.warmup();
-    session=new ConversationSession({gateway,director,whisper});await session.initialize();
     progress('Opening the character stage...');
-    const player=spawn(config.player,['-force-d3d11','-screen-fullscreen','0','-logFile',join(root,'player.log')],
-      {windowsHide:false,stdio:'ignore',env:{...process.env,LIVE_PUPPET_TOKEN:token,LIVE_PUPPET_URL:origin}});
+    if(config.media?.enabled)media=await createStageMedia({token,iceServers:config.media.iceServers||[]});
+    session=new ConversationSession({gateway,director,whisper,presentation:media?{
+      begin:({rain,signal})=>media.animate({id:rain?'make_it_rain':'seated_response',targets:['SHANNY','REV'],signal}),
+      end:({signal})=>media.animate({id:'presentation_end',targets:['SHANNY','REV'],signal}),stop:()=>media.stopAnimations()
+    }:undefined});await session.initialize();
+    const player=spawn(config.player,['-force-d3d11','-screen-fullscreen','0','-videoMode',config.videoMode||'COLORBLIND','-logFile',join(root,'player.log')],
+      {windowsHide:false,stdio:'ignore',env:{...process.env,LIVE_PUPPET_TOKEN:token,LIVE_PUPPET_URL:origin,
+        ...(media?{LIVE_MEDIA_URL:media.url}:{})}});
     children.push(player);player.on('error',()=>{});
     await waitUntil(async()=>{if(player.exitCode!==null)throw new Error('Character player exited');const {stage}=await gateway.metrics();return stage&&Date.now()-stage.received_unix_ms<2500;},30000);
     let performanceMode='standard';
@@ -104,7 +112,9 @@ export async function serveRealHost(config){
       catch {await session.stop().catch(()=>{});}finally{monitorBusy=false;}
     },1000);
     const action=async data=>{
-      if(data.action==='status')return {...session.status(),qwen:modelName+' (local CPU)',performance_mode:performanceMode};
+      if(data.action==='status')return {...session.status(),qwen:modelName+' (local CPU)',performance_mode:performanceMode,media:media?.info()||null,
+        preview_url:preview?'http://127.0.0.1:'+preview.port+'/#key='+preview.token:null};
+      if(data.action?.startsWith('media-')){if(!media)throw new Error('Stage feed not configured');return media.viewer(data);}
       if(data.action==='animations')return animations.menu();
       if(data.action==='stop'){animations.stop();await session.stop();return {stopped:true};}
       if(data.action==='arm'){
@@ -116,11 +126,12 @@ export async function serveRealHost(config){
         session_id:data.session_id||session.scope.session_id,mode_epoch:data.mode_epoch??session.epoch});
       throw new Error('This control is unavailable in real character mode');
     };
+    if(media)preview=await serveRemotePanel({action,publicOrigin:'http://127.0.0.1',allowLocalPreview:true,scratch:join(root,'preview')});
     http=createServer((req,res)=>{const revision=session.revision;void(async()=>{
       const supplied=Buffer.from(String(req.headers.authorization||'')),expected=Buffer.from('Bearer '+token);
       if(supplied.length!==expected.length||!timingSafeEqual(supplied,expected)){res.writeHead(401);res.end();return;}
       if(req.method!=='POST'||req.url!=='/action'){res.writeHead(404);res.end();return;}
-      const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>8192)throw new Error('Request exceeds limit');chunks.push(chunk);}
+      const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>64000)throw new Error('Request exceeds limit');chunks.push(chunk);}
       const data=JSON.parse(Buffer.concat(chunks).toString('utf8'));
       if(data.action!=='stop'&&revision!==session.revision)throw new Error('Request cancelled by Stop');
       const result=await action(data);

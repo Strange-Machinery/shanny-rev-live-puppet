@@ -59,3 +59,18 @@ test('remote stop during pending arm prevents transcript admission even when bac
   release();assert.equal((await pending).status,409);
   assert.ok(!calls.includes('transcript'));assert.equal(calls.at(-1),'stop');
 });
+
+test('OBS link only permits bounded media signaling and cannot operate the show',async t=>{
+ const f=await fixture(t);const headers={Authorization:'Bearer '+f.app.token};
+ const link=await (await fetch(f.base+'/api/obs-link',{headers})).json();
+ const url=new URL(link.url);assert.equal(url.origin,'https://producer.example');assert.equal(url.pathname,'/stage');
+ const viewHeaders={Authorization:'Bearer '+new URLSearchParams(url.hash.slice(1)).get('key'),'Content-Type':'application/json'};
+ assert.equal((await fetch(f.base+'/stage')).status,200);
+ for(const path of ['status','animations','obs-link'])assert.equal((await fetch(f.base+'/api/'+path,{headers:viewHeaders})).status,403);
+ assert.equal((await fetch(f.base+'/api/action',{method:'POST',headers:viewHeaders,body:JSON.stringify({action:'stop'})})).status,403);
+ const media=body=>fetch(f.base+'/api/media',{method:'POST',headers:viewHeaders,body:JSON.stringify(body)});
+ assert.equal((await media({action:'stop'})).status,400);
+ assert.equal((await media({action:'media-open',audioPath:'C:/private.wav'})).status,400);
+ assert.equal((await media({action:'media-open'})).status,200);
+ assert.deepEqual(f.calls,[{action:'media-open'}]);
+});

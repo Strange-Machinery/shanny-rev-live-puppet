@@ -1,0 +1,80 @@
+import {createServer} from 'node:http';
+import {randomUUID,timingSafeEqual} from 'node:crypto';
+
+/** Signaling only. Camera/audio travel directly over encrypted WebRTC. */
+export async function createStageMedia({token,iceServers=[],now=Date.now,maxViewers=2}={}){
+  if(typeof token!=='string'||token.length<32||!Array.isArray(iceServers)||iceServers.length>8)throw new Error('Invalid stage media configuration');
+  for(const server of iceServers){
+    if(!Array.isArray(server.urls)||!server.urls.length||server.urls.length>4||server.urls.some(u=>typeof u!=='string'||u.length>500||!/^turns?:|^stun:/.test(u)))throw new Error('Invalid ICE service');
+  }
+  const peers=new Map(),commands=new Map();let controlEpoch=0,closed=false,lastSource=0,sourceState='starting',presentationVisible=false,presentationMode='seated';
+  const stopAnimations=()=>{controlEpoch++;presentationVisible=false;for(const c of commands.values())c.finish(new Error('Animation stopped'));commands.clear();};
+  const animate=({targets,id,signal})=>new Promise((resolve,reject)=>{
+    const presentation=['make_it_rain','seated_response','presentation_end'].includes(id);
+    if(!info().available||!Array.isArray(targets)||!targets.length||targets.length>2||new Set(targets).size!==targets.length||targets.some(a=>!['SHANNY','REV'].includes(a))||!(presentation||/^m16_(conversation|directed_point|objection|open_explanation|quiet_listening|seated_listening)$/.test(id))||presentation&&targets.length!==2)return reject(new Error('Animation unavailable'));
+    if(commands.size||signal?.aborted)return reject(new Error('Animation command busy or cancelled'));
+    const request=randomUUID(),abort=()=>stopAnimations();
+    const timer=setTimeout(()=>{controlEpoch++;finish(new Error('Player did not acknowledge animation'));},2500);
+    const finish=(error,result)=>{clearTimeout(timer);signal?.removeEventListener('abort',abort);commands.delete(request);error?reject(error):resolve(result);};
+    commands.set(request,{id:request,targets,alias:presentation?id:id.slice(4),finish});signal?.addEventListener('abort',abort,{once:true});
+  });
+  const sweep=()=>{for(const [id,p] of peers)if(now()-p.seen>15000)peers.delete(id);};
+  const timer=setInterval(sweep,1000);timer.unref();
+  const info=()=>({available:!closed&&lastSource>0&&now()-lastSource<5000&&sourceState==='ready',state:sourceState,
+    width:1920,height:1080,fps:30,max_bitrate:12000000,
+    presentation_visible:presentationVisible&&now()-lastSource<5000,presentation_mode:presentationMode,
+    transport:'WebRTC',relay_configured:iceServers.some(s=>s.urls.some(u=>/^turns?:/.test(u)))});
+  function viewer(input){
+    sweep();if(closed)throw new Error('Stage feed closed');
+    if(input.action==='media-status')return info();
+    if(input.action==='media-open'){
+      if(!info().available)throw new Error('Stage camera is not ready');
+      if(peers.size>=maxViewers)throw new Error('Stage viewer limit reached; close an unused preview');
+      const id=randomUUID();peers.set(id,{id,seen:now(),offer:null,answer:null,error:null});
+      return {id,iceServers,...info()};
+    }
+    const p=peers.get(input.id);if(!p)throw new Error('Stage connection expired; reconnect');
+    if(input.action==='media-close'){peers.delete(p.id);return {closed:true};}
+    p.seen=now();
+    if(input.action==='media-offer'){
+      if(p.offer||typeof input.sdp!=='string'||input.sdp.length>48000||!input.sdp.startsWith('v=0')||!/m=video /.test(input.sdp)||!/m=audio /.test(input.sdp))throw new Error('Invalid stage offer');
+      p.offer=input.sdp;return {accepted:true};
+    }
+    if(input.action==='media-poll')return {answer:p.answer,error:p.error,...info()};
+    throw new Error('Unsupported stage action');
+  }
+  const server=createServer((req,res)=>{void(async()=>{
+    res.setHeader('Cache-Control','no-store');
+    const auth=Buffer.from(String(req.headers.authorization||'')),expected=Buffer.from('Bearer '+token);
+    if(auth.length!==expected.length||!timingSafeEqual(auth,expected)){res.writeHead(401);res.end();return;}
+    if(req.method!=='POST'||!['/poll','/answer','/command-receipt'].includes(req.url)){res.writeHead(404);res.end();return;}
+    const chunks=[];let bytes=0;
+    for await(const chunk of req){bytes+=chunk.length;if(bytes>64000)throw new Error('Stage message too large');chunks.push(chunk);}
+    const data=JSON.parse(Buffer.concat(chunks).toString('utf8'));let value;
+    if(req.url==='/poll'){
+      sweep();lastSource=now();sourceState=String(data.state||'ready').slice(0,120);
+      value={peers:[...peers.values()].map(p=>({id:p.id,sdp:p.error?'':p.offer||''})),iceServers,
+        control_epoch:controlEpoch,commands:[...commands.values()].map(({id,targets,alias})=>({id,targets,alias}))};
+    }else if(req.url==='/command-receipt'){
+      const c=commands.get(data.id);if(c){
+        if(data.accepted===true&&['make_it_rain','seated_response','presentation_end'].includes(c.alias)){
+          presentationVisible=c.alias!=='presentation_end';if(presentationVisible)presentationMode=c.alias==='make_it_rain'?'rain':'seated';
+        }
+        c.finish(data.accepted===true?null:new Error('Player could not prepare the requested performance'),{status:'accepted',kind:'M16_FITTED',targets:c.targets,duration_ms:Number.isSafeInteger(data.duration_ms)&&data.duration_ms>=20000&&data.duration_ms<=60000?data.duration_ms:20000});
+      }
+      value={received:Boolean(c)};
+    }else{
+      const p=peers.get(data.id);
+      if(!p){res.writeHead(410);res.end();return;}
+      if(data.error)p.error=String(data.error).slice(0,200);
+      else if(typeof data.sdp==='string'&&data.sdp.startsWith('v=0')&&data.sdp.length<=48000)p.answer=data.sdp;
+      else throw new Error('Invalid stage answer');
+      value={accepted:true};
+    }
+    res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(value));
+  })().catch(()=>{if(!res.headersSent)res.writeHead(400);res.end();});});
+  server.requestTimeout=10000;server.headersTimeout=5000;server.maxConnections=8;
+  await new Promise((r,j)=>{server.once('error',j);server.listen(0,'127.0.0.1',r);});
+  return {url:'http://127.0.0.1:'+server.address().port,viewer,info,animate,stopAnimations,
+    async close(){closed=true;stopAnimations();peers.clear();clearInterval(timer);server.closeAllConnections();await new Promise(r=>server.close(r));}};
+}
