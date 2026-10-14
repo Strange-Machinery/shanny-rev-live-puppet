@@ -38,14 +38,19 @@ jobs:
               "http://127.0.0.1:18781/$mode?backdrop=1" \
               >/tmp/chrome-"$mode".log 2>&1
           done
+          "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --hide-scrollbars \
+            --window-size=1920,1080 --virtual-time-budget=3300 \
+            --screenshot="/tmp/mucus-donation-early.png" \
+            "http://127.0.0.1:18781/donation?backdrop=1" \
+            >/tmp/chrome-donation-early.log 2>&1
           mkdir -p artifacts
-          cp /tmp/mucus-donation.png /tmp/mucus-hotmic.png artifacts/
+          cp /tmp/mucus-donation.png /tmp/mucus-hotmic.png /tmp/mucus-donation-early.png artifacts/
       - name: Encode compact visual evidence and check screenshots
         shell: bash
         run: |
           python -m pip install --quiet Pillow
           python - <<'PY'
-          from PIL import Image
+          from PIL import Image,ImageChops
           import base64,io
           for mode in ('donation','hotmic'):
               img=Image.open('artifacts/mucus-'+mode+'.png').convert('RGB')
@@ -58,6 +63,12 @@ jobs:
               print(base64.b64encode(sink.getvalue()).decode('ascii'),flush=True)
               print('MUCUS_IMAGE_'+mode.upper()+'_END',flush=True)
               print('MUCUS_GEOMETRY '+mode+': 1920x1080 screenshot and upper-left '+str(clipped.size),flush=True)
+          early=Image.open('artifacts/mucus-donation-early.png').convert('RGB')
+          later=Image.open('artifacts/mucus-donation.png').convert('RGB')
+          region=(20,615,830,815)
+          diff=ImageChops.difference(early.crop(region),later.crop(region))
+          changed=sum(1 for pixel in diff.getdata() if max(pixel)>15)
+          print('MUCUS_MOTION_CHANGED_PIXELS',changed,flush=True)
           PY
       - uses: actions/upload-artifact@v4
         with:
