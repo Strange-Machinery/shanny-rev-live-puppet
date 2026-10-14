@@ -64,8 +64,11 @@ For approved later MSI use, its minimal schema is:
 
 One provider alone is sufficient. Omit YouTube until later. Protect
 the file with local Windows user-only permissions, and never commit it.
-The producer must intentionally press "Enable donation reactions";
-connecting a socket or opening a preview never authorizes the queue.
+The producer must first connect the ACTUAL authenticated OBS Browser Source,
+then intentionally press "Enable donation reactions". The app refuses to arm
+automatic paid feeds if no OBS viewer is attached. If that viewer later drops,
+queued paid events wait for reconnection instead of silently playing to
+nowhere. Connecting a socket or opening a preview does not authorize the queue.
 
 ## How to interpret the NEW Buff launcher diagnostics
 
