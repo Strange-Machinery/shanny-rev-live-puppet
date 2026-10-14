@@ -50,14 +50,24 @@ body{position:relative;font-family:Arial,"Segoe UI",sans-serif}
 }
 .brand-wordmark{
   display:block;white-space:nowrap;
-  font:1000 52px/.99 Impact,"Arial Black","Segoe UI Black",sans-serif;
+  font:1000 48px/.99 Impact,"Arial Black","Segoe UI Black",sans-serif;
   letter-spacing:.022em;transform:skewX(-3deg);
   background:linear-gradient(180deg,#f2ffb4 0%,#c7ff63 16%,#84d724 55%,#428e17 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent;
   -webkit-text-stroke:1.7px #132c0b;
   filter:drop-shadow(2px 4px 0 #061307) drop-shadow(0 0 6px rgba(143,255,58,.2));
 }
-.brand-wordmark span:last-child{letter-spacing:.006em}
+.brand-wordmark span:nth-child(2){letter-spacing:.006em}
+.brand-wordmark .brand-ai{
+  display:inline-block;
+  font-size:.78em;
+  letter-spacing:-.045em;
+  vertical-align:5px;
+  padding-left:3px;
+  background:linear-gradient(165deg,#fcffe0,#c5ff71 35%,#69be28 83%,#366d1b);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-stroke:1.4px #142c0a;
+}
 .alert-type{
   display:flex;flex:none;align-items:center;gap:9px;
   padding:9px 12px;
@@ -69,13 +79,160 @@ body{position:relative;font-family:Arial,"Segoe UI",sans-serif}
 }
 .alert-lamp,.bug-dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex:none;
   background:#b7f859;box-shadow:0 0 9px rgba(163,246,68,.7)}
-/* Static decorative drips: lightweight CSS, no downloaded font, GIF or JS
-   animation layer competing with the video encoder. */
-.goo{position:absolute;z-index:3;pointer-events:none;background:linear-gradient(#a9f83f,#69af1e);
-  box-shadow:1px 2px 0 #193c0d,0 2px 5px rgba(0,0,0,.4)}
-.goo-1{width:17px;height:38px;left:80px;top:7px;border-radius:0 0 10px 10px}
-.goo-2{width:10px;height:24px;left:129px;top:7px;border-radius:0 0 7px 7px}
-.goo-3{width:13px;height:31px;right:94px;top:7px;border-radius:0 0 7px 7px}
+/* Hand-built, translucent MUCUS shell, not CSS rectangles or a fluid shader.
+   Three separate edge rails and one bottom reservoir sit OUTSIDE the hard
+   frame/video. Their gradients and gloss give a physical wet-film illusion.
+   Only five tiny weighted strands and two detached beads animate. */
+.popup-rim{z-index:1}
+.popup-rim::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(circle at 14px 15px,rgba(211,246,144,.65) 0 1.5px,rgba(15,30,12,.95) 2px 3.8px,transparent 5px),
+    radial-gradient(circle at calc(100% - 14px) 15px,rgba(211,246,144,.65) 0 1.5px,rgba(15,30,12,.95) 2px 3.8px,transparent 5px),
+    linear-gradient(110deg,rgba(235,255,171,.07),transparent 28%,rgba(0,0,0,.08) 76%,rgba(236,255,194,.04));
+}
+.mucus-layer{
+  position:absolute;display:block;
+  z-index:4;pointer-events:none;
+  overflow:visible;
+  shape-rendering:geometricPrecision;
+  backface-visibility:hidden;
+}
+.mucus-layer--top{
+  left:-20px;top:-12px;
+  width:calc(100% + 40px);height:42px;
+  z-index:3;
+}
+.mucus-layer--left{
+  left:-22px;bottom:-3px;
+  width:70px;height:230px;
+}
+.mucus-layer--right{
+  right:-22px;bottom:-3px;
+  width:70px;height:230px;
+}
+.mucus-layer--bottom{
+  left:-18px;bottom:-67px;
+  width:calc(100% + 36px);height:116px;
+  z-index:5;
+}
+/* Dilute the continuous film. Mass accumulates at the corners and strand
+   anchors rather than making a solid neon hose along the entire lip. */
+.mucus-reservoir{opacity:.74}
+.mucus-cast-shadow{opacity:.57}
+
+/* The pooled glaze stays static. Stringy tension (not a cartoon teardrop)
+   grows/recoils independently under gravity and surface adhesion.
+   Fill-box origins are local to each tiny SVG group, no layout reflow. */
+.mucus-strand--hero{
+  transform-box:fill-box;
+  transform-origin:50% 0%;
+  will-change:transform;
+}
+.mucus-strand--a{animation:mucus-strain-a 11.3s cubic-bezier(.45,.07,.53,.95) -2.6s infinite}
+.mucus-strand--b{animation:mucus-strain-b 8.9s cubic-bezier(.41,.09,.58,.9) -5.2s infinite}
+.mucus-strand--c{animation:mucus-strain-c 14.7s cubic-bezier(.44,.06,.57,.95) -8.1s infinite}
+.mucus-strand--d{animation:mucus-strain-a 17.4s cubic-bezier(.48,.08,.5,.94) -11.2s infinite}
+.mucus-strand--side{animation:mucus-strain-b 12.5s cubic-bezier(.43,.08,.59,.94) -7.9s infinite}
+.mucus-tip{
+  transform-box:fill-box;transform-origin:center 70%;
+  animation:mucus-tip-tension 9.6s ease-in-out -3.7s infinite;
+}
+/* Capillary RUNOFF: short specular fronts travel along the lower external
+   metal/glaze edge. Stroke dashes move along authored SVG paths; no shape
+   changes, JavaScript frame loop, raster sprites, or costly goo filters. */
+.mucus-flow-track{
+  opacity:.88;
+  stroke-dasharray:34 255;
+  will-change:stroke-dashoffset;
+}
+.mucus-flow-track--left{
+  animation:mucus-runoff-down 7.6s linear -1.2s infinite;
+}
+.mucus-flow-track--right{
+  animation:mucus-runoff-down 9.2s linear -4.7s infinite;
+}
+.mucus-flow-track--lip-a{
+  stroke-dasharray:68 948;
+  animation:mucus-runoff-lip 10.5s linear -2.5s infinite;
+}
+.mucus-flow-track--lip-b{
+  stroke-dasharray:36 950;
+  opacity:.81;
+  animation:mucus-runoff-lip-reverse 13.1s linear -6.3s infinite;
+}
+@keyframes mucus-runoff-down{
+  0%{stroke-dashoffset:275;opacity:.15}
+  7%{opacity:.9}
+  80%{stroke-dashoffset:78;opacity:.88}
+  95%,100%{stroke-dashoffset:60;opacity:0}
+}
+@keyframes mucus-runoff-lip{
+  0%{stroke-dashoffset:995;opacity:.12}
+  8%{opacity:.86}
+  90%{stroke-dashoffset:225;opacity:.8}
+  100%{stroke-dashoffset:165;opacity:0}
+}
+@keyframes mucus-runoff-lip-reverse{
+  0%{stroke-dashoffset:205;opacity:.04}
+  10%{opacity:.68}
+  86%{stroke-dashoffset:870;opacity:.64}
+  100%{stroke-dashoffset:955;opacity:0}
+}
+/* A drifting caustic sheen: opacity-only for OBS GPU predictability. */
+.mucus-layer--bottom path[stroke="url(#mucus-bottom-glint)"]{
+  animation:mucus-light-shift 13.7s ease-in-out -5.2s infinite;
+}
+.mucus-droplet{
+  transform-box:fill-box;transform-origin:50% 0%;
+  opacity:0;
+  will-change:transform,opacity;
+}
+.mucus-droplet--a{animation:mucus-release-a 13.8s linear -5.8s infinite}
+.mucus-droplet--b{animation:mucus-release-b 17.6s linear -11.3s infinite}
+@keyframes mucus-strain-a{
+  0%,13%,100%{transform:scaleX(1) scaleY(.96)}
+  34%{transform:scaleX(.965) scaleY(1.09)}
+  59%{transform:scaleX(.87) scaleY(1.44)}
+  68%{transform:scaleX(.88) scaleY(1.52)}
+  78%{transform:scaleX(.95) scaleY(1.2)}
+  92%{transform:scaleX(1) scaleY(.97)}
+}
+@keyframes mucus-strain-b{
+  0%,20%,100%{transform:scaleX(.98) scaleY(.95)}
+  38%{transform:scaleX(.94) scaleY(1.1)}
+  65%{transform:scaleX(.88) scaleY(1.42)}
+  74%{transform:scaleX(.92) scaleY(1.34)}
+  90%{transform:scaleX(.99) scaleY(.97)}
+}
+@keyframes mucus-strain-c{
+  0%,16%,100%{transform:scaleX(1) scaleY(.99)}
+  36%{transform:scaleX(.97) scaleY(1.07)}
+  58%{transform:scaleX(.9) scaleY(1.39)}
+  76%{transform:scaleX(.89) scaleY(1.46)}
+  85%{transform:scaleX(.96) scaleY(1.14)}
+}
+@keyframes mucus-tip-tension{
+  0%,19%,95%,100%{transform:scale(.96,1)}
+  54%{transform:scale(1.13,1.09)}
+  70%{transform:scale(1.27,1.31)}
+}
+@keyframes mucus-light-shift{
+  0%,100%{opacity:.46}
+  47%{opacity:.94}
+}
+@keyframes mucus-release-a{
+  0%,58%{opacity:0;transform:translateY(-6px) scale(.72)}
+  61%{opacity:.86;transform:translateY(0) scale(.84)}
+  71%{opacity:.78;transform:translateY(24px) scale(.92)}
+  82%,100%{opacity:0;transform:translateY(58px) scale(.64)}
+}
+@keyframes mucus-release-b{
+  0%,65%{opacity:0;transform:translateY(-4px) scale(.7)}
+  69%{opacity:.76;transform:translateY(0) scale(.82)}
+  76%{opacity:.78;transform:translateY(20px) scale(.92)}
+  87%,100%{opacity:0;transform:translateY(48px) scale(.65)}
+}
 .stage-well{
   position:relative;overflow:hidden;margin-top:7px;
   aspect-ratio:16/9;border:3px solid #10190e;border-radius:6px;
@@ -152,9 +309,16 @@ body{position:relative;font-family:Arial,"Segoe UI",sans-serif}
   #donor-name{font-size:clamp(16px,3.4vw,26px)}
   #donation-message{font-size:clamp(12px,2.25vw,17px)}
   .alert-type{font-size:9px;padding:6px}
-  .goo-1,.goo-2,.goo-3{transform:scale(.75);transform-origin:top}
+  .mucus-layer--left,.mucus-layer--right{height:min(230px,36vw)}
+  .mucus-layer--bottom{height:min(116px,15vw);bottom:clamp(-67px,-8vw,-30px)}
 }
-@media(prefers-reduced-motion:reduce){.stank-popup{animation:none}}
+@media(prefers-reduced-motion:reduce){
+  .stank-popup,.mucus-strand--hero,.mucus-tip,.mucus-flow-track,
+  .mucus-droplet,.mucus-layer--bottom path[stroke="url(#mucus-bottom-glint)"]{
+    animation:none!important;transition:none!important;will-change:auto
+  }
+  .mucus-droplet{opacity:0!important}
+}
 @keyframes stank-arrive{
   from{opacity:0;transform:translateY(-5px) scale(.992)}
   to{opacity:1;transform:none}
@@ -179,6 +343,15 @@ body{position:relative;font-family:Arial,"Segoe UI",sans-serif}
   color:#fff;overflow-wrap:anywhere;text-shadow:0 1px #000;
   display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;
   line-clamp:3;overflow:hidden
+}
+/* Only the local, static ART PREVIEW exposes an optional speed-study switch.
+   Production never adds this class; reduced-motion still wins via !important. */
+.preview-motion-demo .mucus-strand--hero{animation-duration:4.3s}
+.preview-motion-demo .mucus-tip{animation-duration:4.2s}
+.preview-motion-demo .mucus-flow-track{animation-duration:3.3s}
+.preview-motion-demo .mucus-droplet{animation-duration:6.2s}
+.preview-motion-demo .mucus-layer--bottom path[stroke="url(#mucus-bottom-glint)"]{
+  animation-duration:3.9s
 }
 /* Debug controls never render in the public OBS frame. */
 #connection{display:none!important}

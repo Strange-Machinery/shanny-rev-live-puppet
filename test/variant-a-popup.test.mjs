@@ -102,7 +102,7 @@ test('Variant A is contained in top-left of a transparent OBS page, with no exte
   assert.match(css,/background:transparent!important/);
   assert.match(css,/top:27px;left:29px/);
   assert.match(css,/\.stank-popup\[data-kind="hotmic"\] \.donation-plaque\{display:none\}/);
-  assert.doesNotMatch(css,/@import|fonts\.googleapis|url\(/i);
+  assert.doesNotMatch(css,/@import|fonts\.googleapis|url\(["']?https?:/i);
   assert.match(script,/video\.muted=true/);
   assert.match(script,/donor\.textContent=view\.donor/);
   assert.match(script,/subtitleWords\.textContent=line\.text/);
