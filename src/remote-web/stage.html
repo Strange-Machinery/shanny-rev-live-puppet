@@ -1,1 +1,55 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>StankTank · OBS feed</title><link rel="stylesheet" href="/stage.css"><script type="module" src="/stage-page.js"></script></head><body><video id="stage" autoplay playsinline></video><div id="connection"><p id="state">Connecting to StankTank…</p><button id="sound">Enable sound</button><button id="reconnect">Reconnect</button></div></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Stank Tank — Buff OBS alert</title>
+  <link rel="stylesheet" href="/stage.css">
+  <script type="module" src="/stage-page.js"></script>
+</head>
+<body>
+  <!-- This document fills the transparent 1920×1080 Browser Source. OBS keeps it loaded. -->
+  <main id="stank-popup" class="stank-popup" data-kind="hidden" hidden aria-label="Stank Tank live alert">
+    <div class="goo goo-1" aria-hidden="true"></div>
+    <div class="goo goo-2" aria-hidden="true"></div>
+    <div class="goo goo-3" aria-hidden="true"></div>
+    <div class="popup-rim">
+      <header class="popup-header">
+        <div class="brand-block">
+          <span class="brand-eyebrow">STRANGE MACHINERY PRESENTS</span>
+          <strong class="brand-wordmark" aria-label="Stank Tank"><span>STANK</span> <span>TANK</span></strong>
+        </div>
+        <div class="alert-type">
+          <span class="alert-lamp" aria-hidden="true"></span>
+          <span id="alert-label">DONATION ALERT</span>
+        </div>
+      </header>
+      <section class="stage-well" aria-label="Shanny and Rev live performance">
+        <!-- Live opaque H.264 video stays INSIDE this framed box, never fullscreen. -->
+        <video id="stage" autoplay playsinline></video>
+        <div class="stage-vignette" aria-hidden="true"></div>
+        <span class="stage-bug" aria-hidden="true"><span class="bug-dot"></span> THE STANK TANK</span>
+      </section>
+      <section class="donation-plaque" aria-label="Alert information">
+        <div class="donor-plaque">
+          <span class="plaque-kicker" id="donor-kicker">STANK FROM</span>
+          <strong id="donor-name"> </strong>
+          <strong id="donation-amount" class="donation-amount"> </strong>
+        </div>
+        <div class="message-plaque">
+          <span class="plaque-kicker" id="message-kicker">THE MESSAGE</span>
+          <p id="donation-message"> </p>
+        </div>
+      </section>
+      <div class="frame-bottom" aria-hidden="true"><span></span><span></span><span></span></div>
+    </div>
+  </main>
+  <!-- Diagnostics are intentionally invisible in the OBS source; controls live in Buff's launcher. -->
+  <div id="connection" hidden aria-hidden="true">
+    <p id="state"></p>
+    <button id="sound" type="button" tabindex="-1">Enable sound</button>
+    <button id="reconnect" type="button" tabindex="-1">Reconnect</button>
+  </div>
+</body>
+</html>
