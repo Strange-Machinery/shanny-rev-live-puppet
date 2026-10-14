@@ -128,33 +128,85 @@ test('Stop while a prefetched line is held prevents its release',async()=>{
   assert.equal(f.released.length,1);assert.equal(f.session.history.length,0);
 });
 
-test('popup prepares every voice before revealing either mode and keeps the paired body routine separate',async()=>{
- for(const rain of [false,true]){
-  const f=fixture({generate:async()=>({lines:[{actor:'SHANNY',text:'That is my cash.',mood:'anger'},{actor:'REV',text:'It is his donation.',mood:'irritated'}]})});
-  const shows=[];let clock=Date.now();f.session.now=()=>clock;
-  f.session.presentation={begin:async args=>shows.push(args.rain),end:async()=>shows.push('hidden'),stop:()=>shows.push('stop')};
-  await f.session.initialize();const scope=await f.session.arm();
-  await f.session.submit({kind:'donation',text:'Cash for Buff.',make_it_rain:rain,...scope});
-  await until(()=>f.released.length===1);
-  assert.equal(f.spoken.length,3);assert.ok(f.spoken.every(row=>row.prepare_only));assert.deepEqual(shows,[rain]);
-  f.emit('playback.started',f.spoken[0].id);f.emit('playback.finished',f.spoken[0].id);
-  await until(()=>f.released.length===2);f.emit('playback.started',f.spoken[1].id);f.emit('playback.finished',f.spoken[1].id);
-  await until(()=>f.released.length===3);f.emit('playback.started',f.spoken[2].id);
-  await until(()=>f.session.turn.events.some(e=>e.type==='playback.started'&&e.id===f.spoken[2].id));clock+=21000;
-  f.emit('playback.finished',f.spoken[2].id);
-  await until(()=>!f.session.turn);assert.equal(f.session.error,'');assert.deepEqual(shows,[rain,'hidden']);assert.equal(f.session.history.length,2);
- }
-});
-
-test('Stop during popup preparation releases no held audio and hides the stage',async()=>{
- let complete;const f=fixture({generate:()=>new Promise(resolve=>complete=resolve)});let hidden=0;
- f.session.presentation={begin:async()=>assert.fail('Cancelled preparation became visible'),end:async()=>{},stop:()=>hidden++};
+test('ordinary donation prepares EVERY held voice before the OBS seated reveal',async()=>{
+ const f=fixture({generate:async()=>({lines:[{actor:'SHANNY',text:'That is my cash.'},
+   {actor:'REV',text:'It is his donation.'}]})});
+ const stages=[];f.session.presentation={
+  begin:async args=>{stages.push('seated');assert.equal(args.rain,false);return {duration_ms:20000};},
+  end:async()=>stages.push('hidden'),stop:()=>stages.push('stop')
+ };
  await f.session.initialize();const scope=await f.session.arm();
- await f.session.submit({kind:'donation',text:'Cancel the rain.',make_it_rain:true,...scope});await until(()=>complete);
- await f.session.stop();complete({lines:[{actor:'SHANNY',text:'Too late.'},{actor:'REV',text:'Cancelled.'}]});
- await until(()=>!f.session.turn);assert.equal(f.released.length,0);assert.equal(hidden,1);
+ await f.session.submit({kind:'donation',text:'Cash for Buff.',make_it_rain:false,...scope});
+ await until(()=>f.released.length===1);
+ assert.equal(stages[0],'seated');
+ assert.equal(f.spoken.length,3);
+ assert.ok(f.spoken.every(row=>row.prepare_only));
+ f.emit('playback.started',f.spoken[0].id);f.emit('playback.finished',f.spoken[0].id);
+ await until(()=>f.released.length===2);
+ f.emit('playback.started',f.spoken[1].id);f.emit('playback.finished',f.spoken[1].id);
+ await until(()=>f.released.length===3);
+ f.emit('playback.started',f.spoken[2].id);f.emit('playback.finished',f.spoken[2].id);
+ await until(()=>!f.session.turn);
+ assert.deepEqual(stages,['seated','hidden']);assert.equal(f.session.error,'');
 });
 
+test('$100 rain begins before Qwen/voices; ends music and SEATS before first TTS',async()=>{
+ let resolvePlan,firstReleaseAfterSeat=false;
+ const f=fixture({generate:async()=>new Promise(r=>resolvePlan=r)});
+ const events=[],waits=[];
+ f.session.pause=async ms=>{waits.push(ms);};
+ f.session.presentation={
+  begin:async args=>{events.push('rain');assert.equal(args.rain,true);return {duration_ms:20000};},
+  waitVisible:async()=>{events.push('shown');},
+  seat:async()=>{events.push('desk');},
+  end:async()=>{events.push('hidden');},
+  stop:()=>events.push('stop')
+ };
+ const release=f.gateway.release;
+ f.gateway.release=async data=>{
+  firstReleaseAfterSeat=events.includes('desk');
+  return release(data);
+ };
+ await f.session.initialize();const scope=await f.session.arm();
+ await f.session.submit({kind:'donation',text:'A big one!',make_it_rain:true,...scope});
+ await until(()=>typeof resolvePlan==='function'&&events.includes('desk'));
+ assert.deepEqual(events.slice(0,3),['rain','shown','desk']);
+ assert.ok(waits[0]>=22000,'dance+music hold must run before TTS');
+ assert.equal(f.released.length,0);
+ resolvePlan({lines:[{actor:'SHANNY',text:'Thank you!'}, {actor:'REV',text:'I agree.'}]});
+ await until(()=>f.released.length===1);
+ assert.equal(firstReleaseAfterSeat,true);
+ assert.equal(f.spoken.length,3);
+ assert.ok(f.spoken.every(row=>row.prepare_only));
+ f.emit('playback.started',f.spoken[0].id);f.emit('playback.finished',f.spoken[0].id);
+ await until(()=>f.released.length===2);
+ f.emit('playback.started',f.spoken[1].id);f.emit('playback.finished',f.spoken[1].id);
+ await until(()=>f.released.length===3);
+ f.emit('playback.started',f.spoken[2].id);f.emit('playback.finished',f.spoken[2].id);
+ await until(()=>!f.session.turn);
+ assert.deepEqual(events,['rain','shown','desk','shown','hidden']);
+ assert.equal(f.session.error,'');
+});
+
+test('Stop during rain-first Qwen preparation hides stage and releases NO held voices',async()=>{
+ let complete;const stages=[];
+ const f=fixture({generate:()=>new Promise(resolve=>complete=resolve)});
+ f.session.pause=async()=>{};
+ f.session.presentation={
+  begin:async()=>{stages.push('rain');return {duration_ms:20000};},
+  waitVisible:async()=>{},seat:async()=>stages.push('desk'),
+  end:async()=>stages.push('hidden'),stop:()=>stages.push('stop')
+ };
+ await f.session.initialize();const scope=await f.session.arm();
+ await f.session.submit({kind:'donation',text:'Cancel the rain.',make_it_rain:true,...scope});
+ await until(()=>typeof complete==='function'&&stages.includes('rain'));
+ await f.session.stop();
+ complete({lines:[{actor:'SHANNY',text:'Too late.'},{actor:'REV',text:'Cancelled.'}]});
+ await until(()=>!f.session.turn);
+ assert.equal(f.released.length,0);
+ assert.equal(stages.includes('hidden'),false);
+ assert.ok(stages.includes('stop'));
+});
 test('seated hotmic popup hides on final Unity playback.finished without the old 20-second hold',async()=>{
  const f=fixture({generate:async()=>({lines:[
   {actor:'SHANNY',text:'We are still here.',mood:'anger'},
@@ -186,11 +238,12 @@ test('operator money-rain button runs native paired animation without faking spe
  const f=fixture({generate:async()=>{throw new Error('Manual rain must not invoke Qwen');}});
  f.session.presentation={
   begin:async args=>{begun=args;return {duration_ms:20500};},
-  end:async()=>{ended++;},stop:()=>{stopped++;}
+  seat:async()=>{},end:async()=>{ended++;},stop:()=>{stopped++;}
  };
  await f.session.initialize();
  assert.throws(()=>f.session.startRainNow(),/armed and idle/);
  await f.session.arm();
+ f.session.pause=async()=>{};
  const command=f.session.startRainNow();
  assert.equal(command.status,'accepted');
  assert.equal(command.paid_donation,false);
