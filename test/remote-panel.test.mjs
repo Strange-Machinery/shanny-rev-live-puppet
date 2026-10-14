@@ -72,5 +72,5 @@ test('OBS link only permits bounded media signaling and cannot operate the show'
  assert.equal((await media({action:'stop'})).status,400);
  assert.equal((await media({action:'media-open',audioPath:'C:/private.wav'})).status,400);
  assert.equal((await media({action:'media-open'})).status,200);
- assert.deepEqual(f.calls,[{action:'media-open'}]);
+ assert.deepEqual(f.calls,[{action:'media-open',viewer_role:'obs'}]);
 });
