@@ -4,21 +4,137 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>Stank Tank — Buff OBS alert</title>
+  <title>Stank Tank AI — Buff OBS alert</title>
   <link rel="stylesheet" href="/stage.css">
   <script type="module" src="/stage-page.js"></script>
 </head>
 <body>
   <!-- This document fills the transparent 1920×1080 Browser Source. OBS keeps it loaded. -->
-  <main id="stank-popup" class="stank-popup" data-kind="hidden" hidden aria-label="Stank Tank live alert">
-    <div class="goo goo-1" aria-hidden="true"></div>
-    <div class="goo goo-2" aria-hidden="true"></div>
-    <div class="goo goo-3" aria-hidden="true"></div>
+  <main id="stank-popup" class="stank-popup" data-kind="hidden" hidden aria-label="Stank Tank AI live alert">
+    <!-- Decorative material lies OUTSIDE the inset camera and donor plaques.
+         Each separate SVG supplies its own material gradients for OBS/CEF. -->
+    <svg class="mucus-layer mucus-layer--top" data-mucus-zone="top" viewBox="0 0 820 42" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="mucus-top-sheen" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#e7ffad" stop-opacity=".86"/>
+          <stop offset=".29" stop-color="#aef04f" stop-opacity=".88"/>
+          <stop offset=".75" stop-color="#579824" stop-opacity=".77"/>
+          <stop offset="1" stop-color="#234814" stop-opacity=".56"/>
+        </linearGradient>
+      </defs>
+      <path fill="#071908" opacity=".78" d="M23 19 C68 17 92 24 125 20 S189 17 236 22 S307 15 351 19 S426 24 474 18 S548 22 586 19 S660 14 698 19 S771 22 797 18 L797 28 C744 27 702 30 646 25 S523 30 455 28 S335 25 266 29 S155 26 102 28 S48 27 23 29 Z"/>
+      <path fill="url(#mucus-top-sheen)" d="M24 17 Q54 13 86 19 T149 18 Q193 15 222 20 T310 16 Q351 12 386 19 T463 17 Q501 12 541 19 T610 17 Q659 15 705 19 T795 17 L795 24 Q751 23 724 23 Q682 26 638 22 T559 26 Q500 27 459 24 T368 25 Q304 27 262 24 T173 26 Q102 26 65 23 L24 25 Z"/>
+      <path d="M29 17 Q80 13 116 18 T202 17 T307 16 T424 17 T546 17 T673 18 T792 17" fill="none" stroke="#f0ffc2" stroke-width="2.1" stroke-linecap="round" opacity=".67"/>
+      <path d="M143 23 Q151 27 156 26 Q164 23 170 23 M637 24 Q644 27 649 24" fill="none" stroke="#8dd83d" stroke-width="2.4" stroke-linecap="round" opacity=".65"/>
+    </svg>
+
+    <svg class="mucus-layer mucus-layer--left" data-mucus-zone="lower-left" viewBox="0 0 70 230" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="mucus-left-rail" x1="0" y1="0" x2="1" y2=".5">
+          <stop stop-color="#164717" stop-opacity=".28"/>
+          <stop offset=".35" stop-color="#5fbb34" stop-opacity=".66"/>
+          <stop offset=".61" stop-color="#c6fb78" stop-opacity=".9"/>
+          <stop offset=".84" stop-color="#468b25" stop-opacity=".78"/>
+          <stop offset="1" stop-color="#183912" stop-opacity=".3"/>
+        </linearGradient>
+      </defs>
+      <path fill="#031005" opacity=".79" d="M37 5 Q45 48 41 89 T44 158 Q43 196 60 219 L42 223 Q32 201 32 177 Q34 133 30 91 Q32 39 28 5 Z"/>
+      <path fill="url(#mucus-left-rail)" d="M30 8 C39 35 34 63 36 92 S34 153 38 176 C38 199 48 211 56 220 L45 224 C39 214 33 192 30 167 C28 137 33 102 28 70 C27 47 31 24 25 11 Z"/>
+      <path d="M31 14 Q36 40 33 60 M35 107 Q31 146 34 168 M37 188 Q42 210 51 219" fill="none" stroke="#e3ffb6" stroke-width="1.55" stroke-linecap="round" opacity=".71"/>
+      <path fill="#4b9226" opacity=".82" d="M34 144 Q42 150 40 161 C39 171 33 176 31 174 C29 171 29 162 30 157 Z"/>
+      <path d="M33 148 Q36 155 34 162" fill="none" stroke="#d6ff9c" stroke-width="1.25" stroke-linecap="round" opacity=".75"/>
+      <path fill="#a4df52" opacity=".65" d="M36 199 Q42 201 44 206 Q46 212 44 216 Q41 212 39 207 Z"/>
+    </svg>
+
+    <svg class="mucus-layer mucus-layer--right" data-mucus-zone="lower-right" viewBox="0 0 70 230" preserveAspectRatio="xMidYMax meet" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="mucus-right-rail" x1="0" y1="0" x2="1" y2=".4">
+          <stop stop-color="#143513" stop-opacity=".33"/>
+          <stop offset=".35" stop-color="#4b9829" stop-opacity=".82"/>
+          <stop offset=".68" stop-color="#bbef6c" stop-opacity=".86"/>
+          <stop offset=".88" stop-color="#559b2d" stop-opacity=".68"/>
+          <stop offset="1" stop-color="#172e10" stop-opacity=".22"/>
+        </linearGradient>
+      </defs>
+      <path fill="#041106" opacity=".8" d="M28 6 C26 62 35 102 28 142 C22 180 23 203 15 219 L27 223 C40 201 38 169 42 137 C48 97 36 57 42 8 Z"/>
+      <path fill="url(#mucus-right-rail)" d="M37 8 C34 42 43 67 39 99 Q36 140 32 162 Q28 201 23 220 L14 225 C17 202 24 182 23 161 C23 137 29 114 28 90 C28 59 30 31 29 7 Z"/>
+      <path d="M33 18 Q31 62 35 82 M32 116 Q29 156 27 174 M24 195 Q23 209 19 218" fill="none" stroke="#e9ffb9" stroke-width="1.55" stroke-linecap="round" opacity=".72"/>
+      <path fill="#9adc49" opacity=".76" d="M29 172 Q21 179 22 187 C23 196 29 200 31 196 Q32 189 30 182 Z"/>
+      <path d="M27 175 Q25 186 28 190" fill="none" stroke="#e5ffa5" stroke-width="1.2" stroke-linecap="round" opacity=".7"/>
+      <g class="mucus-strand mucus-strand--hero mucus-strand--side">
+        <path d="M25 211 C29 213 27 220 27 225 C27 234 24 241 21 242 C18 241 18 234 19 227 Q21 215 20 211 Z" fill="#142d10" opacity=".78" transform="translate(1 1)"/>
+        <path d="M25 211 C29 213 26 220 26 225 C26 232 24 237 21 239 C18 236 19 230 20 224 L20 212 Z" fill="url(#mucus-right-rail)"/>
+        <path d="M23 216 Q22 226 22 232" stroke="#e2ffa6" stroke-width=".9" stroke-linecap="round" opacity=".83" fill="none"/>
+        <ellipse class="mucus-tip" cx="21.7" cy="237" rx="2.7" ry="3.5" fill="#8dd24b" opacity=".8"/>
+      </g>
+    </svg>
+
+    <svg class="mucus-layer mucus-layer--bottom" data-mucus-zone="bottom" viewBox="0 0 820 116" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="mucus-bottom-depth" x1="0" y1="0" x2=".15" y2="1">
+          <stop offset="0" stop-color="#e0ff9b" stop-opacity=".88"/>
+          <stop offset=".16" stop-color="#abe851" stop-opacity=".88"/>
+          <stop offset=".47" stop-color="#77c633" stop-opacity=".83"/>
+          <stop offset=".76" stop-color="#376f1e" stop-opacity=".84"/>
+          <stop offset="1" stop-color="#173c16" stop-opacity=".73"/>
+        </linearGradient>
+        <linearGradient id="mucus-bottom-glint" x1="0" y1="0" x2="1" y2="1">
+          <stop stop-color="#fdffdc" stop-opacity=".84"/>
+          <stop offset=".44" stop-color="#ceff84" stop-opacity=".57"/>
+          <stop offset="1" stop-color="#93c949" stop-opacity=".18"/>
+        </linearGradient>
+      </defs>
+      <!-- The thin main reservoir follows the EXTERNAL bottom lip, not text. -->
+      <path class="mucus-cast-shadow" fill="#061308" opacity=".82" d="M19 32 Q74 30 111 35 T196 34 T285 34 T376 35 T463 33 T558 34 T650 33 T738 34 Q778 31 802 33 L803 47 Q768 45 732 45 T647 43 T551 47 T456 43 T366 46 T276 44 T187 47 T103 44 T19 47 Z"/>
+      <path class="mucus-reservoir" fill="url(#mucus-bottom-depth)" d="M19 31 C64 28 86 36 125 32 Q157 28 190 34 T268 32 Q308 29 345 33 T429 32 Q477 28 512 33 T594 33 Q624 29 667 34 T745 32 Q778 30 801 32 L799 43 C768 41 742 43 715 42 C689 43 668 49 642 44 C611 42 590 43 565 45 Q529 49 497 43 Q462 43 428 45 Q399 49 364 43 Q328 45 292 44 C261 43 241 48 217 44 C188 41 164 42 140 44 Q110 49 87 44 Q51 42 20 45 Z"/>
+      <!-- Larger corner deposits suggest gravity pulling residue round the rail. -->
+      <path fill="url(#mucus-bottom-depth)" d="M21 31 Q46 24 73 34 C83 40 92 51 90 56 C85 62 76 51 69 47 Q57 43 43 49 Q29 52 20 44 Z"/>
+      <path fill="url(#mucus-bottom-depth)" d="M747 32 Q771 25 800 31 L801 46 C784 51 768 44 759 52 Q750 61 743 57 C739 51 750 44 747 32 Z"/>
+      <!-- Tiny static deposits supply material density between moving strands. -->
+      <path fill="#72b735" opacity=".84" d="M147 39 Q154 43 152 49 Q151 56 148 57 Q145 52 146 46 Z M307 40 Q312 40 312 47 Q311 53 307 52 Q306 47 307 40 Z M400 41 Q406 42 407 49 Q406 56 403 54 Q401 50 400 41 Z M612 42 Q621 43 620 49 Q617 55 614 53 Q612 49 612 42 Z"/>
+      <path d="M33 32 Q93 30 134 33 T241 32 T369 33 T481 32 T622 33 T789 33" fill="none" stroke="url(#mucus-bottom-glint)" stroke-width="2.4" stroke-linecap="round" opacity=".84"/>
+      <path d="M36 43 C76 40 95 45 115 43 M257 42 Q280 46 298 42 M520 43 Q551 48 579 42 M680 44 Q712 46 737 43" fill="none" stroke="#b1fa67" stroke-width="1.2" stroke-linecap="round" opacity=".45"/>
+      <!-- FOUR separately authored tension strands, anchored BELOW the plaques. -->
+      <g class="mucus-strand mucus-strand--hero mucus-strand--a" data-material="viscous-strand">
+        <path d="M95 42 C101 46 99 58 97 68 C95 77 96 85 92 89 Q86 94 84 87 Q82 83 87 73 C90 62 87 49 88 43 Z" fill="#071806" opacity=".7" transform="translate(2 2)"/>
+        <path d="M95 42 C101 46 98 58 96 67 Q92 78 94 84 Q90 92 85 87 Q82 83 87 72 Q90 61 87 43 Z" fill="url(#mucus-bottom-depth)"/>
+        <path d="M91 48 Q95 55 92 68 T89 82" stroke="url(#mucus-bottom-glint)" stroke-width="1.25" stroke-linecap="round" fill="none"/>
+        <ellipse class="mucus-tip" cx="89" cy="85" rx="4.7" ry="5.8" fill="#8ac945" opacity=".66"/>
+      </g>
+      <g class="mucus-strand mucus-strand--hero mucus-strand--b" data-material="viscous-strand">
+        <path d="M250 41 Q258 43 256 53 Q257 62 254 69 Q252 74 249 71 Q247 67 249 58 L247 42 Z" fill="#0a1d09" opacity=".8" transform="translate(1 2)"/>
+        <path d="M250 41 Q258 43 255 53 Q256 62 253 67 Q251 72 248 69 Q246 65 249 57 L247 42 Z" fill="url(#mucus-bottom-depth)"/>
+        <path d="M251 45 Q253 52 251 64" fill="none" stroke="#e2ffa2" stroke-width="1.1" stroke-linecap="round"/>
+        <ellipse class="mucus-tip" cx="250.5" cy="68" rx="3.4" ry="3.7" fill="#a0dd54" opacity=".72"/>
+      </g>
+      <g class="mucus-strand mucus-strand--hero mucus-strand--c" data-material="viscous-strand">
+        <path d="M528 43 C535 47 532 57 533 65 Q535 71 529 77 Q522 80 522 74 Q521 66 525 59 L523 42 Z" fill="#061807" opacity=".77" transform="translate(1 2)"/>
+        <path d="M528 43 C534 46 532 57 532 64 Q534 71 529 75 Q522 77 523 72 Q522 65 525 58 L523 42 Z" fill="url(#mucus-bottom-depth)"/>
+        <path d="M527 48 Q529 55 527 65" fill="none" stroke="#e9ffaf" stroke-width="1" stroke-linecap="round" opacity=".82"/>
+        <ellipse class="mucus-tip" cx="528.3" cy="73" rx="4.2" ry="4.2" fill="#8bc948" opacity=".75"/>
+      </g>
+      <g class="mucus-strand mucus-strand--hero mucus-strand--d" data-material="viscous-strand">
+        <path d="M748 41 C757 44 754 58 750 70 C746 81 746 92 742 97 Q737 103 732 96 Q730 90 736 82 Q743 62 740 44 Z" fill="#0a1b08" opacity=".79" transform="translate(2 2)"/>
+        <path d="M748 41 C755 44 753 58 749 69 Q746 78 745 89 Q746 96 740 98 Q735 100 732 95 Q731 89 736 81 Q742 62 740 44 Z" fill="url(#mucus-bottom-depth)"/>
+        <path d="M746 47 Q751 52 747 68 Q744 81 740 90" fill="none" stroke="url(#mucus-bottom-glint)" stroke-width="1.5" stroke-linecap="round"/>
+        <ellipse class="mucus-tip" cx="739.5" cy="96" rx="4.7" ry="5.5" fill="#97ce48" opacity=".72"/>
+      </g>
+      <!-- Detached beads spend most of each long cycle invisible. Their path
+           remains OUTSIDE the bottom edge and never crosses the camera. -->
+      <g class="mucus-droplet mucus-droplet--a" data-material="falling-microbead">
+        <path d="M90 94 C92 99 94 102 91 105 Q87 109 84 104 Q83 100 88 95 Z" fill="url(#mucus-bottom-depth)"/>
+        <path d="M88 99 L88.5 102" stroke="#f0ffc8" stroke-width=".8" stroke-linecap="round" opacity=".8"/>
+      </g>
+      <g class="mucus-droplet mucus-droplet--b" data-material="falling-microbead">
+        <path d="M740 101 Q745 107 741 111 Q736 115 734 109 Q733 104 737 101 Z" fill="url(#mucus-bottom-depth)"/>
+        <path d="M739 104 L739 108" stroke="#edffb8" stroke-width=".85" stroke-linecap="round" opacity=".76"/>
+      </g>
+    </svg>
     <div class="popup-rim">
       <header class="popup-header">
         <div class="brand-block">
           <span class="brand-eyebrow">STRANGE MACHINERY PRESENTS</span>
-          <strong class="brand-wordmark" aria-label="Stank Tank"><span>STANK</span> <span>TANK</span></strong>
+          <strong class="brand-wordmark" aria-label="Stank Tank AI"><span>STANK</span> <span>TANK</span> <span class="brand-ai">AI</span></strong>
         </div>
         <div class="alert-type">
           <span class="alert-lamp" aria-hidden="true"></span>
