@@ -116,7 +116,9 @@ export async function serveRealHost(config){
       // keeping the public popup visible. TTS is NOT released until receipt.
       seat:({signal})=>media.animate({id:'seated_response',targets:['SHANNY','REV'],signal}),
       end:({signal})=>media.animate({id:'presentation_end',targets:['SHANNY','REV'],signal}),
-      waitVisible:({signal})=>media.waitForViewer({signal}),stop:()=>media.stopAnimations()
+      waitVisible:({signal})=>media.waitForViewer({signal}),
+      waitRainEnd:({signal})=>media.waitForRainEnd({signal}),
+      stop:()=>media.stopAnimations()
     }:undefined});await session.initialize();
     const player=spawn(config.player,['-force-d3d11','-screen-fullscreen','0','-videoMode',config.videoMode||'COLORBLIND','-logFile',join(root,'player.log')],
       {windowsHide:false,stdio:'ignore',env:{...process.env,LIVE_PUPPET_TOKEN:token,LIVE_PUPPET_URL:origin,
