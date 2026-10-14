@@ -110,6 +110,36 @@ STOP disconnects providers and cancels current playback. Shut up hides the
 current popup and invalidates its generation/voice scope without disarming
 later paid events. Donor content is quoted untrusted input, not an instruction.
 
+## Variant A boxed Stank Tank popup and hotmic subtitles
+
+- The 1920×1080 OBS Browser Source remains transparent outside a roughly
+  780px-wide **upper-left** boxed Stank Tank window. The Unity H.264 camera is
+  opaque INSIDE that box; we do not claim unsupported character alpha or
+  green-screen keying.
+- Dark tar/moss framing, toxic-green bevel, restrained static slime drips,
+  a strong STANK TANK header and readable donor/amount/message plaques.
+  The display font uses local fallback fonts with CSS gradients and outlines;
+  no web-font dependency or binary artwork is shipped.
+- Actual paid provider events carry canonical transaction ID only in the
+  private queue; only sanitized donor, amount/currency, and speech message are
+  released to the viewer. Test donations are visibly marked TEST.
+- Hotmic responses use the same frame with LIVE RESPONSE in the header and
+  **NO** donor plaque, amount, message, or Buff/Whisper transcription.
+  Shanny/Rev dialogue is captioned inside the video pane using actual Unity
+  playback-start/finish receipts. This requires no new Unity build, but is a
+  browser compositing equivalent—not the authored episode subtitle component.
+- Seated donations/hotmic hide immediately after final spoken-line receipt
+  and paired presentation end acknowledgment (typically sub-second beyond the
+  final word). Rain retains its full native return plus speech.
+- The public OBS page mutes while hidden, clears old metadata/captions and
+  retries WebRTC after transient producer outages. On reveal it acknowledges
+  browser playback readiness before first speech; server falls back to a
+  short bounded preroll if no OBS viewer is connected. A remote browser with
+  blocked autoplay can still fail; Buff's real OBS sound test is mandatory.
+- To inspect this skin without running Unity or accounts, run
+  `node scripts/preview-stank-popup.mjs` and open the displayed loopback
+  /donation or /hotmic URL. This is visual-only, NOT a full-stack acceptance.
+
 ## Stable private OBS and remaining network checks
 
 Remote sharing uses the producer's opt-in Tailscale Funnel HTTPS, NOT
