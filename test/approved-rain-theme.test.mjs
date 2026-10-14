@@ -25,7 +25,11 @@ test('soundtrack is SHA-pinned and served only from private producer asset, not 
   assert.match(read('src/remote-web/stage.html'),/id="rain-cue" preload="auto" src="\/rain-intro\.mp3"/);
   const page=read('src/remote-web/stage-page.js');
   assert.match(page,/status\?\.presentation_mode==='rain'/);
-  assert.match(page,/else stopRain\(\)/);
+  assert.match(page,/if\(status\?\.presentation_mode!=='rain'\)stopRain\(\)/);
+  assert.match(page,/rainCue\.onended=/);
+  assert.match(page,/reportRain\('media-rain-started'/);
+  assert.match(page,/reportRain\('media-rain-ended'/);
+  assert.match(page,/await player\.api\(\{action:'media-presented'/);
   assert.match(page,/rainCue\.pause\(\)/);
   assert.doesNotMatch(page,/youtube\.com|soundcloud\.com/i);
   const host=read('src/remote-panel.mjs');
@@ -38,8 +42,10 @@ test('rain prelude prepares Qwen and voices concurrently but native desk receipt
   assert.match(session,/this\.presentation\.begin\(\{\s*rain:true/);
   assert.match(session,/const preparing=this\.preparePresentationRows\(turn\)\.then/);
   assert.match(session,/Math\.max\(choreography,RAIN_CUE_DURATION_MS\)\+RAIN_SEAT_SETTLE_MS/);
+  assert.match(session,/await this\.presentation\.waitRainEnd\?\.\(/);
   assert.match(session,/await this\.presentation\.seat\(\{signal:turn\.abort\.signal\}\)/);
   assert.match(session,/await this\.playPreparedPresentationRows\(turn,rows\)/);
   const host=read('src/real-host.mjs');
   assert.match(host,/seat:\(\{signal\}\)=>media\.animate\(\{id:'seated_response'/);
+  assert.match(host,/waitRainEnd:\(\{signal\}\)=>media\.waitForRainEnd\(\{signal\}\)/);
 });
