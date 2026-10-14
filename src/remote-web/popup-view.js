@@ -9,7 +9,7 @@ export function popupView(status){
   const p=status.popup;
   if(!p||p.type==='hotmic')return {
     visible:true,kind:'hotmic',heading:'LIVE RESPONSE',
-    donor:'ON AIR',amount:'SHANNY + REV',message:'BUFF’S LIVE HOTMIC'
+    donor:'',amount:'',message:''
   };
   if(p.type==='test')return {
     visible:true,kind:'test',heading:'TEST DONATION',donor:'TEST ALERT',
