@@ -108,3 +108,30 @@ test('Variant A is contained in top-left of a transparent OBS page, with no exte
   assert.match(script,/subtitleWords\.textContent=line\.text/);
   assert.doesNotMatch(script,/innerHTML/);
 });
+
+test('OBS presentation acknowledgment requires view-only role and current visible nonce',async t=>{
+  const {stage,post}=await source(t);
+  const obs=stage.viewer({action:'media-open',viewer_role:'obs'});
+  const preview=stage.viewer({action:'media-open',viewer_role:'preview'});
+  stage.setPopup({type:'hotmic'});
+  await commandReceipt(stage,post,'seated_response');
+  const nonce=stage.info().presentation_nonce;
+  assert.match(nonce,/^[a-f0-9-]{36}$/);
+  assert.throws(()=>stage.viewer({action:'media-presented',id:preview.id,nonce}),/unauthorized/);
+  const waiting=stage.waitForViewer({timeoutMs:800});
+  assert.deepEqual(stage.viewer({action:'media-presented',id:obs.id,nonce}),{accepted:true});
+  assert.equal(await waiting,true);
+  await commandReceipt(stage,post,'presentation_end');
+  assert.throws(()=>stage.viewer({action:'media-presented',id:obs.id,nonce}),/Stale/);
+  assert.equal(stage.info().presentation_nonce,null);
+});
+test('producer without an OBS viewer receives a bounded preroll without blocking synthesis',async t=>{
+  const {stage,post}=await source(t);
+  stage.setPopup({type:'test',message:'Local only'});
+  await commandReceipt(stage,post,'seated_response');
+  const start=Date.now();
+  const ready=await stage.waitForViewer({timeoutMs:800});
+  const ms=Date.now()-start;
+  assert.equal(ready,false);
+  assert.ok(ms>=380&&ms<1500,'preroll should be roughly 420ms, observed '+ms);
+});
