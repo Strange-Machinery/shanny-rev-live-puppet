@@ -70,6 +70,48 @@ jobs:
           changed=sum(1 for pixel in diff.getdata() if max(pixel)>15)
           print('MUCUS_MOTION_CHANGED_PIXELS',changed,flush=True)
           PY
+      - name: Verify real-time browser mucus motion and reduced-motion
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --ignore-scripts --no-audit --fund=false playwright-core@1.56.0
+          export CHROME_PATH="$(command -v google-chrome || command -v google-chrome-stable)"
+          node scripts/preview-stank-popup.mjs > /tmp/stank-realtime.log 2>&1 &
+          PREVIEW_PID=$!
+          trap 'kill "$PREVIEW_PID" 2>/dev/null || true' EXIT
+          sleep 1
+          node --input-type=module <<'JS'
+          import {chromium} from 'playwright-core';
+          const browser=await chromium.launch({
+            executablePath:process.env.CHROME_PATH,headless:true,
+            args:['--no-sandbox','--disable-dev-shm-usage']
+          });
+          try{
+            const page=await browser.newPage({viewport:{width:1920,height:1080},
+              reducedMotion:'no-preference'});
+            await page.goto('http://127.0.0.1:18781/donation?backdrop=1');
+            const selector='.mucus-strand--a';
+            const measure=()=>page.locator(selector).evaluate(el=>({
+              animation:getComputedStyle(el).animationName,
+              transform:getComputedStyle(el).transform
+            }));
+            const before=await measure();
+            await page.waitForTimeout(1750);
+            const after=await measure();
+            console.log('REALTIME_MUCUS_ANIMATION',JSON.stringify({before,after}));
+            if(before.animation==='none'||before.transform===after.transform)
+              throw new Error('Mucus strand did not visibly animate in real-time Chrome');
+            await page.emulateMedia({reducedMotion:'reduce'});
+            const disabled=await measure();
+            console.log('REDUCED_MOTION_MUCUS',JSON.stringify(disabled));
+            if(disabled.animation!=='none')throw new Error('prefers-reduced-motion did not stop mucus animation');
+            const geometry=await page.locator('.stage-well').boundingBox();
+            const drip=await page.locator('.mucus-layer--bottom').boundingBox();
+            console.log('FRAME_GEOMETRY',JSON.stringify({stage:geometry,bottom_art:drip}));
+            if(!geometry||!drip||drip.y < geometry.y+geometry.height)
+              throw new Error('Bottom mucus art intrudes into showbox');
+          }finally{await browser.close();}
+          JS
       - uses: actions/upload-artifact@v4
         with:
           name: mucus-frame-preview-png
