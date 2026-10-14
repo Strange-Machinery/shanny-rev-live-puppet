@@ -352,3 +352,26 @@ test('blocked OBS rain music fails FAST instead of waiting for nominal 24s; no T
  assert.equal(f.session.mode,'muted');
  releaseNominal?.();
 });
+
+test('under-$100 VERIFIED paid donation never reads prepared TTS to an unacknowledged OBS video',async()=>{
+ const f=fixture({generate:async()=>({lines:[
+  {actor:'SHANNY',text:'That commenter is completely ridiculous.',mood:'anger'},
+  {actor:'REV',text:'I am sick of this audience.',mood:'irritated'}
+ ],rev_reason:'Rev objects to chat'})});
+ const events=[];
+ f.session.presentation={
+  begin:async()=>{events.push('seat-start');return {duration_ms:20000};},
+  waitVisible:async()=>{events.push('no-OBS-confirmation');return false;},
+  end:async()=>events.push('hidden'),
+  stop:()=>events.push('stopped')
+ };
+ await f.session.initialize();const scope=await f.session.arm();
+ await f.session.submit({kind:'donation',text:'Please be nice to everyone.',
+  donation:{provider:'streamelements',donor:'ACTUAL PAYING TEST',amount:5,currency:'USD'},
+  make_it_rain:false,...scope});
+ await until(()=>!f.session.turn);
+ assert.equal(f.released.length,0,'actual paid TTS must NOT leak without visible OBS');
+ assert.equal(f.spoken.length,3,'all clips prepared but safely held');
+ assert.deepEqual(events,['seat-start','no-OBS-confirmation','stopped']);
+ assert.equal(f.session.mode,'muted');
+});
