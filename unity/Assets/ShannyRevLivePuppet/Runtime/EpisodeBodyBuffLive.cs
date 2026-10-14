@@ -8,6 +8,10 @@ namespace ShannyRevDemo {
  // Extends the existing final body owner; no independent retargeter or bone writer.
  public sealed partial class EpisodeBodyActionPlayer {
   readonly Dictionary<string,RepertoireAction> buffActions=new Dictionary<string,RepertoireAction>();
+  // Uses the EXISTING final body owner's calibrated native middle_finger
+  // finger-writer. No imported pose, hand mesh, duplicate animator, or rig edit.
+  TheatricalCue buffCameraFlip;
+  public bool BuffCameraFlipActive=>buffCameraFlip!=null;
   BonePose[] buffIdle;
   BonePose[] buffEntry,buffRelease;
   int buffReleaseStart,buffReleaseEnd;
@@ -23,7 +27,7 @@ namespace ShannyRevDemo {
   bool buffSampled;
   bool buffLeftClearance;
   BonePose[] buffNative;
-  public bool CanBuffMotion(string alias)=>buffIdle!=null&&buffAction==null&&buffActions.ContainsKey(alias);
+  public bool CanBuffMotion(string alias)=>buffIdle!=null&&buffAction==null&&buffCameraFlip==null&&buffActions.ContainsKey(alias);
   public void PrepareBuffLive(bool leftClearance=true){
    buffLeftClearance=leftClearance;
    M16LeftClearanceEnabled=leftClearance;
@@ -71,7 +75,7 @@ namespace ShannyRevDemo {
    return Mathf.Max(Mathf.Abs(a.x-b.x),Mathf.Abs(a.y-b.y),Mathf.Abs(a.z-b.z),Mathf.Abs(a.w-b.w));
   }
   public bool TryBuffMotion(string alias,int sample){
-   if(buffIdle==null||sample<0||buffAction!=null||!buffActions.TryGetValue(alias,out var a))return false;
+   if(buffIdle==null||sample<0||buffAction!=null||buffCameraFlip!=null||!buffActions.TryGetValue(alias,out var a))return false;
    int duration=Mathf.RoundToInt(RepertoireMotionFor(a).duration_seconds*48000),fade=24000;
    a.start_sample=sample;a.native_start_sample=sample+fade;a.native_end_sample=sample+fade+duration;a.end_sample=sample+2*fade+duration;
    buffEntry=buffNative??frozen.Select(p=>Capture(p.bone)).ToArray();buffRelease=null;
@@ -85,6 +89,65 @@ namespace ShannyRevDemo {
    buffReleaseStart=sample;buffReleaseEnd=sample+14400;
    buffReleaseProgress=0;buffPreviousSample=sample;
    buffAction=null;theatricalTrack.repertoire_actions=BuffEmpty;
+  }
+  /**
+   * Camera-directed middle finger for a single genuinely incensed line.
+   * Seated, ~2.3 seconds with a held peak, automatically releases.
+   * All pose writes stay in EpisodeBodyActionPlayer, the EXISTING body owner.
+   */
+  public bool TryBuffCameraFlip(int sample){
+   if(buffIdle==null||buffRain||sample<0||buffCameraFlip!=null||
+      theatricalFingers==null||theatricalFingers.Length!=30||
+      theatricalPalms==null||theatricalPalms.Length!=2||Camera.main==null)
+     return false;
+   // An explicit offensive response owns this arm for its brief duration.
+   // Replace any competing auto "objection" bank without launching a
+   // second animator or waiting for the sentence to finish.
+   buffAction=null;buffRelease=null;theatricalTrack.repertoire_actions=BuffEmpty;
+   buffCameraFlip=new TheatricalCue{
+    action="middle_finger",variant=0,intensity=1f,
+    start_sample=sample,peak_sample=sample+12000,
+    hold_sample=sample+72000,end_sample=sample+111000
+   };
+   return true;
+  }
+  public void StopBuffCameraFlip(){
+   if(buffCameraFlip==null)return;
+   buffCameraFlip=null;
+   // The next idle sample owns every finger again; don't leak the obscene
+   // pose into the next donor, subsequent voice, or full-body rain.
+   ResetHands();
+  }
+  void SampleBuffCameraFlip(int sample){
+   if(buffCameraFlip==null)return;
+   if(sample>=buffCameraFlip.end_sample){StopBuffCameraFlip();return;}
+   float weight=Phase(buffCameraFlip,sample);
+   if(weight<=0)return;
+   Camera camera=Camera.main;
+   if(camera==null){StopBuffCameraFlip();return;}
+   Vector3 front=Vector3.ProjectOnPlane(camera.transform.position-chest.position,Vector3.up);
+   if(front.sqrMagnitude<.0001f){StopBuffCameraFlip();return;}
+   front.Normalize();
+   // Raise the RIGHT arm into the already-authoritative stage camera view
+   // with bounded upper/forearm weights; feet, hips, face, visemes and
+   // partner gestures do not receive new owners.
+   AimLimb(armR,foreR,(Vector3.up*.86f+front*.42f).normalized,weight*.74f);
+   AimLimb(foreR,handR,(Vector3.up*.60f+front*.75f).normalized,weight*.62f);
+   // The pre-existing rigorously calibrated native gesture curls the
+   // index/ring/pinky and extends exactly the middle finger.
+   ResetHands();
+   SampleHands(buffCameraFlip,sample,1);
+   // That older gesture aimed at the partner; rotate this PRESENTATION
+   // variant toward the camera instead, without changing the hand rig.
+   var palm=theatricalPalms[1];
+   Vector3 audience=Vector3.ProjectOnPlane(camera.transform.position-palm.hand.position,Vector3.up);
+   if(audience.sqrMagnitude>.0001f){
+    var current=Quaternion.LookRotation(palm.hand.TransformDirection(palm.forward),
+                                       palm.hand.TransformDirection(palm.normal));
+    var facing=Quaternion.LookRotation(Vector3.up,audience.normalized);
+    var target=facing*Quaternion.Inverse(current)*palm.hand.rotation;
+    palm.hand.rotation=Quaternion.Slerp(palm.hand.rotation,target,weight*.82f);
+   }
   }
   public void SampleBuffLive(int sample){
    Need(buffIdle!=null,"Preload live banks before Ready");ValidatePoseGuard();Apply(buffIdle);
@@ -104,6 +167,7 @@ namespace ShannyRevDemo {
     if(sample<buffAction.native_start_sample)Apply(buffEntry);
     SampleRepertoireBase(sample);
    }
+   SampleBuffCameraFlip(sample);
    BuffFrameStep=0;
    for(int i=0;i<frozen.Length;i++){
     var pose=Capture(frozen[i].bone);if(buffSampled){float step=Quaternion.Angle(buffNative[i].rotation,pose.rotation);if(step>BuffFrameStep){BuffFrameStep=step;BuffFrameStepBone=pose.bone.name;}}

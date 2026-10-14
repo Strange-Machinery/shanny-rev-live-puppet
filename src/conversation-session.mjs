@@ -115,7 +115,11 @@ export class ConversationSession {
       }
       turn.timing.within_target=(turn.kind==='donation'?turn.timing.donation_end_to_reply_ms:turn.timing.first_reply_ms)<=turn.timing.target_ms;
     }
-    this.onChange({type:'line.started',turn_id:turn.id,...line});
+    // Await the at-most-one optional native reaction receipt before
+    // advancing the voice turn. The speaker is ALREADY audible; this avoids
+    // a presentation_end racing a pending camera-flip command.
+    await this.onChange({type:'line.started',turn_id:turn.id,...line});
+    this.check(turn);
     await onStarted?.();
     await this.wait(turn,'playback.finished',id,45000);
     this.check(turn);

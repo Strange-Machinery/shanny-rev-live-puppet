@@ -140,6 +140,44 @@ test('native rain-to-seated receipt changes camera and stops music without hidin
   assert.equal(stage.info().presentation_visible,false);
 });
 
+test('camera flip is accepted for the audible seated actor only and preserves the real donation',async t=>{
+  const {stage,post}=await source(t);
+  await assert.rejects(stage.animate({id:'flip_camera',targets:['SHANNY']}),/unavailable/);
+  const paid={type:'donation',donor:'ANGRY CHAT',amount:12,currency:'USD',message:'Stop being so rude!'};
+  stage.setPopup(paid);
+  await commandReceipt(stage,post,'seated_response');
+  const original=stage.info();
+  await assert.rejects(stage.animate({id:'flip_camera',targets:['SHANNY']}),/unavailable/);
+  stage.setCaption({actor:'REV',text:'Stop pretending, chat!'});
+  await assert.rejects(stage.animate({id:'flip_camera',targets:['SHANNY']}),/unavailable/);
+  stage.setCaption({actor:'SHANNY',text:'Fuck you, chat!'});
+  const pending=stage.animate({id:'flip_camera',targets:['SHANNY']});
+  const poll=await post('/poll',{state:'ready'});
+  assert.equal(poll.commands.length,1);
+  assert.equal(poll.commands[0].alias,'flip_camera');
+  assert.deepEqual(poll.commands[0].targets,['SHANNY']);
+  await post('/command-receipt',{id:poll.commands[0].id,accepted:true});
+  await pending;
+  assert.equal(stage.info().presentation_visible,true);
+  assert.equal(stage.info().presentation_mode,'seated');
+  assert.equal(stage.info().presentation_nonce,original.presentation_nonce);
+  assert.deepEqual(stage.info().popup,paid);
+  stage.setCaption(null);
+  await assert.rejects(stage.animate({id:'flip_camera',targets:['SHANNY']}),/unavailable/);
+  await commandReceipt(stage,post,'presentation_end');
+  await assert.rejects(stage.animate({id:'flip_camera',targets:['SHANNY']}),/unavailable/);
+});
+
+test('full-body money rain owns the whole performance; no middle-finger overlays',async t=>{
+  const {stage,post}=await source(t);
+  stage.setPopup({type:'donation',donor:'WHALE',amount:100,currency:'USD',message:'Dance!'});
+  await commandReceipt(stage,post,'make_it_rain');
+  stage.setCaption({actor:'SHANNY',text:'Fuck you, chat!'});
+  await assert.rejects(stage.animate({id:'flip_camera',targets:['SHANNY']}),/unavailable/);
+  assert.equal(stage.info().presentation_mode,'rain');
+  await commandReceipt(stage,post,'presentation_end');
+});
+
 test('OBS presentation acknowledgment requires view-only role and current visible nonce',async t=>{
   const {stage,post}=await source(t);
   const obs=stage.viewer({action:'media-open',viewer_role:'obs'});

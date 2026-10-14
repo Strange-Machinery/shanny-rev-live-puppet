@@ -21,11 +21,18 @@ namespace ShannyRev.LivePuppet {
     if(targets.Length!=2||!Array.Exists(targets,t=>t=="SHANNY")||!Array.Exists(targets,t=>t=="REV"))return false;
     StopMotions();if(alias=="make_it_rain"){foreach(var b in bodies)b.BeginBuffRain();rain=true;rainStart=Sample;view.transform.position=new Vector3(3.6f,1.55f,2.35f);view.transform.LookAt(new Vector3(.45f,1.20f,.8f));view.fieldOfView=44;}return true;
    }
+   if(alias=="flip_camera"){
+    // Only one genuinely incensed speaker flips off the VIEWER, never
+    // during full-body money rain or an unarmed stage transition.
+    if(rain||targets.Length!=1)return false;
+    var actor=Array.Find(bodies,x=>x.ActorId==targets[0]);
+    return actor!=null&&actor.TryBuffCameraFlip(Sample);
+   }
    if(rain)return false;
    foreach(string target in targets){var b=Array.Find(bodies,x=>x.ActorId==target);if(b==null||!b.CanBuffMotion(alias))return false;}
    int sample=Sample;foreach(string target in targets)Array.Find(bodies,x=>x.ActorId==target).TryBuffMotion(alias,sample);return true;
   }
-  public void StopMotions(){if(ready){foreach(var b in bodies){if(b.BuffRain)b.EndBuffRain();else b.StopBuffMotion(Sample);}if(rain){view.transform.SetPositionAndRotation(seatedCameraPosition,seatedCameraRotation);view.fieldOfView=seatedFov;}rain=false;Array.Clear(autoMotion,0,autoMotion.Length);}}
+  public void StopMotions(){if(ready){foreach(var b in bodies){b.StopBuffCameraFlip();if(b.BuffRain)b.EndBuffRain();else b.StopBuffMotion(Sample);}if(rain){view.transform.SetPositionAndRotation(seatedCameraPosition,seatedCameraRotation);view.fieldOfView=seatedFov;}rain=false;Array.Clear(autoMotion,0,autoMotion.Length);}}
   void Start(){
    bodies=FindObjectsByType<EpisodeBodyActionPlayer>(FindObjectsSortMode.None);voices=new LivePuppetActor[bodies.Length];faces=new EpisodeExpressionPlayer[bodies.Length];speaking=new bool[bodies.Length];autoMotion=new bool[bodies.Length];
    for(int i=0;i<bodies.Length;i++){bodies[i].PrepareBuffLive();bodies[i].PrepareBuffRain();voices[i]=bodies[i].GetComponent<LivePuppetActor>();faces[i]=bodies[i].GetComponent<EpisodeExpressionPlayer>();faces[i]?.EnableCandidateBlinks(true);}
@@ -38,7 +45,7 @@ namespace ShannyRev.LivePuppet {
    for(int i=0;i<bodies.Length;i++){
     bool now=voices[i]!=null&&voices[i].IsPlaying;
     // Artistic objection choice is explicit; it is not a qualified rage motion.
-    if(!rain&&now&&!speaking[i])autoMotion[i]=bodies[i].TryBuffMotion(MotionFor(bodies[i].ActorId,voices[i].Mood),sample);
+    if(!rain&&now&&!speaking[i]&&!bodies[i].BuffCameraFlipActive)autoMotion[i]=bodies[i].TryBuffMotion(MotionFor(bodies[i].ActorId,voices[i].Mood),sample);
     if(!now&&speaking[i]&&autoMotion[i])bodies[i].StopBuffMotion(sample);
     speaking[i]=now;if(rain)bodies[i].SampleBuffRain(sample-rainStart);else bodies[i].SampleBuffLive(sample);
     string faceMood=voices[i]?.Mood;
