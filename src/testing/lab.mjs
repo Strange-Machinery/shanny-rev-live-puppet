@@ -48,6 +48,9 @@ export async function createOfflineLab({ whisper, realDirector, voiceProvider, d
       await f.runner.tick();
       const page=await f.gateway.events({after:cursor});
       for(const event of page.events) {
+        // Arming can advance the baseline while this event page is in flight.
+        // An old panic must not clear timers belonging to the newly armed test.
+        if(event.seq<=cursor)continue;
         trace.push({seq:event.seq,type:event.type,actor:event.actor,id:event.id,duration_ms:event.duration_ms,epoch:event.epoch});
         if(trace.length>200)trace.shift();
         conversation.onEvent(event);
@@ -60,7 +63,7 @@ export async function createOfflineLab({ whisper, realDirector, voiceProvider, d
           }
         }
       }
-      cursor=page.cursor;
+      cursor=Math.max(cursor,page.cursor);
     } finally {driving=false;}
   }
   const pump=setInterval(()=>{void drive().catch(()=>{});},40);
