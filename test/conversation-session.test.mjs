@@ -125,3 +125,30 @@ test('Stop while a prefetched line is held prevents its release',async()=>{
   f.emit('playback.finished',f.spoken[0].id);await until(()=>!f.session.turn);
   assert.equal(f.released.length,1);assert.equal(f.session.history.length,0);
 });
+
+test('popup prepares every voice before revealing either mode and keeps the paired body routine separate',async()=>{
+ for(const rain of [false,true]){
+  const f=fixture({generate:async()=>({lines:[{actor:'SHANNY',text:'That is my cash.',mood:'anger'},{actor:'REV',text:'It is his donation.',mood:'irritated'}]})});
+  const shows=[];let clock=Date.now();f.session.now=()=>clock;
+  f.session.presentation={begin:async args=>shows.push(args.rain),end:async()=>shows.push('hidden'),stop:()=>shows.push('stop')};
+  await f.session.initialize();const scope=await f.session.arm();
+  await f.session.submit({kind:'donation',text:'Cash for Buff.',make_it_rain:rain,...scope});
+  await until(()=>f.released.length===1);
+  assert.equal(f.spoken.length,3);assert.ok(f.spoken.every(row=>row.prepare_only));assert.deepEqual(shows,[rain]);
+  f.emit('playback.started',f.spoken[0].id);f.emit('playback.finished',f.spoken[0].id);
+  await until(()=>f.released.length===2);f.emit('playback.started',f.spoken[1].id);f.emit('playback.finished',f.spoken[1].id);
+  await until(()=>f.released.length===3);f.emit('playback.started',f.spoken[2].id);
+  await until(()=>f.session.turn.events.some(e=>e.type==='playback.started'&&e.id===f.spoken[2].id));clock+=21000;
+  f.emit('playback.finished',f.spoken[2].id);
+  await until(()=>!f.session.turn);assert.equal(f.session.error,'');assert.deepEqual(shows,[rain,'hidden']);assert.equal(f.session.history.length,2);
+ }
+});
+
+test('Stop during popup preparation releases no held audio and hides the stage',async()=>{
+ let complete;const f=fixture({generate:()=>new Promise(resolve=>complete=resolve)});let hidden=0;
+ f.session.presentation={begin:async()=>assert.fail('Cancelled preparation became visible'),end:async()=>{},stop:()=>hidden++};
+ await f.session.initialize();const scope=await f.session.arm();
+ await f.session.submit({kind:'donation',text:'Cancel the rain.',make_it_rain:true,...scope});await until(()=>complete);
+ await f.session.stop();complete({lines:[{actor:'SHANNY',text:'Too late.'},{actor:'REV',text:'Cancelled.'}]});
+ await until(()=>!f.session.turn);assert.equal(f.released.length,0);assert.equal(hidden,1);
+});

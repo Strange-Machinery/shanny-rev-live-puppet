@@ -3,8 +3,8 @@ import {setTimeout as delay} from 'node:timers/promises';
 
 /** One conversation turn at a time. Only actual playback receipts advance speech. */
 export class ConversationSession {
-  constructor({gateway,director,whisper,onChange=()=>{},now=Date.now}) {
-    Object.assign(this,{gateway,director,whisper,onChange,now});
+  constructor({gateway,director,whisper,presentation,onChange=()=>{},now=Date.now}) {
+    Object.assign(this,{gateway,director,whisper,presentation,onChange,now});
     this.mode='muted';this.epoch=0;this.revision=0;this.history=[];this.trace=[];this.cursor=0;this.turn=null;this.error='';this.lastTiming=null;
   }
   async initialize(){await this.gateway.panic();this.scope=await this.gateway.status();this.cursor=this.scope.cursor;}
@@ -18,7 +18,7 @@ export class ConversationSession {
     this.cursor=this.scope.cursor;this.mode='live';this.error='';
     return {session_id:this.scope.session_id,mode_epoch:this.epoch};
   }
-  async stop(){this.revision++;this.epoch++;this.mode='muted';this.turn?.abort.abort();await this.gateway.panic();}
+  async stop(){this.revision++;this.epoch++;this.mode='muted';this.turn?.abort.abort();this.presentation?.stop();await this.gateway.panic();}
   current(turn){return this.turn===turn&&!turn.abort.signal.aborted&&turn.revision===this.revision&&this.mode==='live';}
   check(turn){if(!this.current(turn))throw new Error('Conversation cancelled');}
   async events(turn){
@@ -73,10 +73,12 @@ export class ConversationSession {
     this.history.push({...line,input:turn.text,source:turn.kind});this.history=this.history.slice(-8);
     this.onChange({type:'line.finished',...line});
   }
-  async submit({kind,text,audioPath,session_id,mode_epoch}){
+  async submit({kind,text,audioPath,session_id,mode_epoch,make_it_rain=false}){
     if(this.mode!=='live'||this.turn||session_id!==this.scope.session_id||mode_epoch!==this.epoch)throw new Error('Stopped, stale, or busy conversation');
     if(!['donation','microphone'].includes(kind))throw new Error('Unknown response kind');
-    const turn={id:randomUUID(),kind,text,revision:this.revision,abort:new AbortController(),events:[],started:this.now(),
+    if(typeof make_it_rain!=='boolean')throw new Error('Make it rain must be a checkbox choice');
+    if(make_it_rain&&!this.presentation)throw new Error('The paired rain presentation is unavailable');
+    const turn={id:randomUUID(),kind,text,make_it_rain,revision:this.revision,abort:new AbortController(),events:[],started:this.now(),
       timing:{kind,target_ms:kind==='donation'?15000:8000,transcription_ms:0,model_ms:null,first_reply_ms:null,total_ms:null,within_target:null}};this.turn=turn;this.lastTiming=turn.timing;
     try {
       if(audioPath){if(!this.whisper)throw new Error('Whisper is unavailable');const result=await this.whisper.transcribe({audioPath,signal:turn.abort.signal});this.check(turn);if(result.final!==true)throw new Error('Whisper final transcript required');text=result.text;turn.timing.transcription_ms=this.now()-turn.started;}
@@ -89,6 +91,7 @@ export class ConversationSession {
     }catch(error){if(this.turn===turn)this.turn=null;throw error;}
   }
   async run(turn){
+    if(this.presentation)return this.runPresentation(turn);
     let prior;
     if(turn.kind==='donation'){
       const read=await this.gateway.speak({actor:'SHANNY',text:turn.text,delivery:'queue',session_id:this.scope.session_id,epoch:this.scope.epoch});
@@ -119,6 +122,38 @@ export class ConversationSession {
         if(index+1<plan.lines.length)nextId=await this.queuePrepared(turn,plan.lines[index+1]);
       });prior=id;
     }
+  }
+  async runPresentation(turn){
+    // Prepare the complete exchange while OBS remains transparent. Bodies are
+    // already preloaded; this never generates or overlays conversational motion
+    // onto the rain routine.
+    const read=turn.kind==='donation'?{actor:'SHANNY',text:turn.text}:null;
+    const readId=read?await this.queuePrepared(turn,read):null;
+    const generatedAt=this.now();let early;
+    const plan=await this.director.generate({kind:turn.kind,text:turn.text,history:this.history,signal:turn.abort.signal,
+      onFirstLine:line=>{this.check(turn);if(!early)early=this.queuePrepared(turn,line).then(id=>({id}),error=>({error}));}});
+    this.check(turn);turn.timing.model_ms=this.now()-generatedAt;
+    const first=early?await early:null;this.check(turn);if(first?.error)throw first.error;
+    const rows=[];if(read)rows.push({line:read,id:readId,read:true});
+    for(let i=0;i<plan.lines.length;i++)rows.push({line:plan.lines[i],id:i===0&&first?.id?first.id:await this.queuePrepared(turn,plan.lines[i])});
+    for(const row of rows)await this.wait(turn,'speech.prepared',row.id);
+    this.check(turn);this.onChange({type:'plan.ready',turn_id:turn.id,lines:plan.lines});
+    const performance=await this.presentation.begin({rain:turn.make_it_rain,signal:turn.abort.signal});this.check(turn);
+    const visibleAt=this.now();let prior;
+    for(const row of rows){
+      if(row.read){
+        await this.gateway.release({id:row.id,session_id:this.scope.session_id,epoch:this.scope.epoch});
+        await this.wait(turn,'playback.started',row.id,15000);await this.wait(turn,'playback.finished',row.id,45000);
+      }else await this.play(turn,row.line,row.id,prior);
+      prior=row.id;
+    }
+    // Never cut off an audible reply. A short exchange holds the performance
+    // for twenty seconds; unusually long speech finishes before it disappears.
+    const duration=Math.max(20000,Math.min(60000,performance?.duration_ms||20000));
+    const remaining=duration-(this.now()-visibleAt);
+    if(remaining>0)await delay(remaining,undefined,{signal:turn.abort.signal});
+    this.check(turn);await this.presentation.end({signal:turn.abort.signal});this.check(turn);
+    turn.timing.presentation_ms=this.now()-visibleAt;
   }
   status(){return {mode:this.mode,session_id:this.scope?.session_id,mode_epoch:this.epoch,gateway_epoch:this.scope?.epoch,
     turn_busy:Boolean(this.turn),conversation_busy:Boolean(this.turn),active_audio:0,trace:this.trace,

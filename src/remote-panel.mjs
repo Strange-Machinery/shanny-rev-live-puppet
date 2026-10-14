@@ -1,48 +1,62 @@
 /** Narrow remote testing UI; the model/runtime and private files stay on the producer. */
 import {createServer} from 'node:http';
-import {randomBytes,timingSafeEqual} from 'node:crypto';
+import {randomBytes,timingSafeEqual,createHmac} from 'node:crypto';
 import {readFile,mkdtemp,writeFile,rm,mkdir} from 'node:fs/promises';
 import {resolve,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {inspectWav} from './wav.mjs';
 import {readJson} from './http-json.mjs';
 
-export async function serveRemotePanel({action, publicOrigin, scratch, token=randomBytes(32).toString('hex'), port=0}) {
+export async function serveRemotePanel({action, publicOrigin, scratch, token=randomBytes(32).toString('hex'), port=0,allowLocalPreview=false}) {
   const origin=new URL(publicOrigin);
-  if(origin.protocol!=='https:'||origin.username||origin.password||origin.pathname!=='/'||origin.search||origin.hash||token.length<32)
+  if((origin.protocol!=='https:'&&!(allowLocalPreview&&origin.protocol==='http:'&&origin.hostname==='127.0.0.1'))||origin.username||origin.password||origin.pathname!=='/'||origin.search||origin.hash||token.length<32)
     throw new Error('A private HTTPS origin and strong access key are required');
   const assets=new Map();
-  for(const [route,file,type] of [['/','index.html','text/html'],['/panel.js','panel.js','text/javascript'],['/mic-worklet.js','mic-worklet.js','text/javascript'],['/panel.css','panel.css','text/css']])
+  const viewToken=createHmac('sha256',token).update('buff-obs-view-v1').digest('hex');
+  for(const [route,file,type] of [['/','index.html','text/html'],['/stage','stage.html','text/html'],['/stage-player.js','stage-player.js','text/javascript'],['/stage-page.js','stage-page.js','text/javascript'],['/panel.js','panel.js','text/javascript'],['/mic-worklet.js','mic-worklet.js','text/javascript'],['/panel.css','panel.css','text/css'],['/stage.css','stage.css','text/css']])
     assets.set(route,{body:await readFile(new URL('./remote-web/'+file,import.meta.url)),type});
   await mkdir(scratch,{recursive:true});
   let closed=false,busy=false,revision=0,lease=0;
   const halt=async()=>{revision++;lease=0;await action({action:'stop'});};
   const timer=setInterval(()=>{if(lease&&Date.now()>lease)void halt().catch(()=>{});},1000);
+  timer.unref();
   const server=createServer((req,res)=>{
     const requestRevision=revision;
     res.setHeader('Cache-Control','no-store');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('X-Content-Type-Options','nosniff');
-    res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
+    res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; media-src 'self' blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
     const send=(status,data)=>{res.writeHead(status,{'Content-Type':'application/json'});res.end(JSON.stringify(data));};
     void(async()=>{
       if(closed)return send(503,{error:'Producer sharing is closed.'});
       if(req.method==='GET'&&assets.has(req.url)) {const asset=assets.get(req.url);res.writeHead(200,{'Content-Type':asset.type});res.end(asset.body);return;}
-      const supplied=Buffer.from(String(req.headers.authorization||'')),expected=Buffer.from('Bearer '+token);
-      if(supplied.length!==expected.length||!timingSafeEqual(supplied,expected))return send(401,{error:'Reopen the private launcher supplied by your producer.'});
-      if(req.headers.origin&&req.headers.origin!==origin.origin)return send(403,{error:'Origin rejected.'});
+      const supplied=Buffer.from(String(req.headers.authorization||''));
+      const matches=value=>{const expected=Buffer.from('Bearer '+value);return supplied.length===expected.length&&timingSafeEqual(supplied,expected);};
+      const operator=matches(token),viewer=matches(viewToken);
+      if(!operator&&!viewer)return send(401,{error:'Reopen the private launcher supplied by your producer.'});
+      const localOrigin='http://127.0.0.1:'+server.address().port;
+      if(req.headers.origin&&req.headers.origin!==origin.origin&&!(allowLocalPreview&&req.headers.origin===localOrigin))return send(403,{error:'Origin rejected.'});
+      if(req.method==='POST'&&req.url==='/api/media'){
+        let size=0;const parts=[];
+        for await(const chunk of req){size+=chunk.length;if(size>64000)throw new Error('Stage message too large');parts.push(chunk);}
+        const input=JSON.parse(Buffer.concat(parts).toString('utf8'));
+        if(!['media-status','media-open','media-offer','media-poll','media-close'].includes(input?.action)||Object.keys(input).some(k=>!['action','id','sdp'].includes(k)))return send(400,{error:'Unsupported stage request'});
+        return send(200,await action(input));
+      }
+      if(!operator)return send(403,{error:'This OBS link is view-only.'});
+      if(req.method==='GET'&&req.url==='/api/obs-link')return send(200,{url:(allowLocalPreview?localOrigin:origin.origin)+'/stage#key='+viewToken});
       if(req.method==='GET'&&req.url==='/api/animations')return send(200,await action({action:'animations'}));
       if(req.method==='GET'&&req.url==='/api/status') {
         const s=await action({action:'status'});
         if(lease)lease=Date.now()+15000;
         return send(200,{mode:s.mode,whisper:s.whisper_available,qwen:s.qwen,speech:s.speech,
           busy:s.turn_busy||s.conversation_busy||s.active_audio>0,kind:'REMOTE_TESTING',production_ready:false,
-            real_characters:Boolean(s.real_characters),history:s.history||[],error:s.error||'',latency:s.latency||null});
+            real_characters:Boolean(s.real_characters),history:s.history||[],error:s.error||'',latency:s.latency||null,media:s.media||null});
       }
       if(req.method!=='POST'||req.url!=='/api/action')return send(404,{error:'Unavailable.'});
       if(!String(req.headers['content-type']).startsWith('application/json'))return send(415,{error:'JSON required.'});
       let size=0;const chunks=[];
       for await(const chunk of req){size+=chunk.length;if(size>4_000_000)throw new Error('Request exceeds limit');chunks.push(chunk);}
       const input=JSON.parse(Buffer.concat(chunks).toString('utf8'));
-      if(!input||Array.isArray(input)||Object.keys(input).some(k=>!['action','text','audio','id','target','context','catalogRevision'].includes(k)))return send(400,{error:'Unsupported input.'});
+      if(!input||Array.isArray(input)||Object.keys(input).some(k=>!['action','text','audio','id','target','context','catalogRevision','make_it_rain'].includes(k))||input.make_it_rain!==undefined&&typeof input.make_it_rain!=='boolean')return send(400,{error:'Unsupported input.'});
       if(input.action==='stop'){await halt();return send(200,{stopped:true});}
       if(requestRevision!==revision)return send(409,{error:'Cancelled.'});
       if(input.action==='animate') {
@@ -68,11 +82,11 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
         const scope=await action({action:'arm'});
         if(!current()){await halt();return send(409,{error:'Cancelled.'});}
         lease=Date.now()+15000;
-        const result=await action({action:input.action==='donate'?'donate':'transcript',text:input.text,
+        const result=await action({action:input.action==='donate'?'donate':'transcript',text:input.text,make_it_rain:input.make_it_rain===true,
           ...(audioPath?{audioPath,source:'OFFLINE_WAV'}:{}),actor:'SHANNY',session_id:scope.session_id,mode_epoch:scope.mode_epoch});
         if(!current())return send(409,{error:'Cancelled.'});
         send(200,{status:result.status,transcript:result.transcript,kind:result.kind,
-          message:result.kind==='REAL_CHARACTERS'?'The real characters are responding in the producer stage. Remote show audio/video is not yet connected.':input.action==='donate'?'Test donation accepted.':'Response test completed on the producer computer.'});
+          message:result.kind==='REAL_CHARACTERS'?'The characters are responding. Watch the stage preview.':input.action==='donate'?'Test donation accepted.':'Response test completed on the producer computer.'});
       } finally {if(folder)await rm(folder,{recursive:true,force:true});busy=false;}
     })().catch(()=>{if(!res.headersSent)send(409,{error:'Test could not finish. Press STOP and try again; the producer can check local diagnostics.'});else res.end();});
   });
