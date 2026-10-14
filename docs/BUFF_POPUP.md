@@ -15,10 +15,25 @@ rain, preserving its full-body ownership.
 
 `ConversationSession` prepares the donation reading and complete validated reply
 exchange before exposing either mode. It releases voices in order, using actual
-Unity playback receipts. The display lasts at least twenty seconds, includes the
-rain routine's declared recovery duration, and never truncates an audible reply.
-STOP cancels preparation, mutes audio and hides the source. Restart/reconnect does
-not automatically arm speech.
+Unity playback receipts. **Seated donation and hotmic popups hide promptly
+after the final playback.finished receipt**, rather than idling for twenty
+seconds. The paired money-rain popup remains visible through its native
+twenty-second choreography and furniture return (or longer to finish audible
+speech). STOP cancels preparation, mutes audio and hides the source.
+Restart/reconnect does not automatically arm speech.
+
+The finished Variant A Browser Source is a **contained upper-left Stank Tank
+window**, not a transparent H.264 character cutout. Outside the frame, OBS
+remains transparent so Buff's stream stays visible. A private view-only key
+survives normal producer restarts. Paid alerts show a whitelisted donor,
+amount/currency and donation message in an acid-green slime-framed plaque;
+hotmic replies have no fake donor or Buff transcript. The browser composites
+Shanny/Rev speech subtitles within the stage window, based on *actual Unity
+voice-start/finish receipts*. This visual caption treatment is not a rebuilt
+native Unity EpisodeSubtitles component. All source playback and animation
+ownership remains native. The browser sends a bounded ready/visible receipt
+before the host releases the first prepared voice; remote OBS autoplay must
+still be tested with Buff.
 
 `scripts/prepare-buff-presentation.mjs` requires private build configuration with
 `project`, `productionUnity`, `contractPath`, `templateTrack` and `rainTrack`.
