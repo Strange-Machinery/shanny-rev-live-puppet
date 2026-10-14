@@ -195,6 +195,10 @@ export class ConversationSession {
     for(const row of rows)await this.wait(turn,'speech.prepared',row.id);
     this.check(turn);this.onChange({type:'plan.ready',turn_id:turn.id,lines:plan.lines});
     const performance=await this.presentation.begin({rain:turn.make_it_rain,popup:turn.popup,signal:turn.abort.signal});this.check(turn);
+    // The media page gets its reveal state asynchronously. Give OBS the
+    // chance to draw/unmute before the first actual Unity audio receipt.
+    await this.presentation.waitVisible?.({signal:turn.abort.signal});
+    this.check(turn);
     const visibleAt=this.now();let prior;
     for(const row of rows){
       if(row.read){
