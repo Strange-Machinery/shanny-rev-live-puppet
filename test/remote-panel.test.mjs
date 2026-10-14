@@ -74,3 +74,21 @@ test('OBS link only permits bounded media signaling and cannot operate the show'
  assert.equal((await media({action:'media-open'})).status,200);
  assert.deepEqual(f.calls,[{action:'media-open',viewer_role:'obs'}]);
 });
+
+test('manual membership rain is operator-only; OBS viewer cannot trigger a fake donation',async t=>{
+  const f=await fixture(t);
+  const response=await f.send({action:'rain-now'});
+  assert.equal(response.status,200);
+  assert.deepEqual(f.calls.at(-1),{action:'rain-now'});
+  assert.deepEqual(f.calls.filter(x=>x.action==='donate'),[]);
+  const headers={Authorization:'Bearer '+f.app.token};
+  const url=(await (await fetch(f.base+'/api/obs-link',{headers})).json()).url;
+  const viewToken=new URLSearchParams(new URL(url).hash.slice(1)).get('key');
+  const blocked=await fetch(f.base+'/api/action',{
+    method:'POST',headers:{Authorization:'Bearer '+viewToken,'Content-Type':'application/json'},
+    body:JSON.stringify({action:'rain-now'})
+  });
+  assert.equal(blocked.status,403);
+  const invalid=await f.send({action:'rain-now',donor:'faked',amount:100});
+  assert.equal(invalid.status,400);
+});
