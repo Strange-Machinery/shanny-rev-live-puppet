@@ -74,8 +74,8 @@ test('FULL simulated paid $100: Unity rain -> OBS played/ended -> seated camera 
    return media.animate({id:rain?'make_it_rain':'seated_response',
     targets:['SHANNY','REV'],signal});
   },
-  seat({signal})=>media.animate({id:'seated_response',targets:['SHANNY','REV'],signal}),
-  end({signal})=>media.animate({id:'presentation_end',targets:['SHANNY','REV'],signal}),
+  seat:({signal})=>media.animate({id:'seated_response',targets:['SHANNY','REV'],signal}),
+  end:({signal})=>media.animate({id:'presentation_end',targets:['SHANNY','REV'],signal}),
   waitVisible({signal}){return media.waitForViewer({signal,timeoutMs:1100});},
   async waitRainEnd({signal,requireViewer}){
    log.push('audio-wait');
