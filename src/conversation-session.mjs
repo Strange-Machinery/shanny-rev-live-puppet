@@ -1,5 +1,6 @@
 import {randomUUID} from 'node:crypto';
 import {setTimeout as delay} from 'node:timers/promises';
+import {parseDonationText} from './donations/parse.mjs';
 
 /** One conversation turn at a time. Only actual playback receipts advance speech. */
 export class ConversationSession {
@@ -128,7 +129,12 @@ export class ConversationSession {
     try {
       if(audioPath){if(!this.whisper)throw new Error('Whisper is unavailable');const result=await this.whisper.transcribe({audioPath,signal:turn.abort.signal});this.check(turn);if(result.final!==true)throw new Error('Whisper final transcript required');text=result.text;turn.timing.transcription_ms=this.now()-turn.started;}
       if(typeof text!=='string'||!text.trim()||text.length>1000)throw new Error('Enter bounded final speech');
-      this.check(turn);turn.text=text;
+      this.check(turn);
+      if(kind==='donation'){
+        const parsed=parseDonationText(text);
+        turn.readActor=parsed.actor;text=parsed.text;
+      }
+      turn.text=text;
       turn.task=this.run(turn).catch(async error=>{
         if(this.current(turn)){this.error=error.message;await this.stop().catch(()=>{});}
       }).finally(()=>{turn.timing.total_ms=this.now()-turn.started;if(this.turn===turn)this.turn=null;});
@@ -139,7 +145,7 @@ export class ConversationSession {
     if(this.presentation)return this.runPresentation(turn);
     let prior;
     if(turn.kind==='donation'){
-      const read=await this.gateway.speak({actor:'SHANNY',text:turn.text,delivery:'queue',session_id:this.scope.session_id,epoch:this.scope.epoch});
+      const read=await this.gateway.speak({actor:turn.readActor||'SHANNY',text:turn.text,delivery:'queue',session_id:this.scope.session_id,epoch:this.scope.epoch});
       await this.wait(turn,'playback.started',read.request_id,120000);prior=read.request_id;
     }
     const generatedAt=this.now();
@@ -172,7 +178,7 @@ export class ConversationSession {
     // Prepare the complete exchange while OBS remains transparent. Bodies are
     // already preloaded; this never generates or overlays conversational motion
     // onto the rain routine.
-    const read=turn.kind==='donation'?{actor:'SHANNY',text:turn.text}:null;
+    const read=turn.kind==='donation'?{actor:turn.readActor||'SHANNY',text:turn.text}:null;
     const readId=read?await this.queuePrepared(turn,read):null;
     const generatedAt=this.now();let early;
     const plan=await this.director.generate({kind:turn.kind,text:turn.text,history:this.history,signal:turn.abort.signal,
