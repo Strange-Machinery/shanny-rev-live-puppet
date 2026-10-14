@@ -67,7 +67,7 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
         let size=0;const parts=[];
         for await(const chunk of req){size+=chunk.length;if(size>64000)throw new Error('Stage message too large');parts.push(chunk);}
         const input=JSON.parse(Buffer.concat(parts).toString('utf8'));
-        if(!['media-status','media-open','media-offer','media-poll','media-close','media-presented'].includes(input?.action)||Object.keys(input).some(k=>!['action','id','sdp','nonce'].includes(k)))return send(400,{error:'Unsupported stage request'});
+        if(!['media-status','media-open','media-offer','media-poll','media-close','media-presented','media-rain-started','media-rain-ended','media-rain-failed'].includes(input?.action)||Object.keys(input).some(k=>!['action','id','sdp','nonce'].includes(k)))return send(400,{error:'Unsupported stage request'});
         return send(200,await action({...input,viewer_role:viewer?'obs':'preview'}));
       }
       if(!operator)return send(403,{error:'This OBS link is view-only.'});
