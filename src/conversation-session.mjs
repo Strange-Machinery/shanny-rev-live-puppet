@@ -18,7 +18,52 @@ export class ConversationSession {
     this.cursor=this.scope.cursor;this.mode='live';this.error='';
     return {session_id:this.scope.session_id,mode_epoch:this.epoch};
   }
-  async stop(){this.revision++;this.epoch++;this.mode='muted';this.turn?.abort.abort();this.presentation?.stop();await this.gateway.panic();}
+  async stop(){
+    this.revision++;this.epoch++;this.mode='muted';
+    this.turn?.abort.abort();this.turn=null;
+    this.presentation?.stop();await this.gateway.panic();
+  }
+  /**
+   * "Shut up" is an interrupt, NOT the sticky operator STOP.
+   * Hide the OBS presentation synchronously, invalidate stale model/voice
+   * continuations, panic the voice gateway, then re-arm the same operator
+   * session for the next TTS. No old turn may release or commit a line.
+   */
+  async silence(){
+    const wasLive=this.mode==='live';
+    const revision=++this.revision;
+    this.epoch++;
+    this.mode=wasLive?'silencing':'muted';
+    this.turn?.abort.abort();this.turn=null;
+    this.presentation?.stop();
+    try {
+      await this.gateway.panic();
+      if(!wasLive||revision!==this.revision)return {silenced:true,waiting_for_tts:false};
+      const stopped=await this.gateway.status();
+      if(revision!==this.revision)return {silenced:true,waiting_for_tts:false};
+      await this.gateway.resume({session_id:stopped.session_id,epoch:stopped.epoch});
+      if(revision!==this.revision){
+        // A concurrent master STOP must win over the interrupt's resume.
+        if(this.mode!=='live')await this.gateway.panic().catch(()=>{});
+        return {silenced:true,waiting_for_tts:false};
+      }
+      const resumed=await this.gateway.status();
+      if(resumed.muted||resumed.session_id!==stopped.session_id)
+        throw new Error('Voice gateway did not resume the same session');
+      if(revision!==this.revision){
+        if(this.mode!=='live')await this.gateway.panic().catch(()=>{});
+        return {silenced:true,waiting_for_tts:false};
+      }
+      this.scope=resumed;this.cursor=resumed.cursor;this.mode='live';this.error='';
+      return {silenced:true,waiting_for_tts:true,session_id:resumed.session_id,mode_epoch:this.epoch};
+    }catch(error){
+      if(revision===this.revision){
+        this.mode='muted';this.error='Could not safely resume after interrupt: '+error.message;
+        await this.gateway.panic().catch(()=>{});
+      }
+      throw error;
+    }
+  }
   current(turn){return this.turn===turn&&!turn.abort.signal.aborted&&turn.revision===this.revision&&this.mode==='live';}
   check(turn){if(!this.current(turn))throw new Error('Conversation cancelled');}
   async events(turn){
