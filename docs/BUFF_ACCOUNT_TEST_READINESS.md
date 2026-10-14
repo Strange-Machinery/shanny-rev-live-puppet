@@ -87,7 +87,14 @@ The producer must first connect the ACTUAL authenticated OBS Browser Source,
 then intentionally press "Enable donation reactions". The app refuses to arm
 automatic paid feeds if no OBS viewer is attached. If that viewer later drops,
 queued paid events wait for reconnection instead of silently playing to
-nowhere. Connecting a socket or opening a preview does not authorize the queue.
+nowhere. The wait is **bounded (currently three minutes)**: a prolonged
+outage disables the queue and reports an error, while undelivered queued
+records remain stored. After fixing OBS, the producer must explicitly
+press Enable again rather than relying on silent auto-arming.
+Connecting a socket or opening a preview does not authorize the queue.
+Buff's manual MAKE IT RAIN NOW celebration yields to already accepted
+paid donations while the automatic queue is armed, so it cannot race
+a payment that was just dequeued.
 
 ## How to interpret the NEW Buff launcher diagnostics
 
