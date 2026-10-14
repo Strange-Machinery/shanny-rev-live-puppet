@@ -1,3 +1,17 @@
+# v0.3 continuation
+
+Current real-character status: [REAL_CHARACTERS.md](REAL_CHARACTERS.md). The producer
+now has real offline Whisper -> short Qwen exchange -> saved OmniVoice -> Unity
+playback. Prioritize fast, relevant Blackout writing within the measured 10–15-second
+first-reply budget; do not add a second writing pass. Remote OBS audio/video,
+physical microphone acceptance, sustained performance under load and the accepted
+animation adapter remain open. No fine-tuning has been performed.
+
+Start with [MICROPHONE_NEXT_WORK.md](MICROPHONE_NEXT_WORK.md) and the genuine
+remaining boundaries in [ACCEPTANCE_V03.md](ACCEPTANCE_V03.md). The installed
+Testing tab supports offline microphone/Whisper/response R&D; production microphone
+admission remains disabled. The older priorities below record the original baseline.
+
 # Next work: Buff's launcher and Qwen donation reactions
 
 The requested experience is one launcher: request a bot-generated episode, see its job status and a private expiring download link; switch to **Live response** for a conversation with the puppets; press **Shut up — resume show** to cut both puppets off and return to the episode. Keep the existing episode service and delivery pipeline. The standalone live gateway supplies speech and puppet control, not episode rendering.

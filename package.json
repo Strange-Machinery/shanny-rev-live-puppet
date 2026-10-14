@@ -10,6 +10,9 @@
   "scripts": {
     "start": "node src/cli.mjs",
     "test": "node --test test/*.test.mjs",
-    "bench": "node scripts/bench.mjs"
+    "bench": "node scripts/bench.mjs",
+    "show": "node src/show-cli.mjs",
+    "test:offline": "python -m unittest discover -s python -p test_offline.py",
+    "demo:offline": "node scripts/offline-demo.mjs"
   }
 }

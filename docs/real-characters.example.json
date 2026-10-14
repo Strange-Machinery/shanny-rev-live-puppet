@@ -1,0 +1,27 @@
+{
+  "mode": "real-characters",
+  "performanceMode": "show",
+  "resourceHeadroomVerified": true,
+  "scratch": "C:/private/live-session",
+  "player": "C:/private/LivePuppet.exe",
+  "characterNotes": "C:/private/blackout-fast-notes.txt",
+  "qwenRuntime": {
+    "executable": "C:/private/llama-server.exe",
+    "modelPath": "C:/private/Qwen3.5-2B-Q4_K_M.gguf",
+    "modelId": "Qwen3.5-2B"
+  },
+  "whisper": {
+    "python": "C:/private/whisper-runtime/python.exe",
+    "modelPath": "C:/private/faster-whisper-small.en"
+  },
+  "omnivoice": {
+    "cpuThreads": 2,
+    "python": "C:/private/existing-voice-runtime/python.exe",
+    "workerScript": "C:/private/existing/omnivoice_live_worker.py",
+    "appRoot": "C:/private/existing/app",
+    "outputRoot": "C:/private/live-session/voice",
+    "shannyReference": "existing-saved-shanny-reference",
+    "revReference": "existing-saved-rev-reference"
+  },
+  "animationCatalog": "C:/private/existing/animation-repertoire.json"
+}

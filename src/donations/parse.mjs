@@ -45,7 +45,7 @@ export class DonationAdmission {
     if (this.acceptedAt.length >= this.maxPerMinute) {
       return { status: 'rate_limited', donation_id };
     }
-    while (this.ids.size >= this.maxEntries) this.ids.delete(this.ids.keys().next().value);
+    if (this.ids.size >= this.maxEntries) return { status: 'busy', donation_id };
     this.ids.set(donation_id, time);
     this.acceptedAt.push(time);
     return { status: 'accepted', donation_id, ...parsed };
