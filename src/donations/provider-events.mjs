@@ -65,13 +65,15 @@ export function normalizeYoutubeSuperChat(raw,{authority=DEFAULT_DONATION_AUTHOR
  */
 export function normalizeStreamlabsEvent(frame,{authority=DEFAULT_DONATION_AUTHORITY}={}) {
   if(!frame||typeof frame!=='object'||!Array.isArray(frame.message))return [];
-  const direct=frame.type==='donation'&&(!frame.for||frame.for==='streamlabs');
+  // Streamlabs' own donation sample also appears with for:'youtube_account'.
+  // Only type:'superchat' is treated as a mirrored YouTube purchase.
+  const direct=frame.type==='donation'&&(!frame.for||['streamlabs','youtube_account','twitch_account'].includes(frame.for));
   const mirror=frame.type==='superchat'&&frame.for==='youtube_account';
   if(!direct&&!mirror)return [];
   if(!allow(authority,direct?'streamlabs_tip':'superchat','streamlabs'))return [];
   return frame.message.slice(0,50).map(row=>{
     if(!row||typeof row!=='object')return null;
-    const external=id(row.id),unit=currency(row.currency);
+    const external=id(row.id??row._id),unit=currency(row.currency);
     const sum=mirror?micros(row.amount):amount(row.amount);
     const donor=safeName(row.name||row.from);
     return paid({donation_id:external?(mirror?'youtube:superchat:':'streamlabs:donation:')+external:null,
