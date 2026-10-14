@@ -175,6 +175,10 @@ export class ConversationSession {
       const remaining=duration-(this.now()-startedAt);
       if(remaining>0)await this.pause(remaining,undefined,{signal:turn.abort.signal});
       this.check(turn);
+      // Never speak over late-started OBS music. The native 20s dance and
+      // nominal 23.9s cue are a MINIMUM; actual browser ended must also pass.
+      await this.presentation.waitRainEnd?.({signal:turn.abort.signal});
+      this.check(turn);
       if(typeof this.presentation.seat!=='function')
         throw new Error('Native desk recovery is required after manual rain');
       await this.presentation.seat({signal:turn.abort.signal});
