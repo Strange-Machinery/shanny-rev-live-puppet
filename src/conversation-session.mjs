@@ -287,7 +287,10 @@ export class ConversationSession {
       const remaining=target-(this.now()-visibleAt);
       if(remaining>0)await this.pause(remaining,undefined,{signal:turn.abort.signal});
       this.check(turn);
-      await this.presentation.waitRainEnd?.({signal:turn.abort.signal});
+      await this.presentation.waitRainEnd?.({signal:turn.abort.signal,
+        // A verified paid donation cannot silently proceed when OBS loses
+        // its viewer. Locally initiated producer rehearsal still can.
+        requireViewer:turn.popup?.type==='donation'});
       this.check(turn);
       if(typeof this.presentation.seat!=='function')
         throw new Error('Native seated camera/desk recovery is required after rain');
