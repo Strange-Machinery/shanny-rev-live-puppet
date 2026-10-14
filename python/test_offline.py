@@ -10,8 +10,41 @@ import wave
 from microphone import EnergyVAD
 from testing_tab import install_testing
 import desktop_audio
+from easy_testing import EasyTesting, bundled_settings
 
 class OfflineTests(unittest.TestCase):
+    def test_easy_home_click_arms_only_requested_test_and_stop_cancels_pending_microphone(self):
+        root = tk.Tk(); root.withdraw()
+        try:
+            panel = EasyTesting(root)
+            panel.engine.action = MagicMock()
+            panel.engine.record_start = MagicMock()
+            self.assertFalse(panel.engine.mic_armed)
+            panel.services_ready()
+            panel.begin('donate')
+            panel.engine.action.assert_called_once_with('arm')
+            panel.result('arm', {})
+            self.assertEqual(panel.engine.action.call_args[0][0], 'donate')
+            panel.stop()
+            panel.pending = ('microphone', ''); panel.record_requested = True
+            panel.stop()
+            panel.result('arm', {})
+            panel.engine.record_start.assert_not_called()
+            self.assertFalse(panel.engine.mic_armed)
+            panel.close()
+        finally:
+            root.update_idletasks(); root.destroy()
+
+    def test_portable_config_uses_extracted_machine_paths(self):
+        with tempfile.TemporaryDirectory(prefix='Buff portable test ') as folder:
+            bundle = Path(folder); (bundle / 'app').mkdir()
+            repo, node, config = bundled_settings(bundle)
+            import json
+            data = json.loads(config.read_text())
+            self.assertEqual(Path(data['whisper']['python']), bundle / 'runtime/python/python.exe')
+            self.assertEqual(Path(data['whisper']['modelPath']), bundle / 'models/whisper-small.en')
+            self.assertEqual(Path(node), bundle / 'runtime/node/node.exe')
+
     def audio(self):
         stream = io.BytesIO()
         with wave.open(stream, 'wb') as audio:
@@ -69,7 +102,7 @@ class OfflineTests(unittest.TestCase):
             panel.mic_armed = True; panel.stop_local(); self.assertFalse(panel.mic_armed)
             panel.close()
         finally:
-            root.destroy()
+            root.update_idletasks(); root.destroy()
     def test_reversible_installer_only_adds_ui_hook(self):
         spec = importlib.util.spec_from_file_location('installer', Path(__file__).resolve().parents[1] / 'scripts/install_testing_tab.py')
         module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)

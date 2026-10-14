@@ -71,7 +71,7 @@ class EnergyVAD:
     def result(self):
         return b''.join(self.chunks) if self.voice_chunks >= 2 else b''
 
-def capture(device_id, stop, *, auto_vad=False, level=lambda rms: None, max_seconds=20):
+def capture(device_id, stop, *, auto_vad=False, level=lambda rms: None, max_seconds=30):
     options = {row['id']: row for row in devices()}
     if device_id not in options or not options[device_id]['isolated_candidate']:
         raise ValueError('Select an actual isolated input; mixed/loopback devices are blocked')
@@ -104,7 +104,8 @@ def capture(device_id, stop, *, auto_vad=False, level=lambda rms: None, max_seco
                     pending.popleft()
                     raw = data.raw[:header.dwBytesRecorded]
                     if raw:
-                        rms, ended = vad.feed(raw)
+                        rms, speech_ended = vad.feed(raw)
+                        ended = auto_vad and speech_ended
                         level(rms)
                     header.dwBytesRecorded = 0
                     if dll.waveInAddBuffer(handle, c.byref(header), c.sizeof(header)):

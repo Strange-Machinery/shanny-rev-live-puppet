@@ -1,8 +1,13 @@
 # Shanny & Rev Live Puppet
 
+Windows operators: use **Buff Testing Setup.exe**. The same private installer works
+for producer and Buff, includes CPU Whisper and both runtimes, creates a shortcut,
+and opens an easy testing home. No terminal or configuration edits are needed for
+the included offline tests. See [button-only deployment](docs/EASY_DEPLOYMENT.md).
+
 v0.3 adds the executable donation/Qwen runner and an **offline Testing tab** for
 donations, microphone push-to-talk/VAD, Whisper, transcript replay and local responses.
-Run `python python/testing_tab.py` or `npm run demo:offline`; no YouTube session is
+Developers can run `python python/easy_testing.py` or `npm run demo:offline`; no YouTube session is
 required. See [setup and configuration](docs/BUFF_LIVE_V03.md),
 [verification and remaining acceptance](docs/ACCEPTANCE_V03.md), and
 [microphone continuation](docs/MICROPHONE_NEXT_WORK.md). Private full-model testing

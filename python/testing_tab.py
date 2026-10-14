@@ -17,13 +17,20 @@ from urllib.error import HTTPError
 ROOT = Path(__file__).resolve().parents[1]
 
 class TestingPanel(ttk.Frame):
-    def __init__(self, parent, repo=ROOT, **kwargs):
+    def __init__(self, parent, repo=ROOT, node=None, config=None, **kwargs):
         super().__init__(parent, padding=16, **kwargs)
         self.repo = Path(repo)
+        self.node = node
+        self.on_ready = lambda: None
+        self.on_result = lambda action, result: None
+        self.on_error = lambda message: None
         self.events = queue.Queue(); self.process = None; self.endpoint = None; self.token = None
+        self.starting_process = None
         self.generation = 0; self.closed = False; self.record_stop = threading.Event(); self.recording = False
         self.mic_armed = False; self.tts_process = None
         self.configuration = str(self.repo / 'offline-testing.local.json') if (self.repo / 'offline-testing.local.json').is_file() else None
+        if config:
+            self.configuration = str(config)
         self.mode_scope = {}; self.last_event_seq = 0
         self.poll_count = 0; self.status_pending = False
         from desktop_audio import DesktopAudio
@@ -83,7 +90,7 @@ class TestingPanel(ttk.Frame):
         self.level = ttk.Progressbar(mic, maximum=8000); self.level.grid(row=5, column=0, columnspan=3, sticky='ew', pady=4)
         self.log = tk.Text(self, height=10, wrap='word', font=('Consolas', 9), state='disabled')
         self.log.pack(fill='both', expand=True, pady=(10, 0))
-        self.after(100, self.poll)
+        self.poll_timer = self.after(100, self.poll)
         self.bind('<Destroy>', lambda event: self.close() if event.widget is self else None)
         self.refresh_devices()
     def input(self):
@@ -99,18 +106,31 @@ class TestingPanel(ttk.Frame):
             self.stop(); self.configuration = path
             self.status.set('Private local service configuration selected. Restart the lab to apply it.')
     def start_lab(self):
+        if self.closed:
+            return
         self.stop_local(); self.generation += 1; captured = self.generation
         if self.process:
             self.process.stdin.close(); self.process = None
+        if self.starting_process:
+            self.starting_process.terminate(); self.starting_process = None
         self.endpoint = None; self.token = None; self.mode_scope = {}; self.last_event_seq = 0; self.played_ids.clear()
         self.status.set('Starting isolated offline services…')
-        args = [shutil.which('node.exe') or shutil.which('node') or 'node', str(self.repo / 'src/testing/lab.mjs')]
+        args = [self.node or shutil.which('node.exe') or shutil.which('node') or 'node', str(self.repo / 'src/testing/lab.mjs')]
         if self.configuration:
             args.append(self.configuration)
         def worker():
+            process = None; timer = None
             try:
                 process = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                            text=True, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+                if captured != self.generation:
+                    process.stdin.close(); return
+                self.starting_process = process
+                timer = threading.Timer(90, process.kill); timer.daemon = True; timer.start()
+                def drain():
+                    for _ in process.stderr:
+                        pass
+                threading.Thread(target=drain, daemon=True).start()
                 line = process.stdout.readline()
                 if not line:
                     raise RuntimeError('Offline lab startup failed; check the private runtime configuration')
@@ -120,13 +140,16 @@ class TestingPanel(ttk.Frame):
                 self.process = process
                 self.endpoint = 'http://127.0.0.1:' + str(info['port']) + '/action'; self.token = info['token']
                 self.events.put(('message', 'Offline lab ready. Test stage and microphone remain disarmed.'))
-                # Bound/drain backend diagnostics; no private token is displayed.
-                def drain():
-                    for _ in process.stderr:
-                        pass
-                threading.Thread(target=drain, daemon=True).start()
+                self.events.put(('ready', captured))
             except Exception as error:
-                self.events.put(('message', str(error)))
+                if process and process.poll() is None:
+                    process.terminate()
+                self.events.put(('error', (captured, str(error))))
+            finally:
+                if timer:
+                    timer.cancel()
+                if self.starting_process is process:
+                    self.starting_process = None
         threading.Thread(target=worker, daemon=True).start()
     def request(self, data):
         if not self.endpoint:
@@ -147,12 +170,14 @@ class TestingPanel(ttk.Frame):
             data['text'] = text
         def worker():
             try:
+                if captured != self.generation:
+                    return
                 result = self.request(data)
                 self.events.put(('result', (action, result, captured)))
             except Exception as error:
                 if action == 'status':
                     self.events.put(('status_failed', None))
-                self.events.put(('message', str(error)))
+                self.events.put(('error', (captured, str(error))))
         threading.Thread(target=worker, daemon=True).start()
     def donate(self, actor=None):
         text = self.input()
@@ -209,8 +234,10 @@ class TestingPanel(ttk.Frame):
                     result = self.request(dict(action='transcript', actor=self.actor_value, audioPath=str(path), source='BUFF_ISOLATED_MIC_TEST', **mode_scope))
                     if captured == self.generation:
                         self.events.put(('result', ('microphone → Whisper → response', result, captured)))
+                else:
+                    self.events.put(('result', ('microphone', {'status': 'no_speech'}, captured)))
             except Exception as error:
-                self.events.put(('message', str(error)))
+                self.events.put(('error', (captured, str(error))))
             finally:
                 if path:
                     path.unlink(missing_ok=True)
@@ -233,7 +260,7 @@ class TestingPanel(ttk.Frame):
                 result = self.request(dict(action='status'))
                 self.events.put(('vad_ready', (captured, not result['active_audio'] and not result['conversation_busy'] and not result['turn_busy'])))
             except Exception as error:
-                self.events.put(('message', str(error)))
+                self.events.put(('error', (captured, str(error))))
         threading.Thread(target=worker, daemon=True).start()
     def audio_file(self):
         path = filedialog.askopenfilename(parent=self, title='Local PCM16 mono WAV (16/48 kHz, up to 30 seconds)', filetypes=[('WAV audio', '*.wav')])
@@ -280,6 +307,13 @@ class TestingPanel(ttk.Frame):
                 kind, value = self.events.get_nowait()
                 if kind == 'level':
                     self.level['value'] = value
+                elif kind == 'ready':
+                    if value == self.generation:
+                        self.on_ready()
+                elif kind == 'error':
+                    captured, message = value
+                    if captured == self.generation:
+                        self.status.set(message); self.write(message); self.on_error(message)
                 elif kind == 'status_failed':
                     self.status_pending = False
                 elif kind == 'audio_failed':
@@ -324,6 +358,7 @@ class TestingPanel(ttk.Frame):
                             self.write('Metrics: ' + json.dumps(result['reaction_metrics']))
                     else:
                         self.write(action + ': ' + json.dumps(result, ensure_ascii=False)); self.status.set(action + ' completed')
+                    self.on_result(action, result)
                 else:
                     self.status.set(str(value)); self.write(str(value))
         except queue.Empty:
@@ -331,12 +366,15 @@ class TestingPanel(ttk.Frame):
         self.poll_count += 1
         if self.endpoint and not self.status_pending and self.poll_count % 10 == 0:
             self.status_pending = True; self.action('status')
-        self.after(100, self.poll)
+        self.poll_timer = self.after(100, self.poll)
     def close(self):
         if self.closed:
             return
         self.closed = True; self.generation += 1; self.stop_local()
+        self.after_cancel(self.poll_timer)
         self.audio_jobs.put_nowait(None)
+        if self.starting_process:
+            self.starting_process.terminate(); self.starting_process = None
         if self.process:
             try:
                 self.process.stdin.close()
@@ -349,9 +387,10 @@ def install_testing(app, main, repo=ROOT):
     main.pack_forget()
     tabs = ttk.Notebook(app); tabs.pack(fill='both', expand=True)
     tabs.add(main, text='Episodes')
-    panel = TestingPanel(tabs, repo=repo); tabs.add(panel, text='Testing')
-    app.testing_panel = panel
-    return panel
+    from easy_testing import EasyTesting
+    panel = EasyTesting(tabs, repo=repo); tabs.add(panel, text='Testing')
+    app.testing_panel = panel.engine
+    return panel.engine
 
 if __name__ == '__main__':
     app = tk.Tk(); app.title('Stank Tank AI — Offline Testing'); app.geometry('1100x820')
