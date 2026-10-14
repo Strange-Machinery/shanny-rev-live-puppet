@@ -170,9 +170,14 @@ export async function serveLab(config={}) {
   return {port:server.address().port,token,close:async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await lab.close();}};
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
+  try {
   const config=process.argv[2]?JSON.parse(await readFile(resolve(process.argv[2]),'utf8')):{};
   const app=await serveLab(config);
   process.stdout.write(JSON.stringify({port:app.port,token:app.token,offline:true})+'\n');
   let closing=false;const close=async()=>{if(closing)return;closing=true;await app.close();};
   process.on('SIGTERM',()=>void close());process.on('SIGINT',()=>void close());process.stdin.resume();process.stdin.on('end',()=>void close());
+  } catch(error) {
+    process.stdout.write(JSON.stringify({error:String(error.message||'Character services could not start').slice(0,800)})+'\n');
+    process.exitCode=1;
+  }
 }

@@ -64,6 +64,26 @@ test('invalid dialogue fails after one model call instead of silently doubling l
   assert.equal(calls,1);
 });
 
+test('startup primes the same persona with a fixed check, without generating dialogue',async()=>{
+  let request;
+  const director=createConversationDirector({notes:'Private character notes',complete:async value=>{request=value;return '{"ready":true}';}});
+  assert.equal(await director.warmup(),undefined);
+  assert.match(request.messages[0].content,/Private character notes/);
+  assert.deepEqual(request.responseSchema.properties,{ready:{const:true}});
+});
+
+test('sentence grammar excludes raw quote and backslash tokens that can break generated JSON',async()=>{
+  let pattern;
+  const director=createConversationDirector({notes:'Private',complete:async request=>{
+    pattern=new RegExp(request.responseSchema.properties.lines.items.properties.text.pattern);
+    return {lines:[{actor:'SHANNY',text:'Wait for me.'},{actor:'SHANNY',text:'I am still speaking.'}],rev_reason:''};
+  }});
+  await director.generate({kind:'microphone',text:'Wait your turn.'});
+  assert.equal(pattern.test('It is "on," he corrects.'),false);
+  assert.equal(pattern.test('An invalid \\ escape.'),false);
+  assert.equal(pattern.test("It's on."),true);
+});
+
 test('Stop while a prefetched line is held prevents its release',async()=>{
   const f=fixture({generate:async()=>({lines:[{actor:'SHANNY',text:'Ask before taking it.'},{actor:'REV',text:'I did ask you.'}],rev_reason:'Objects'})});
   await f.session.initialize();const scope=await f.session.arm();

@@ -20,7 +20,8 @@ export function validateExchange(raw,kind) {
 export function createConversationDirector({complete,notes,examples=[]}) {
   if(typeof notes!=='string'||!notes.trim()||notes.length>8000)throw new Error('Private character treatment required');
   if(!Array.isArray(examples)||examples.length>3)throw new Error('At most three approved examples');
-  return {async generate({text,kind,history=[],signal}) {
+  return {async warmup(){await this.generate({text:'Startup check',kind:'microphone',warmup:true});},
+    async generate({text,kind,history=[],signal,warmup=false}) {
     if(typeof text!=='string'||!text.trim()||text.length>1000||!['donation','microphone'].includes(kind))throw new Error('Invalid conversation input');
     const system=[
       'Write dialogue for the producer\'s fictional adult cartoon SHANNY and REV, with 1buffweeb (Buff) as their host.',
@@ -39,9 +40,18 @@ export function createConversationDirector({complete,notes,examples=[]}) {
     messages.push({role:'user',content:JSON.stringify({kind,
       direction:kind==='donation'?'Shanny has already read this donation verbatim. Write 2–3 short sentences arguing BETWEEN Shanny and Rev about its concrete topic. Both speak and answer the preceding point.':'Answer Buff in 2–3 sentences TOTAL. Usually Shanny gets two sentences. Rev speaks only when he has a concrete correction, objection or rebuttal; let him take the floor when warranted.',
       input:text,history:history.slice(-4)})});
-    const responseSchema={type:'object',additionalProperties:false,required:['lines','rev_reason'],properties:{
-      lines:{type:'array',minItems:2,maxItems:3,items:{type:'object',additionalProperties:false,required:['actor','text'],properties:{actor:{type:'string',enum:['SHANNY','REV']},text:{type:'string',pattern:'^[^.!?\\r\\n]{1,159}[.!?]$'}}}},
+    let responseSchema={type:'object',additionalProperties:false,required:['lines','rev_reason'],properties:{
+      lines:{type:'array',minItems:2,maxItems:3,items:{type:'object',additionalProperties:false,required:['actor','text'],properties:{actor:{type:'string',enum:['SHANNY','REV']},text:{type:'string',pattern:/^[^.!?"\\\r\n]{1,159}[.!?]$/.source}}}},
       rev_reason:{type:'string',maxLength:60}}};
+    if(warmup){
+      // Prime the real persona prefix without making launcher readiness depend on
+      // a randomly generated scene. No startup output can reach speech/history.
+      messages[messages.length-1]={role:'user',content:'Silent startup check: return only {"ready":true}.'};
+      responseSchema={type:'object',additionalProperties:false,required:['ready'],properties:{ready:{const:true}}};
+      const raw=await complete({messages,signal,responseSchema});
+      if((typeof raw==='string'?JSON.parse(raw):raw)?.ready!==true)throw new Error('Language model startup check failed');
+      return;
+    }
     // A single pass keeps a malformed response from silently doubling live latency.
     return validateExchange(await complete({messages,signal,responseSchema}),kind);
   }};

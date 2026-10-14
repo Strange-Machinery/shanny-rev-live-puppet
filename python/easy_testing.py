@@ -41,6 +41,11 @@ class EasyTesting(ttk.Frame):
         ttk.Label(self, text='Producer — testing and connection', font=('Segoe UI', 24, 'bold')).pack(anchor='w')
         ttk.Label(self, text='Private practice. No YouTube, OBS, or internet needed.', font=('Segoe UI', 11)).pack(anchor='w', pady=(2, 10))
         ttk.Label(self, textvariable=self.heading, font=('Segoe UI', 12, 'bold'), wraplength=750).pack(anchor='w', pady=8)
+        controls = ttk.Frame(self); controls.pack(fill='x', pady=(4, 10))
+        self.stop_button = ttk.Button(controls, text='STOP - silence and cancel', command=self.stop)
+        self.stop_button.pack(side='left', ipady=6)
+        self.restart_button = ttk.Button(controls, text='Restart', command=self.restart)
+        self.restart_button.pack(side='right', ipady=6)
         self.tabs = ttk.Notebook(self); self.tabs.pack(fill='both', expand=True)
         home = ttk.Frame(self.tabs, padding=16)
         advanced = ttk.Frame(self.tabs)
@@ -49,6 +54,7 @@ class EasyTesting(ttk.Frame):
         self.engine = TestingPanel(advanced, repo=repo, node=node, config=config)
         self.engine.pack(fill='both', expand=True)
         self.engine.on_ready = self.services_ready
+        self.engine.on_startup_progress = self.heading.set
         self.engine.on_result = self.result
         self.engine.on_error = self.show_error
         self.sharing = RemoteSharing(self.engine, lambda message: self.engine.events.put(('sharing', message)))
@@ -96,9 +102,6 @@ class EasyTesting(ttk.Frame):
             ttk.Button(home, text='Start real characters — Blackout Shanny', command=self.start_real).pack(anchor='w', pady=4, ipady=6)
         self.output = tk.Text(home, height=6, wrap='word', state='disabled', font=('Segoe UI', 11))
         self.output.pack(fill='both', expand=True)
-        row = ttk.Frame(self); row.pack(fill='x', pady=(12, 0))
-        ttk.Button(row, text='STOP — silence and cancel', command=self.stop).pack(side='left', ipady=8)
-        ttk.Button(row, text='Restart testing', command=self.restart).pack(side='right', ipady=8)
         self.start_timer = self.after(100, self.engine.start_lab)
         self.meter_timer = self.after(100, self.update_meter)
         self.bind('<Destroy>', lambda e: self.close() if e.widget is self else None)
@@ -133,7 +136,7 @@ class EasyTesting(ttk.Frame):
             self.stop()
         else:
             self.engine.stop_local()
-        self.heading.set(message + ' — click Restart testing to try again.')
+        self.heading.set(message + ' — click Restart at the top to try again.')
 
     def begin(self, action):
         if not self.ready:
@@ -277,7 +280,7 @@ class EasyTesting(ttk.Frame):
 
 
 def main():
-    root = tk.Tk(); root.title('Producer — Buff connection and testing'); root.geometry('1000x850'); root.minsize(850, 750)
+    root = tk.Tk(); root.title('Producer — Buff connection and testing'); root.geometry('1000x780'); root.minsize(850, 600)
     try:
         bundle = Path(__file__).resolve().parents[2]
         settings = bundled_settings(bundle) if (bundle / 'runtime/node/node.exe').is_file() else (ROOT, None, None)

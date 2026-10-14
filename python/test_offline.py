@@ -7,12 +7,46 @@ import unittest
 from unittest.mock import MagicMock, patch
 import io
 import wave
+from types import SimpleNamespace
 from microphone import EnergyVAD
 from testing_tab import install_testing
 import desktop_audio
 from easy_testing import EasyTesting, bundled_settings
 
 class OfflineTests(unittest.TestCase):
+    def test_restart_and_stop_stay_visible_above_notebook_in_short_window(self):
+        root = tk.Tk(); root.geometry('900x600')
+        panel = EasyTesting(root); panel.pack(fill='both', expand=True)
+        panel.after_cancel(panel.start_timer)
+        try:
+            root.update()
+            self.assertTrue(panel.restart_button.winfo_ismapped())
+            self.assertTrue(panel.stop_button.winfo_ismapped())
+            self.assertLess(panel.restart_button.winfo_rooty(), panel.tabs.winfo_rooty())
+            self.assertLess(panel.restart_button.winfo_rooty()+panel.restart_button.winfo_height(), root.winfo_rooty()+root.winfo_height())
+        finally:
+            panel.close(); root.update_idletasks(); root.destroy()
+
+    def test_launcher_preserves_backend_startup_cause_and_progress(self):
+        root = tk.Tk(); root.withdraw()
+        panel = EasyTesting(root)
+        try:
+            process = MagicMock()
+            process.stdout = io.StringIO('{"error":"The GPU stayed busy: 3.0 GB free"}\n')
+            process.stderr = io.StringIO('BUFF_STARTUP Waiting for GPU memory\n')
+            process.poll.return_value = 1
+            with patch('testing_tab.subprocess.Popen', return_value=process), patch('testing_tab.threading.Timer'), patch('testing_tab.threading.Thread', side_effect=lambda **kwargs: SimpleNamespace(start=kwargs['target'])):
+                panel.engine.start_lab()
+            events = []
+            while not panel.engine.events.empty():
+                events.append(panel.engine.events.get_nowait())
+            self.assertTrue(any(kind == 'startup_progress' and value[1] == 'Waiting for GPU memory' for kind, value in events))
+            self.assertTrue(any(kind == 'error' and value[1] == 'The GPU stayed busy: 3.0 GB free' for kind, value in events))
+            self.assertIsNone(panel.engine.endpoint)
+            self.assertFalse(panel.engine.mic_armed)
+        finally:
+            panel.close(); root.update_idletasks(); root.destroy()
+
     def test_easy_home_click_arms_only_requested_test_and_stop_cancels_pending_microphone(self):
         root = tk.Tk(); root.withdraw()
         try:

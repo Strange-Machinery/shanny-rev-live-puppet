@@ -15,12 +15,15 @@ import {PersistentWhisper} from './providers/whisper.mjs';
 import {createConversationDirector} from './conversation-director.mjs';
 import {ConversationSession} from './conversation-session.mjs';
 import {AnimationMenu} from './animation-menu.mjs';
+import {waitForVoiceMemory} from './gpu-readiness.mjs';
 
 async function freePort(){const socket=tcpServer();await new Promise((r,j)=>{socket.once('error',j);socket.listen(0,'127.0.0.1',r);});const port=socket.address().port;await new Promise(r=>socket.close(r));return port;}
 async function waitUntil(check,ms){const end=Date.now()+ms;while(Date.now()<end){if(await check())return;await delay(200);}throw new Error('A character service did not become ready');}
 
 /** Producer-owned real services. No fixture fallback, episode generation, or public sharing. */
 export async function serveRealHost(config){
+  let phase='Starting character services';
+  const progress=message=>{phase=message;process.stderr.write('BUFF_STARTUP '+message+'\n');};
   if(config.resourceHeadroomVerified!==true)throw new Error('Character voice resource check is required');
   const root=resolve(config.scratch),token=randomBytes(32).toString('hex'),qwenKey=randomBytes(32).toString('hex');
   await mkdir(root,{recursive:true});
@@ -45,6 +48,7 @@ export async function serveRealHost(config){
     await lock.close();await unlink(lockPath);
   };
   try {
+    progress('Loading the language model...');
     const port=await freePort(),modelName=config.qwenRuntime.modelId||'Qwen3.5-2B';
     const modelLog=await open(join(root,'qwen.log'),'a');logs.push(modelLog);
     const model=spawn(config.qwenRuntime.executable,['-m',config.qwenRuntime.modelPath,'--alias',modelName,
@@ -57,18 +61,27 @@ export async function serveRealHost(config){
     const examples=config.approvedExamples?JSON.parse(await readFile(config.approvedExamples,'utf8')):[];
     const complete=createQwenCompletion({endpoint:'http://127.0.0.1:'+port+'/v1/chat/completions',model:modelName,apiKey:qwenKey,placement:'cpu',timeoutMs:12000,maxTokens:240});
     const director=createConversationDirector({complete,notes,examples});
-    const gpu=await promisify(execFile)('nvidia-smi',['--query-gpu=memory.free','--format=csv,noheader,nounits'],{windowsHide:true,timeout:5000});
-    if(Number(gpu.stdout.trim().split('\n')[0])<4096)throw new Error('The voice model needs more free GPU memory. Let the other rendering job finish, then retry.');
+    progress('Checking room for the character voices...');
+    await waitForVoiceMemory({progress,readFreeMiB:async()=>{
+      const gpu=await promisify(execFile)('nvidia-smi',['--query-gpu=memory.free','--format=csv,noheader,nounits'],{windowsHide:true,timeout:5000});
+      return gpu.stdout.trim().split('\n')[0];
+    }});
+    progress('Loading the character voices...');
     voice=new OmniVoiceProvider(config.omnivoice);await voice.warmup();
     // Absorb first-synthesis work before Ready; warmup audio is never published.
+    progress('Warming Shanny voice - microphone remains off...');
     await voice.generate({actor:'SHANNY',text:'The microphone stays off until you press the button.'});
+    progress('Warming Rev voice - microphone remains off...');
     await voice.generate({actor:'REV',text:'The stage is ready for a local test.'});
-    await director.generate({kind:'microphone',text:'Buff is checking the microphone.'});
+    progress('Warming short character replies...');
+    await director.warmup();
     live=createLiveServer({provider:voice,token,port:0,startMuted:true});const gatewayPort=(await live.start()).port;
     const origin='http://127.0.0.1:'+gatewayPort,gateway=createLocalPuppetGateway({url:origin,token});
+    progress('Loading offline speech recognition...');
     whisper=new PersistentWhisper({...config.whisper,workerScript:fileURLToPath(new URL('../python/whisper_file.py',import.meta.url))});
     await whisper.warmup();
     session=new ConversationSession({gateway,director,whisper});await session.initialize();
+    progress('Opening the character stage...');
     const player=spawn(config.player,['-force-d3d11','-screen-fullscreen','0','-logFile',join(root,'player.log')],
       {windowsHide:false,stdio:'ignore',env:{...process.env,LIVE_PUPPET_TOKEN:token,LIVE_PUPPET_URL:origin}});
     children.push(player);player.on('error',()=>{});
@@ -105,5 +118,5 @@ export async function serveRealHost(config){
     })().catch(error=>{if(!res.headersSent)res.writeHead(409,{'Content-Type':'application/json'});res.end(JSON.stringify({error:error.message}));});});
     await new Promise((r,j)=>{http.once('error',j);http.listen(0,'127.0.0.1',r);});
     return {port:http.address().port,token,action,gateway,session,close:async()=>{clearInterval(monitor);await close();}};
-  }catch(error){await close();throw error;}
+  }catch(error){await close();throw new Error(phase.replace(/\.+$/,'')+': '+error.message,{cause:error});}
 }

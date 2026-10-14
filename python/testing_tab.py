@@ -22,6 +22,7 @@ class TestingPanel(ttk.Frame):
         self.repo = Path(repo)
         self.node = node
         self.on_ready = lambda: None
+        self.on_startup_progress = lambda message: None
         self.on_result = lambda action, result: None
         self.on_error = lambda message: None
         self.events = queue.Queue(); self.process = None; self.endpoint = None; self.token = None
@@ -120,7 +121,7 @@ class TestingPanel(ttk.Frame):
         if self.configuration:
             args.append(self.configuration)
         def worker():
-            process = None; timer = None
+            process = None; timer = None; errors = []
             try:
                 process = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                            text=True, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
@@ -129,13 +130,19 @@ class TestingPanel(ttk.Frame):
                 self.starting_process = process
                 timer = threading.Timer(240, lambda: self.terminate_owned(process)); timer.daemon = True; timer.start()
                 def drain():
-                    for _ in process.stderr:
-                        pass
+                    for line in process.stderr:
+                        errors.append(line[-2000:])
+                        del errors[:-40]
+                        if line.startswith('BUFF_STARTUP '):
+                            self.events.put(('startup_progress', (captured, line[13:].strip())))
                 threading.Thread(target=drain, daemon=True).start()
                 line = process.stdout.readline()
                 if not line:
-                    raise RuntimeError('Offline lab startup failed; check the private runtime configuration')
+                    details = ''.join(errors).strip()
+                    raise RuntimeError('Character services could not start. ' + (details[-1200:] if details else 'The startup process stopped before reporting Ready.'))
                 info = json.loads(line)
+                if info.get('error'):
+                    raise RuntimeError(info['error'])
                 if captured != self.generation:
                     process.stdin.close(); return
                 self.process = process
@@ -323,6 +330,11 @@ class TestingPanel(ttk.Frame):
                 elif kind == 'ready':
                     if value == self.generation:
                         self.on_ready()
+                elif kind == 'startup_progress':
+                    captured, message = value
+                    if captured == self.generation:
+                        self.status.set(message)
+                        self.on_startup_progress(message)
                 elif kind == 'error':
                     captured, message = value
                     if captured == self.generation:

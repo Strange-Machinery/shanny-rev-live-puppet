@@ -54,6 +54,17 @@ do not establish performance under every rendering load. Qwen4B was also measure
 
 ## Validation and boundaries
 
+Launcher repair: Restart and Stop now occupy the top row, tested at 900x600.
+Startup displays individual loading phases and preserves the actual failure cause.
+A temporary shortage of GPU memory triggers automatic polling for up to 90 seconds,
+requiring two consecutive checks with at least 4 GB free. Sustained pressure remains
+a visible resource error; no other job is stopped. The silent Qwen warmup now primes
+the persona prefix with a fixed readiness object instead of a generated scene.
+Sentence grammar excludes raw quote/backslash tokens that previously produced
+invalid JSON and a local Qwen HTTP 500. The repaired real GUI reached Ready with
+top controls mapped and the microphone off. Latest regression suite: 91 Node and
+10 Python tests.
+
 87 Node tests and 8 Python tests pass locally. New tests exercise one-pass failure,
 donation read/reply ordering, held next-line synthesis, Stop during prefetch,
 resident recognizer reuse, cancellation/recovery and partial-transcript rejection.
