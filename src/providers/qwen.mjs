@@ -23,7 +23,7 @@ export function createQwenCompletion({ endpoint, model, apiKey = '', timeoutMs =
     throw new Error('Invalid Qwen model or budgets');
   }
   let busy = false;
-  return async ({ messages, signal }) => {
+  return async ({ messages, signal, responseSchema }) => {
     if (busy) throw new Error('Qwen concurrency limit reached');
     if (!Array.isArray(messages) || JSON.stringify(messages).length > 12_000) throw new Error('Qwen prompt budget exceeded');
     signal?.throwIfAborted();
@@ -35,7 +35,7 @@ export function createQwenCompletion({ endpoint, model, apiKey = '', timeoutMs =
         method: 'POST', redirect: 'error', signal: combined,
         headers: { 'Content-Type': 'application/json', ...(apiKey ? { Authorization: 'Bearer ' + apiKey } : {}) },
         body: JSON.stringify({ model, messages, stream: false, max_tokens: maxTokens,
-          temperature: 1, top_p: 1, response_format: { type: 'json_object' },
+          temperature: 1, top_p: 1, response_format: { type: 'json_object', ...(responseSchema?{schema:responseSchema}:{}) },
           chat_template_kwargs: { enable_thinking: false } })
       });
       // Do not echo remote errors: they may contain private prompt text.

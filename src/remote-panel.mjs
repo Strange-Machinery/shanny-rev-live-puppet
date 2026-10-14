@@ -34,7 +34,8 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
         const s=await action({action:'status'});
         if(lease)lease=Date.now()+15000;
         return send(200,{mode:s.mode,whisper:s.whisper_available,qwen:s.qwen,speech:s.speech,
-          busy:s.turn_busy||s.conversation_busy||s.active_audio>0,kind:'REMOTE_TESTING',production_ready:false});
+          busy:s.turn_busy||s.conversation_busy||s.active_audio>0,kind:'REMOTE_TESTING',production_ready:false,
+            real_characters:Boolean(s.real_characters),history:s.history||[],error:s.error||'',latency:s.latency||null});
       }
       if(req.method!=='POST'||req.url!=='/api/action')return send(404,{error:'Unavailable.'});
       if(!String(req.headers['content-type']).startsWith('application/json'))return send(415,{error:'JSON required.'});
@@ -70,8 +71,8 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
         const result=await action({action:input.action==='donate'?'donate':'transcript',text:input.text,
           ...(audioPath?{audioPath,source:'OFFLINE_WAV'}:{}),actor:'SHANNY',session_id:scope.session_id,mode_epoch:scope.mode_epoch});
         if(!current())return send(409,{error:'Cancelled.'});
-        send(200,{status:result.status,transcript:result.transcript,
-          message:input.action==='donate'?'Test donation accepted.':'Response test completed on the producer computer.'});
+        send(200,{status:result.status,transcript:result.transcript,kind:result.kind,
+          message:result.kind==='REAL_CHARACTERS'?'The real characters are responding in the producer stage. Remote show audio/video is not yet connected.':input.action==='donate'?'Test donation accepted.':'Response test completed on the producer computer.'});
       } finally {if(folder)await rm(folder,{recursive:true,force:true});busy=false;}
     })().catch(()=>{if(!res.headersSent)send(409,{error:'Test could not finish. Press STOP and try again; the producer can check local diagnostics.'});else res.end();});
   });

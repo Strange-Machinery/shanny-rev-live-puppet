@@ -39,3 +39,10 @@ test('Qwen never accepts plaintext remote credentials or unverified local GPU pl
   assert.throws(()=>createQwenCompletion({...settings,placement:'local-gpu'}),/headroom/);
   assert.throws(()=>createQwenCompletion({...settings,maxTokens:10000}),/budgets/);
 });
+
+test('Qwen forwards bounded dialogue schema to constrain the single live writing pass',async()=>{
+  let body;const complete=createQwenCompletion({...settings,request:async(url,options)=>{body=JSON.parse(options.body);return response();}});
+  const schema={type:'object',properties:{lines:{type:'array',maxItems:3}}};
+  await complete({messages,responseSchema:schema});
+  assert.deepEqual(body.response_format,{type:'json_object',schema});
+});

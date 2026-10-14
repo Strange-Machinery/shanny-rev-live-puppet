@@ -1,5 +1,12 @@
 # v0.3 continuation
 
+Current real-character status: [REAL_CHARACTERS.md](REAL_CHARACTERS.md). The producer
+now has real offline Whisper -> short Qwen exchange -> saved OmniVoice -> Unity
+playback. Prioritize fast, relevant Blackout writing within the measured 10–15-second
+first-reply budget; do not add a second writing pass. Remote OBS audio/video,
+physical microphone acceptance, sustained performance under load and the accepted
+animation adapter remain open. No fine-tuning has been performed.
+
 Start with [MICROPHONE_NEXT_WORK.md](MICROPHONE_NEXT_WORK.md) and the genuine
 remaining boundaries in [ACCEPTANCE_V03.md](ACCEPTANCE_V03.md). The installed
 Testing tab supports offline microphone/Whisper/response R&D; production microphone

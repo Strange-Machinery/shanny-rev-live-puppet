@@ -34,6 +34,9 @@ class EasyTesting(ttk.Frame):
         self.ready = False
         self.busy = False
         self.awaiting_result = False
+        self.real_mode = False
+        self.real_profile = Path(os.environ.get('BUFF_REAL_PROFILE', str(Path(repo) / 'producer.local.json')))
+        self.last_history = None
         self.heading = tk.StringVar(self, 'Getting ready…')
         ttk.Label(self, text='Producer — testing and connection', font=('Segoe UI', 24, 'bold')).pack(anchor='w')
         ttk.Label(self, text='Private practice. No YouTube, OBS, or internet needed.', font=('Segoe UI', 11)).pack(anchor='w', pady=(2, 10))
@@ -87,7 +90,10 @@ class EasyTesting(ttk.Frame):
         self.animation_menu.add_command(label='Loading MotionLab catalog…', state='disabled')
         self.animation_note = tk.StringVar(self, 'MotionLab defines the gestures; unavailable clips stay disabled.')
         ttk.Label(animation_row, textvariable=self.animation_note, wraplength=580).pack(side='left', padx=10)
-        ttk.Label(home, text='Included: real offline speech recognition. Character replies, character audio, and episode playback are simulated in this package.', wraplength=740, foreground='#745300').pack(anchor='w', pady=14)
+        self.service_note = tk.StringVar(self, 'Included: real offline speech recognition. Character replies, character audio, and episode playback are simulated in this package.')
+        ttk.Label(home, textvariable=self.service_note, wraplength=740, foreground='#745300').pack(anchor='w', pady=14)
+        if self.real_profile.is_file():
+            ttk.Button(home, text='Start real characters — Blackout Shanny', command=self.start_real).pack(anchor='w', pady=4, ipady=6)
         self.output = tk.Text(home, height=6, wrap='word', state='disabled', font=('Segoe UI', 11))
         self.output.pack(fill='both', expand=True)
         row = ttk.Frame(self); row.pack(fill='x', pady=(12, 0))
@@ -110,8 +116,16 @@ class EasyTesting(ttk.Frame):
 
     def services_ready(self):
         self.ready = True
-        self.heading.set('Ready. Choose a test below.')
+        self.heading.set('Real characters ready. Microphone off.' if self.real_mode else 'Ready. Choose a test below.')
         self.engine.action('animations')
+
+    def start_real(self):
+        self.sharing.close()
+        self.stop(); self.ready = False; self.real_mode = True; self.last_history = None
+        self.engine.configuration = str(self.real_profile)
+        self.service_note.set('Fast local Qwen + saved OmniVoice voices + Unity characters. Blackout Shanny leads. OBS output and episode handoff are separate.')
+        self.heading.set('Loading real character services… This can take a minute. Microphone stays off.')
+        self.engine.start_lab()
 
     def show_error(self, message):
         if self.ready:
@@ -171,17 +185,28 @@ class EasyTesting(ttk.Frame):
             else:
                 self.engine.action(action, text)
         elif action == 'status':
+            if result.get('real_characters'):
+                self.real_mode = True
+                history = result.get('history', [])
+                if history and history != self.last_history:
+                    self.last_history = history
+                    self.display('\n\n'.join(row['actor'].title() + ': ' + row['text'] for row in history))
+                if result.get('error'):
+                    self.heading.set(result['error'] + ' — press a test button to retry.')
             self.meter['value'] = self.engine.level['value']
             if self.busy and not self.awaiting_result and not self.pending and not self.engine.recording and not result['turn_busy'] and not result['conversation_busy'] and not result['active_audio']:
                 self.busy = False
-                self.heading.set('Ready for another test.')
+                timing = result.get('latency') or {}
+                first = timing.get('first_reply_ms')
+                message = ('First reply: %.1f seconds. ' % (first / 1000)) if first is not None else ''
+                self.heading.set(result['error'] + ' — press a test button to retry.' if result.get('error') else message + 'Ready for another test.')
         elif action not in ('arm', 'status'):
             self.awaiting_result = False
             if result.get('status') == 'no_speech':
                 self.stop()
                 self.display('No speech was detected. Check the selected microphone and try again.')
             if 'transcript' in result:
-                self.display('You said: ' + result['transcript'] + '\n\nOffline Whisper worked. The simulated character-response path completed.')
+                self.display('Input: ' + result['transcript'] + ('\n\nThe real characters are responding in the stage window.' if result.get('kind') == 'REAL_CHARACTERS' else '\n\nOffline Whisper worked. The simulated character-response path completed.'))
                 self.engine.mic_armed = False
                 self.engine.mic_state.set('Microphone off. Click Test microphone to record again.')
                 self.record_requested = False
@@ -258,6 +283,9 @@ def main():
         settings = bundled_settings(bundle) if (bundle / 'runtime/node/node.exe').is_file() else (ROOT, None, None)
         panel = EasyTesting(root, repo=settings[0], node=settings[1], config=settings[2])
         panel.pack(fill='both', expand=True)
+        if '--real' in sys.argv and panel.real_profile.is_file():
+            panel.after_cancel(panel.start_timer)
+            panel.start_timer = panel.after(100, panel.start_real)
         root.protocol('WM_DELETE_WINDOW', lambda: (panel.close(), root.destroy()))
         root.mainloop()
     except Exception as error:

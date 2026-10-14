@@ -113,7 +113,7 @@ class TestingPanel(ttk.Frame):
         if self.process:
             self.process.stdin.close(); self.process = None
         if self.starting_process:
-            self.starting_process.terminate(); self.starting_process = None
+            self.terminate_owned(self.starting_process); self.starting_process = None
         self.endpoint = None; self.token = None; self.mode_scope = {}; self.last_event_seq = 0; self.played_ids.clear()
         self.status.set('Starting isolated offline services…')
         args = [self.node or shutil.which('node.exe') or shutil.which('node') or 'node', str(self.repo / 'src/testing/lab.mjs')]
@@ -127,7 +127,7 @@ class TestingPanel(ttk.Frame):
                 if captured != self.generation:
                     process.stdin.close(); return
                 self.starting_process = process
-                timer = threading.Timer(90, process.kill); timer.daemon = True; timer.start()
+                timer = threading.Timer(240, lambda: self.terminate_owned(process)); timer.daemon = True; timer.start()
                 def drain():
                     for _ in process.stderr:
                         pass
@@ -144,7 +144,7 @@ class TestingPanel(ttk.Frame):
                 self.events.put(('ready', captured))
             except Exception as error:
                 if process and process.poll() is None:
-                    process.terminate()
+                    self.terminate_owned(process)
                 self.events.put(('error', (captured, str(error))))
             finally:
                 if timer:
@@ -152,6 +152,16 @@ class TestingPanel(ttk.Frame):
                 if self.starting_process is process:
                     self.starting_process = None
         threading.Thread(target=worker, daemon=True).start()
+    def terminate_owned(self, process):
+        if process.poll() is not None:
+            return
+        if os.name == 'nt':
+            subprocess.run(['taskkill.exe', '/PID', str(process.pid), '/T', '/F'],
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                           creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0), timeout=10)
+        else:
+            process.terminate()
+
     def request(self, data):
         if not self.endpoint:
             raise RuntimeError('Start the offline lab first')
@@ -377,7 +387,7 @@ class TestingPanel(ttk.Frame):
         self.after_cancel(self.poll_timer)
         self.audio_jobs.put_nowait(None)
         if self.starting_process:
-            self.starting_process.terminate(); self.starting_process = None
+            self.terminate_owned(self.starting_process); self.starting_process = None
         if self.process:
             try:
                 self.process.stdin.close()

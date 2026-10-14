@@ -134,6 +134,7 @@ export async function createOfflineLab({ whisper, realDirector, voiceProvider, d
 }
 
 export async function serveLab(config={}) {
+  if(config.mode==='real-characters')return (await import('../real-host.mjs')).serveRealHost(config);
   let realDirector,voiceProvider;
   if(config.qwen) {
     const host=new URL(config.qwen.endpoint).hostname;

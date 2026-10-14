@@ -1,0 +1,51 @@
+{
+  "date": "2026-10-13",
+  "mode": "Offline synthetic WAV to actual Unity AudioSource started receipt; not physical microphone or acoustic onset",
+  "model": "Qwen3.5-2B Q4_K_M, CPU, non-thinking, one pass",
+  "voice": "Existing persistent OmniVoice, RTX 4060 Laptop 8 GB",
+  "whisper": "Resident faster-whisper small.en CPU int8 beam 1",
+  "observations": [
+    {
+      "case": "microphone-file-first",
+      "error": "",
+      "latency": {
+        "kind": "microphone",
+        "transcription_ms": 3581,
+        "model_ms": 3898,
+        "first_reply_ms": 11431,
+        "total_ms": 16812,
+        "within_target": true
+      },
+      "completed_clip_fps_min": 29.99542236328125,
+      "completed_clip_max_frame_ms": 35.48859786987305,
+      "completed_playback_count": 2,
+      "all_finished_jaws_idle": true,
+      "all_finished_audio_advanced": true
+    },
+    {
+      "case": "microphone-file",
+      "error": "",
+      "latency": {
+        "kind": "microphone",
+        "transcription_ms": 3306,
+        "model_ms": 5417,
+        "first_reply_ms": 13477,
+        "total_ms": 30249,
+        "within_target": true
+      },
+      "completed_clip_fps_min": 27.14982032775879,
+      "completed_clip_max_frame_ms": 44.44449996948242,
+      "completed_playback_count": 5,
+      "all_finished_jaws_idle": true,
+      "all_finished_audio_advanced": true
+    }
+  ],
+  "prior_cold_whisper_first_reply_ms": 22627,
+  "donation_end_to_reply_ms": 268,
+  "limitations": [
+    "Two final-path observations, same synthetic WAV; not a reliability distribution",
+    "No OBS load or remote transport in this measurement",
+    "Blackout character-writing quality not accepted; no fine-tuning",
+    "Previous GPU-load runs had voice synthesis above 30 seconds and a timeout"
+  ]
+}
