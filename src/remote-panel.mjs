@@ -72,7 +72,9 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
         revision++;lastInterruption='stop';lease=0;
         return send(200,await action({action:'donation-stop'}));
       }
-      if(input.action==='silence'){
+      if(input.action==='silence'||input.action==='transcript'&&
+          typeof input.text==='string'&&/^\s*shut\s+up[.!?]*\s*$/i.test(input.text)){
+        // Only trusted operator transcript/control, never paid donor text.
         revision++;lastInterruption='silence';lease=Date.now()+15000;
         return send(200,await action({action:'silence'}));
       }
