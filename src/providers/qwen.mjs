@@ -1,5 +1,6 @@
 import { performance } from 'node:perf_hooks';
 import { readJson } from '../http-json.mjs';
+import { readQwenStream } from './qwen-stream.mjs';
 
 /** Calls an already provisioned endpoint. Never loads/downloads a model. */
 export function createQwenCompletion({ endpoint, model, apiKey = '', timeoutMs = 6000,
@@ -23,7 +24,7 @@ export function createQwenCompletion({ endpoint, model, apiKey = '', timeoutMs =
     throw new Error('Invalid Qwen model or budgets');
   }
   let busy = false;
-  return async ({ messages, signal, responseSchema }) => {
+  return async ({ messages, signal, responseSchema, onText }) => {
     if (busy) throw new Error('Qwen concurrency limit reached');
     if (!Array.isArray(messages) || JSON.stringify(messages).length > 12_000) throw new Error('Qwen prompt budget exceeded');
     signal?.throwIfAborted();
@@ -34,12 +35,16 @@ export function createQwenCompletion({ endpoint, model, apiKey = '', timeoutMs =
       const reply = await request(url.href, {
         method: 'POST', redirect: 'error', signal: combined,
         headers: { 'Content-Type': 'application/json', ...(apiKey ? { Authorization: 'Bearer ' + apiKey } : {}) },
-        body: JSON.stringify({ model, messages, stream: false, max_tokens: maxTokens,
+        body: JSON.stringify({ model, messages, stream: typeof onText==='function', max_tokens: maxTokens,
           temperature: 1, top_p: 1, response_format: { type: 'json_object', ...(responseSchema?{schema:responseSchema}:{}) },
           chat_template_kwargs: { enable_thinking: false } })
       });
       // Do not echo remote errors: they may contain private prompt text.
       if (!reply.ok) { await reply.body?.cancel(); throw new Error('Qwen HTTP ' + reply.status); }
+      if(typeof onText==='function'){
+        const content=await readQwenStream(reply,combined,onText);
+        onTiming({model,completion_ms:performance.now()-start});return content;
+      }
       const value = await readJson(reply, 16_000);
       combined.throwIfAborted();
       const choice = value.choices?.[0];

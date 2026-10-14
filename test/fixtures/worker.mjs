@@ -4,6 +4,9 @@ import readline from 'node:readline';
 import {mockSpeechWav} from '../../src/wav.mjs';
 const args=process.argv;const root=args[args.indexOf('--output-root')+1];
 const emit=x=>console.log('LIVE_WORKER '+JSON.stringify(x));
+await fs.writeFile(path.join(root,'worker-env.json'),JSON.stringify({
+ omp:process.env.OMP_NUM_THREADS,mkl:process.env.MKL_NUM_THREADS,
+ blas:process.env.OPENBLAS_NUM_THREADS,wait:process.env.OMP_WAIT_POLICY}));
 emit({type:'READY'});
 for await (const line of readline.createInterface({input:process.stdin})) {
  const req=JSON.parse(line);if(req.type==='SHUTDOWN')break;

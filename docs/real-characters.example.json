@@ -1,5 +1,6 @@
 {
   "mode": "real-characters",
+  "performanceMode": "show",
   "resourceHeadroomVerified": true,
   "scratch": "C:/private/live-session",
   "player": "C:/private/LivePuppet.exe",
@@ -14,6 +15,7 @@
     "modelPath": "C:/private/faster-whisper-small.en"
   },
   "omnivoice": {
+    "cpuThreads": 2,
     "python": "C:/private/existing-voice-runtime/python.exe",
     "workerScript": "C:/private/existing/omnivoice_live_worker.py",
     "appRoot": "C:/private/existing/app",

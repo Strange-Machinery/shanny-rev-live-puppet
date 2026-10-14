@@ -1,6 +1,17 @@
 const actors=new Set(['SHANNY','REV']);
 const sentenceCount=text=>[...new Intl.Segmenter('en',{granularity:'sentence'}).segment(text)].filter(x=>x.segment.trim()).length;
 
+// Only a complete first object at the beginning of the lines array qualifies.
+// This is speculative preparation, never permission to play an incomplete plan.
+export function firstStreamedLine(raw){
+  const match=/^\s*\{\s*"lines"\s*:\s*\[\s*(\{\s*"actor"\s*:\s*"(?:SHANNY|REV)"\s*,\s*"text"\s*:\s*"(?:[^"\\]|\\(?:["\\/bfnrt]|u[0-9a-fA-F]{4}))*"\s*\})\s*[,\]]/.exec(raw);
+  if(!match)return null;
+  try {
+    const row=JSON.parse(match[1]);
+    return validateExchange({lines:[row,{actor:'SHANNY',text:'Wait.'}],rev_reason:'Pending validation'},'microphone').lines[0];
+  }catch{return null;}
+}
+
 export function validateExchange(raw,kind) {
   const value=typeof raw==='string'?JSON.parse(raw):raw;
   if(!['donation','microphone'].includes(kind)||!value||Object.keys(value).sort().join(',')!=='lines,rev_reason'||
@@ -21,7 +32,7 @@ export function createConversationDirector({complete,notes,examples=[]}) {
   if(typeof notes!=='string'||!notes.trim()||notes.length>8000)throw new Error('Private character treatment required');
   if(!Array.isArray(examples)||examples.length>3)throw new Error('At most three approved examples');
   return {async warmup(){await this.generate({text:'Startup check',kind:'microphone',warmup:true});},
-    async generate({text,kind,history=[],signal,warmup=false}) {
+    async generate({text,kind,history=[],signal,warmup=false,onFirstLine}) {
     if(typeof text!=='string'||!text.trim()||text.length>1000||!['donation','microphone'].includes(kind))throw new Error('Invalid conversation input');
     const system=[
       'Write dialogue for the producer\'s fictional adult cartoon SHANNY and REV, with 1buffweeb (Buff) as their host.',
@@ -53,6 +64,12 @@ export function createConversationDirector({complete,notes,examples=[]}) {
       return;
     }
     // A single pass keeps a malformed response from silently doubling live latency.
-    return validateExchange(await complete({messages,signal,responseSchema}),kind);
+    let first;
+    const onText=typeof onFirstLine==='function'?raw=>{
+      if(!first){const row=firstStreamedLine(raw);if(row){first=row;onFirstLine(row);}}
+    }:undefined;
+    const plan=validateExchange(await complete({messages,signal,responseSchema,onText}),kind);
+    if(first&&JSON.stringify(first)!==JSON.stringify(plan.lines[0]))throw new Error('Prepared line does not match validated plan');
+    return plan;
   }};
 }

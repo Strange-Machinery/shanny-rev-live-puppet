@@ -1,0 +1,213 @@
+{
+  "date": "2026-10-13",
+  "hardware": "MSI i7-14650HX / RTX 4060 Laptop 8 GB",
+  "measurement": "Offline saved synthetic WAV submission through resident Whisper, Qwen, existing OmniVoice and actual Unity AudioSource-start receipt",
+  "configuration": {
+    "power": "AC adapter connected",
+    "windows_process_priority": "AboveNormal, owned show process tree only",
+    "voice_cpu_threads": 2,
+    "voice_generation": "Existing saved references and pinned 32-step pipeline unchanged",
+    "qwen": "Qwen3.5-2B Q4_K_M, CPU 6 threads, thinking off, bounded SSE output",
+    "whisper": "small.en CPU int8, beam 1, resident, 4 threads",
+    "overlap": "First complete sentence prepares voice while Qwen finishes plan; full plan must validate before release"
+  },
+  "optimized_observations": [
+    {
+      "case": "microphone-file-first",
+      "error": "",
+      "latency": {
+        "kind": "microphone",
+        "transcription_ms": 1318,
+        "model_ms": 4159,
+        "first_reply_ms": 7520,
+        "total_ms": 18764,
+        "within_target": true,
+        "first_line_ms": 2087
+      },
+      "completed_playback_count": 2,
+      "all_finished_audio_advanced": true,
+      "all_finished_jaws_idle": true,
+      "voice_generation_ms": [
+        3643.66,
+        1801.434
+      ]
+    },
+    {
+      "case": "microphone-file",
+      "error": "",
+      "latency": {
+        "kind": "microphone",
+        "transcription_ms": 1388,
+        "model_ms": 4383,
+        "first_reply_ms": 6810,
+        "total_ms": 12300,
+        "within_target": true,
+        "first_line_ms": 2405
+      },
+      "completed_playback_count": 2,
+      "all_finished_audio_advanced": true,
+      "all_finished_jaws_idle": true,
+      "voice_generation_ms": [
+        2624.37,
+        1709.492
+      ]
+    },
+    {
+      "case": "microphone-file-first",
+      "error": "",
+      "latency": {
+        "kind": "microphone",
+        "target_ms": 8000,
+        "transcription_ms": 2493,
+        "model_ms": 6026,
+        "first_reply_ms": 8907,
+        "total_ms": 24061,
+        "within_target": false,
+        "first_line_ms": 2350
+      },
+      "completed_playback_count": 3,
+      "all_finished_audio_advanced": true,
+      "all_finished_jaws_idle": true,
+      "voice_generation_ms": [
+        3465.52,
+        1745.381,
+        2923.494
+      ]
+    },
+    {
+      "case": "microphone-file",
+      "error": "",
+      "latency": {
+        "kind": "microphone",
+        "target_ms": 8000,
+        "transcription_ms": 1438,
+        "model_ms": 4608,
+        "first_reply_ms": 8880,
+        "total_ms": 21926,
+        "within_target": false,
+        "first_line_ms": 2629
+      },
+      "completed_playback_count": 2,
+      "all_finished_audio_advanced": true,
+      "all_finished_jaws_idle": true,
+      "voice_generation_ms": [
+        4291.073,
+        1995.787
+      ]
+    },
+    {
+      "case": "donation",
+      "error": "",
+      "latency": {
+        "kind": "donation",
+        "target_ms": 15000,
+        "transcription_ms": 0,
+        "model_ms": 4803,
+        "first_reply_ms": 9311,
+        "total_ms": 15214,
+        "within_target": true,
+        "first_line_ms": 2690,
+        "donation_end_to_reply_ms": 1172
+      },
+      "completed_playback_count": 3,
+      "all_finished_audio_advanced": true,
+      "all_finished_jaws_idle": true,
+      "voice_generation_ms": [
+        3344.989,
+        2623.263,
+        1736.717
+      ]
+    }
+  ],
+  "battery_before_overlap": [
+    {
+      "case": "microphone-file-first",
+      "error": "",
+      "latency": {
+        "kind": "microphone",
+        "transcription_ms": 3009,
+        "model_ms": 6599,
+        "first_reply_ms": 24352,
+        "total_ms": 33636,
+        "within_target": false
+      },
+      "completed_playback_count": 2,
+      "all_finished_audio_advanced": true,
+      "all_finished_jaws_idle": true,
+      "voice_generation_ms": [
+        13919.914,
+        6206.479
+      ]
+    },
+    {
+      "case": "microphone-file",
+      "error": "",
+      "latency": {
+        "kind": "microphone",
+        "transcription_ms": 2133,
+        "model_ms": 6708,
+        "first_reply_ms": 21441,
+        "total_ms": 40676,
+        "within_target": false
+      },
+      "completed_playback_count": 3,
+      "all_finished_audio_advanced": true,
+      "all_finished_jaws_idle": true,
+      "voice_generation_ms": [
+        12180.56,
+        5192.492,
+        7771.283
+      ]
+    }
+  ],
+  "ac_before_overlap": [
+    {
+      "case": "microphone-file-first",
+      "error": "Puppet gateway HTTP 409: Donation has not finished or stage still speaking",
+      "latency": {
+        "kind": "microphone",
+        "transcription_ms": 2737,
+        "model_ms": 4672,
+        "first_reply_ms": 10986,
+        "total_ms": 17629,
+        "within_target": true
+      },
+      "completed_playback_count": 1,
+      "all_finished_audio_advanced": true,
+      "all_finished_jaws_idle": true,
+      "voice_generation_ms": [
+        3098.667,
+        2496.261,
+        1910.042
+      ]
+    },
+    {
+      "case": "microphone-file",
+      "error": "",
+      "latency": {
+        "kind": "microphone",
+        "transcription_ms": 2402,
+        "model_ms": 5664,
+        "first_reply_ms": 11951,
+        "total_ms": 27606,
+        "within_target": true
+      },
+      "completed_playback_count": 3,
+      "all_finished_audio_advanced": true,
+      "all_finished_jaws_idle": true,
+      "voice_generation_ms": [
+        3458.145,
+        1969.765,
+        3352.111
+      ]
+    }
+  ],
+  "limitations": [
+    "Four optimized microphone-path observations use the same synthetic WAV, with varying generated dialogue; not a reliability distribution or guarantee",
+    "Timing starts at backend submission, excludes recording, and is not physical acoustic onset or remote OBS timing",
+    "One AC baseline turn was interrupted by a separate manual stage clip; it is not a successful full-exchange baseline",
+    "No OBS stress test, no physical microphone recorded by this benchmark, and no public stream",
+    "Thread limits, priority and mains power were not independently isolated; no individual speedup is attributed to them",
+    "Generated dialogue still requires character-writing acceptance; no fine-tuning"
+  ]
+}

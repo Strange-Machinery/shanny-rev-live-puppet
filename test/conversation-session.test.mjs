@@ -14,8 +14,40 @@ function fixture(director){
     speak:async data=>{const id='clip-'+(++n);spoken.push({...data,id});if(data.prepare_only)emit('speech.prepared',id);return {request_id:id};},
     release:async data=>{released.push(data);}};
   const session=new ConversationSession({gateway,director});
-  return {session,spoken,released,emit};
+  return {session,spoken,released,emit,gateway};
 }
+
+test('early voice preparation stays held until full plan validation; Stop discards it',async()=>{
+ let finish;
+ const first={actor:'SHANNY',text:'That is mine.'};
+ const f=fixture({generate:async({onFirstLine})=>{onFirstLine(first);return new Promise(r=>finish=r);}});
+ await f.session.initialize();const scope=await f.session.arm();
+ await f.session.submit({kind:'microphone',text:'Who owns it?',...scope});
+ await until(()=>f.spoken.length===1);assert.equal(f.released.length,0);
+ await f.session.stop();finish({lines:[first,{actor:'SHANNY',text:'I bought it.'}],rev_reason:''});
+ await until(()=>!f.session.turn);assert.equal(f.released.length,0);assert.equal(f.session.history.length,0);
+});
+
+test('early voice job is reused and played only after the plan validates',async()=>{
+ let finish;const first={actor:'SHANNY',text:'That is mine.'};
+ const f=fixture({generate:async({onFirstLine})=>{onFirstLine(first);return new Promise(r=>finish=r);}});
+ await f.session.initialize();const scope=await f.session.arm();
+ await f.session.submit({kind:'microphone',text:'Who owns it?',...scope});
+ await until(()=>f.spoken.length===1);assert.equal(f.released.length,0);
+ finish({lines:[first,{actor:'SHANNY',text:'I bought it.'}],rev_reason:''});
+ await until(()=>f.released.length===1);assert.equal(f.spoken.length,1);
+ await f.session.stop();await until(()=>!f.session.turn);
+});
+
+test('manual stage audio temporarily blocks the next line without failing the turn',async()=>{
+ const f=fixture({generate:async()=>({lines:[{actor:'SHANNY',text:'Wait.'},{actor:'REV',text:'I waited.'}],rev_reason:'Objects'})});
+ const release=f.gateway.release;let attempts=0;
+ f.gateway.release=async value=>{if(attempts++===0){const error=new Error('Puppet gateway HTTP 409: Donation has not finished or stage still speaking');error.status=409;throw error;}return release(value);};
+ await f.session.initialize();const scope=await f.session.arm();
+ await f.session.submit({kind:'microphone',text:'Wait.',...scope});
+ await until(()=>f.released.length===1);assert.equal(f.session.error,'');assert.equal(attempts,2);
+ await f.session.stop();await until(()=>!f.session.turn);
+});
 test('microphone budget permits Shanny alone, requires a point for Rev, and rejects long or control-bearing plans',()=>{
   const plan={lines:[{actor:'SHANNY',text:'You can ask me first.'},{actor:'SHANNY',text:'Then wait for my answer.'}],rev_reason:''};
   assert.equal(validateExchange(plan,'microphone').lines.length,2);

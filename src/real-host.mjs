@@ -86,6 +86,16 @@ export async function serveRealHost(config){
       {windowsHide:false,stdio:'ignore',env:{...process.env,LIVE_PUPPET_TOKEN:token,LIVE_PUPPET_URL:origin}});
     children.push(player);player.on('error',()=>{});
     await waitUntil(async()=>{if(player.exitCode!==null)throw new Error('Character player exited');const {stage}=await gateway.metrics();return stage&&Date.now()-stage.received_unix_ms<2500;},30000);
+    let performanceMode='standard';
+    if(config.performanceMode==='show'&&process.platform==='win32'){
+      progress('Giving the show priority on this PC...');
+      try {
+        await promisify(execFile)('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass',
+          '-File',fileURLToPath(new URL('../scripts/show-priority.ps1',import.meta.url)),
+          '-RootProcessId',String(process.pid)],{windowsHide:true,timeout:15000});
+        performanceMode='above-normal';
+      } catch { performanceMode='standard (priority unavailable)'; }
+    }
     const animations=new AnimationMenu({catalogPath:config.animationCatalog});
     let monitorBusy=false;
     monitor=setInterval(async()=>{
@@ -94,7 +104,7 @@ export async function serveRealHost(config){
       catch {await session.stop().catch(()=>{});}finally{monitorBusy=false;}
     },1000);
     const action=async data=>{
-      if(data.action==='status')return {...session.status(),qwen:modelName+' (local CPU)'};
+      if(data.action==='status')return {...session.status(),qwen:modelName+' (local CPU)',performance_mode:performanceMode};
       if(data.action==='animations')return animations.menu();
       if(data.action==='stop'){animations.stop();await session.stop();return {stopped:true};}
       if(data.action==='arm'){

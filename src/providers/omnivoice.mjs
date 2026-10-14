@@ -25,6 +25,10 @@ export class OmniVoiceProvider {
         throw new Error('Invalid saved voice reference ID');
       }
     }
+    if (config.cpuThreads !== undefined && (!Number.isInteger(config.cpuThreads) ||
+      config.cpuThreads < 1 || config.cpuThreads > 8)) {
+      throw new Error('OmniVoice cpuThreads must be an integer from 1 to 8');
+    }
     this.config = { ...config, startupMs: config.startupMs || 180_000,
       requestMs: config.requestMs || 120_000 };
     this.child = null;
@@ -55,7 +59,12 @@ export class OmniVoiceProvider {
         '--shanny-reference', c.shannyReference,
         '--rev-reference', c.revReference,
         '--seed', String(c.seed || 73001)
-      ], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
+      ], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true,
+        // Limit only this worker; avoid CPU oversubscription alongside Whisper,
+        // Qwen and Unity without changing the pinned voice generation settings.
+        env: c.cpuThreads === undefined ? process.env : { ...process.env,
+          OMP_NUM_THREADS: String(c.cpuThreads), MKL_NUM_THREADS: String(c.cpuThreads),
+          OPENBLAS_NUM_THREADS: String(c.cpuThreads), OMP_WAIT_POLICY: 'PASSIVE' } });
       this.child = child;
       this.startTimer = setTimeout(() => {
         this.#fail(new Error('OmniVoice model startup timed out'));

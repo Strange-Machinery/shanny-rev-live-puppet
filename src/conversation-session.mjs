@@ -46,7 +46,18 @@ export class ConversationSession {
   }
   async play(turn,line,id,after,onStarted){
     this.check(turn);
-    await this.gateway.release({id,session_id:this.scope.session_id,epoch:this.scope.epoch,...(after?{after_read_id:after}:{})});
+    const releaseDeadline=this.now()+45000;
+    while(true){
+      this.check(turn);
+      try {
+        await this.gateway.release({id,session_id:this.scope.session_id,epoch:this.scope.epoch,...(after?{after_read_id:after}:{})});break;
+      }catch(error){
+        // A manual stage clip may still be playing after our preceding line.
+        // Keep the server's no-overlap guard and wait for its actual finish.
+        if(error.status!==409||!error.message.endsWith('Donation has not finished or stage still speaking')||this.now()>=releaseDeadline)throw error;
+        await this.events(turn);await delay(40,undefined,{signal:turn.abort.signal});
+      }
+    }
     const started=await this.wait(turn,'playback.started',id,15000);
     if(turn.timing.first_reply_ms===null){
       turn.timing.first_reply_ms=this.now()-turn.started;
@@ -54,7 +65,7 @@ export class ConversationSession {
         const finished=turn.events.find(e=>e.id===after&&e.type==='playback.finished');
         turn.timing.donation_end_to_reply_ms=started.timestamp_unix_ms-finished?.timestamp_unix_ms;
       }
-      turn.timing.within_target=(turn.kind==='donation'?turn.timing.donation_end_to_reply_ms:turn.timing.first_reply_ms)<=15000;
+      turn.timing.within_target=(turn.kind==='donation'?turn.timing.donation_end_to_reply_ms:turn.timing.first_reply_ms)<=turn.timing.target_ms;
     }
     await onStarted?.();
     await this.wait(turn,'playback.finished',id,45000);
@@ -66,7 +77,7 @@ export class ConversationSession {
     if(this.mode!=='live'||this.turn||session_id!==this.scope.session_id||mode_epoch!==this.epoch)throw new Error('Stopped, stale, or busy conversation');
     if(!['donation','microphone'].includes(kind))throw new Error('Unknown response kind');
     const turn={id:randomUUID(),kind,text,revision:this.revision,abort:new AbortController(),events:[],started:this.now(),
-      timing:{kind,transcription_ms:0,model_ms:null,first_reply_ms:null,total_ms:null,within_target:null}};this.turn=turn;this.lastTiming=turn.timing;
+      timing:{kind,target_ms:kind==='donation'?15000:8000,transcription_ms:0,model_ms:null,first_reply_ms:null,total_ms:null,within_target:null}};this.turn=turn;this.lastTiming=turn.timing;
     try {
       if(audioPath){if(!this.whisper)throw new Error('Whisper is unavailable');const result=await this.whisper.transcribe({audioPath,signal:turn.abort.signal});this.check(turn);if(result.final!==true)throw new Error('Whisper final transcript required');text=result.text;turn.timing.transcription_ms=this.now()-turn.started;}
       if(typeof text!=='string'||!text.trim()||text.length>1000)throw new Error('Enter bounded final speech');
@@ -84,12 +95,22 @@ export class ConversationSession {
       await this.wait(turn,'playback.started',read.request_id,120000);prior=read.request_id;
     }
     const generatedAt=this.now();
-    const plan=await this.director.generate({kind:turn.kind,text:turn.text,history:this.history,signal:turn.abort.signal});this.check(turn);
+    let preparation;
+    const plan=await this.director.generate({kind:turn.kind,text:turn.text,history:this.history,signal:turn.abort.signal,
+      onFirstLine:line=>{
+        this.check(turn);
+        if(!preparation){
+          turn.timing.first_line_ms=this.now()-generatedAt;
+          preparation=this.queuePrepared(turn,line).then(id=>({id}),error=>({error}));
+        }
+      }});this.check(turn);
     turn.timing.model_ms=this.now()-generatedAt;
     this.onChange({type:'plan.ready',turn_id:turn.id,lines:plan.lines});
     // One line ahead: synthesize the next line while the current one is heard.
     // A bounded lookahead avoids filling a backlog of held clips that can expire.
-    let nextId=await this.queuePrepared(turn,plan.lines[0]);
+    const prepared=preparation?await preparation:null;this.check(turn);
+    if(prepared?.error)throw prepared.error;
+    let nextId=prepared?.id||await this.queuePrepared(turn,plan.lines[0]);
     for(let index=0;index<plan.lines.length;index++){
       const line=plan.lines[index],id=nextId;
       await this.wait(turn,'speech.prepared',id);

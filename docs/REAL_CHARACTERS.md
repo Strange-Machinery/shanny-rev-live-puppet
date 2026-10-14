@@ -18,11 +18,34 @@ outputs can be generic, invert the premise or over-allocate Rev's lines.
 The live path favors speed: non-thinking Qwen3.5-2B on CPU, 240-token/12-second
 completion budgets, schema-constrained short sentences, one writing pass without
 an automatic rewrite, four recent played lines of context, startup voice warmup,
-resident Whisper and one voice line prepared ahead during playback. Held clips
+resident Whisper, first-sentence voice preparation during Qwen text streaming,
+and one voice line prepared ahead during playback. The complete plan must validate
+and match the prepared sentence before release. Held clips
 remain subject to epoch/Stop gates and actual playback receipts. Only played
 dialogue enters history. No generated text becomes a Unity command.
 
 ## Measured local results
+
+Latest speed pass, MSI i7-14650HX / RTX 4060 Laptop on mains power:
+four complete synthetic-WAV microphone-path tests reached first reply in
+**7.520, 6.810, 8.907 and 8.880 seconds** (mean **8.029 seconds**).
+Whole spoken exchanges took 12.3–24.1 seconds. The donation test read first and
+started its argument 1.172 seconds after the read finished. This is a small smoke
+sample with varying generated dialogue, not a reliability distribution or guarantee.
+See [`evidence/live-speed-2026-10-13.json`](../evidence/live-speed-2026-10-13.json).
+
+The private profile and example use `performanceMode: "show"`: Windows applies
+AboveNormal priority to this host's current owned process tree at startup. No
+unrelated process priorities, global power plans or GPU clocks are changed.
+`omnivoice.cpuThreads: 2` bounds this worker's OMP/MKL/OpenBLAS CPU parallelism;
+saved references, model weights and the pinned 32-step voice settings are unchanged.
+The laptop must be plugged into its main adapter for comparable performance.
+Battery runs before text/voice overlap took 21.4–24.4 seconds; an AC-only baseline
+without overlap took 12.0 seconds in its successful full turn. These settings were
+not independently isolated, so individual speedups are not attributed to priority
+or thread count. Microphone timing now reports an 8-second target honestly.
+
+Earlier measurements before this speed pass:
 
 Hardware: RTX 4060 Laptop, 8 GB. Existing OmniVoice pipeline and Unity player;
 Whisper small.en, CPU int8, beam size 1; Qwen3.5-2B Q4_K_M on six CPU threads.
@@ -62,10 +85,12 @@ a visible resource error; no other job is stopped. The silent Qwen warmup now pr
 the persona prefix with a fixed readiness object instead of a generated scene.
 Sentence grammar excludes raw quote/backslash tokens that previously produced
 invalid JSON and a local Qwen HTTP 500. The repaired real GUI reached Ready with
-top controls mapped and the microphone off. Latest regression suite: 91 Node and
+top controls mapped and the microphone off. Latest regression suite: 105 Node and
 10 Python tests.
 
-87 Node tests and 8 Python tests pass locally. New tests exercise one-pass failure,
+Tests exercise bounded/split SSE, truncation, cancellation, speculative voice held
+until validation, Stop during early synthesis, worker-only thread configuration,
+and waiting for a manual stage clip before the next guarded release, plus one-pass failure,
 donation read/reply ordering, held next-line synthesis, Stop during prefetch,
 resident recognizer reuse, cancellation/recovery and partial-transcript rejection.
 The Tk launcher was constructed with its actual private profile and microphone off.
