@@ -67,6 +67,18 @@ test('at most five independently timed motion strands and two infrequent microbe
   assert.match(css,/transform-box:fill-box/);
   assert.match(css,/@keyframes mucus-tip-tension/);
   assert.match(css,/@keyframes mucus-light-shift/);
+  assert.equal((html.match(/class="mucus-flow-track /g)||[]).length,4);
+  for(const channel of ['left','right','lip-a','lip-b']){
+    assert.match(html,new RegExp('mucus-flow-track--'+channel));
+    assert.match(css,new RegExp('\\.mucus-flow-track--'+channel+'\\{'));
+  }
+  assert.match(css,/@keyframes mucus-runoff-down/);
+  assert.match(css,/@keyframes mucus-runoff-lip/);
+  assert.match(css,/@keyframes mucus-runoff-lip-reverse/);
+  assert.match(css,/stroke-dashoffset:995/);
+  assert.match(css,/stroke-dashoffset:78/);
+  assert.match(css,/scaleY\(1\.52\)/);
+  assert.match(css,/\.preview-motion-demo \.mucus-flow-track\{animation-duration:3\.3s\}/);
   assert.match(css,/opacity:0/);
   assert.doesNotMatch(artOnly,/<image|<filter|<feTurbulence|<feDisplacementMap|onload=|<script/i);
   assert.doesNotMatch(css,/@import|fonts\.googleapis|filter:\s*blur|backdrop-filter|url\(["']?https?:/i);
@@ -78,6 +90,7 @@ test('reduced-motion turns off all mucus transforms, gloss and flying beads',()=
   const styles=reduced[1];
   assert.match(styles,/\.mucus-strand--hero/);
   assert.match(styles,/\.mucus-tip/);
+  assert.match(styles,/\.mucus-flow-track/);
   assert.match(styles,/\.mucus-droplet/);
   assert.match(styles,/mucus-bottom-glint/);
   assert.match(styles,/animation:none!important/);
