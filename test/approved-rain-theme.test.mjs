@@ -42,7 +42,8 @@ test('rain prelude prepares Qwen and voices concurrently but native desk receipt
   assert.match(session,/this\.presentation\.begin\(\{\s*rain:true/);
   assert.match(session,/const preparing=this\.preparePresentationRows\(turn\)\.then/);
   assert.match(session,/Math\.max\(choreography,RAIN_CUE_DURATION_MS\)\+RAIN_SEAT_SETTLE_MS/);
-  assert.match(session,/await this\.presentation\.waitRainEnd\?\.\(/);
+  assert.match(session,/const soundEnd=Promise\.resolve\(\)\.then\(\(\)=>this\.presentation\.waitRainEnd\?\.\(/);
+  assert.match(session,/await Promise\.all\(\[nominalHold,soundEnd\]\)/);
   assert.match(session,/await this\.presentation\.seat\(\{signal:turn\.abort\.signal\}\)/);
   assert.match(session,/await this\.playPreparedPresentationRows\(turn,rows\)/);
   const host=read('src/real-host.mjs');
