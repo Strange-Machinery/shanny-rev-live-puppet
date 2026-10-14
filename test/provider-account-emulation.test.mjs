@@ -111,6 +111,15 @@ test('authenticated Streamlabs socket and StreamElements tips feed one durable q
  assert.equal(accepted[3].donation.provider,'streamelements');
  finish();await until(()=>manager.status().pending===0&&manager.status().inflight===0,'queue drain');
  assert.equal(manager.status().make_it_rain,false,'default checkbox must remain OFF');
+ // The operator gets packet counts, not invented dollar payments. Activity
+ // Feed tests can be visually successful yet register as ZERO paid packets.
+ const diag=manager.status().intake_diagnostics;
+ assert.equal(diag.counts.streamlabs.accepted,2);
+ assert.equal(diag.counts.streamelements.accepted,2);
+ assert.equal(diag.counts.streamlabs.ignored,3);
+ assert.equal(diag.counts.streamelements.ignored,2);
+ assert.equal(diag.counts.streamelements.duplicate,1);
+ assert.doesNotMatch(JSON.stringify(diag),/NEVER_REAL|Streamer Test|Tip Test|Argue with us|se-100/);
  assert.equal(calls.filter(x=>x.action==='arm').length,1);
  await manager.stop();
  assert.equal(manager.status().enabled,false);
