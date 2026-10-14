@@ -20,6 +20,7 @@ import {createStageMedia} from './stage-media.mjs';
 import {serveRemotePanel} from './remote-panel.mjs';
 import {LiveDonations} from './donations/live-donations.mjs';
 import {loadOrCreateViewerKey} from './obs-viewer-key.mjs';
+import {createCameraFlipGate} from './audience-reactions.mjs';
 
 async function freePort(){const socket=tcpServer();await new Promise((r,j)=>{socket.once('error',j);socket.listen(0,'127.0.0.1',r);});const port=socket.address().port;await new Promise(r=>socket.close(r));return port;}
 async function waitUntil(check,ms){const end=Date.now()+ms;while(Date.now()<end){if(await check())return;await delay(200);}throw new Error('A character service did not become ready');}
@@ -88,11 +89,20 @@ export async function serveRealHost(config){
     await whisper.warmup();
     progress('Opening the character stage...');
     if(config.media?.enabled)media=await createStageMedia({token,iceServers:config.media.iceServers||[]});
+    // Per-producer/actor performance gate, not an audience-controlled stage command.
+    const cameraFlipGate=createCameraFlipGate();
     session=new ConversationSession({gateway,director,whisper,
       onChange:event=>{
         if(!media)return;
-        if(event.type==='line.started')media.setCaption({actor:event.actor,text:event.text});
-        else if(event.type==='line.finished')media.setCaption(null);
+        if(event.type==='line.started'){
+          media.setCaption({actor:event.actor,text:event.text});
+          // Only a REAL performed Qwen reply, never untrusted donation TTS,
+          // may earn the middle finger. Native owns the hand, camera and
+          // eventual recovery; optional gesture failure must never abort TTS.
+          const selected=cameraFlipGate.select(event);
+          if(selected)return media.animate({id:selected.id,targets:selected.targets})
+            .catch(()=>{process.stderr.write('BUFF_CAMERA_FLIP_SKIPPED: native live gesture unavailable\\n');});
+        }else if(event.type==='line.finished')media.setCaption(null);
       },
       presentation:media?{
       begin:async({rain,signal,popup})=>{
