@@ -15,6 +15,9 @@ test('loopback Variant A preview serves real CSS and both popup examples without
   assert.match(hotmic,/I have something to say about THAT/);
   const css=await (await fetch(preview.url+'/stage.css')).text();
   assert.match(css,/\.mucus-layer--bottom/);
+  assert.match(css,/\.mucus-flow-track--lip-a/);
+  assert.match(body,/preview-motion-status/);
+  assert.match(body,/Show motion demo/);
   assert.match(css,/@keyframes mucus-strain-a/);
   assert.match(body,/data-mucus-zone="bottom"/);
   assert.equal((await fetch(preview.url+'/api/action')).status,404);
