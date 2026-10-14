@@ -182,6 +182,8 @@ class TestingPanel(ttk.Frame):
     def action(self, action, text=None, **fields):
         captured = self.generation
         data = dict(action=action, actor=self.actor.get(), **fields)
+        if action in ('transcript', 'donate') and hasattr(self, 'make_it_rain'):
+            data.setdefault('make_it_rain', self.make_it_rain.get())
         if action == 'transcript':
             data.update(self.mode_scope)
         if text is not None:
