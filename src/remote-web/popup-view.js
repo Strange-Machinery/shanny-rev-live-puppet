@@ -7,7 +7,8 @@ export function popupView(status){
   const hidden={visible:false,kind:'hidden',heading:'',donor:'',amount:'',message:''};
   if(!status||status.available!==true||status.presentation_visible!==true)return hidden;
   const p=status.popup;
-  if(!p||p.type==='hotmic')return {
+  if(!p)return hidden;
+  if(p.type==='hotmic')return {
     visible:true,kind:'hotmic',heading:'LIVE RESPONSE',
     donor:'',amount:'',message:''
   };
