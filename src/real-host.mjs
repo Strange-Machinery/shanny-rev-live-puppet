@@ -156,6 +156,16 @@ export async function serveRealHost(config){
       if(data.action==='rain-now'){
         if(!media?.info().available)throw new Error('Native paired stage is unavailable');
         if(manualRainArming||session.turn)throw new Error('Stage busy; finish the current donation before money rain');
+        // A verified paid event may have been admitted just before the
+        // native session becomes busy. Never let an operator celebration
+        // steal that slot: the durable worker would otherwise mark the
+        // paid delivery STARTED and discard it after a busy-host error.
+        // Disabled/STOPped queues may retain old pending rows, which must
+        // not prevent a separate, authorized manual celebration.
+        const queue=donations?.queue;
+        const paid=queue?.status();
+        if(queue?.enabled&&(paid?.pending>0||paid?.inflight>0||queue.task))
+          throw new Error('Paid donations are waiting; manual rain is available when the queue is idle.');
         manualRainArming=true;
         try {
           // Pressing the trusted button explicitly arms a ONE-OFF dance.
