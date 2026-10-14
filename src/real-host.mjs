@@ -125,12 +125,15 @@ export async function serveRealHost(config){
       if(data.action==='animations')return animations.menu();
       if(data.action==='animate'){if(session.mode!=='live')await session.arm();return animations.play(data);}
       if(data.action==='donation-status')return donations.status();
-      if(data.action==='donation-enable')return donations.enable({make_it_rain:data.make_it_rain===true});
+      if(data.action==='donation-enable'){
+        if(!media?.info().available)throw new Error('The paired OBS stage must be ready before donation reactions are enabled');
+        return donations.enable({make_it_rain:data.make_it_rain===true});
+      }
       if(data.action==='donation-mode')return donations.setMode(data.make_it_rain);
       if(data.action==='donation-stop')return donations.stop();
       if(data.action==='silence')return donations.queue.enabled?donations.silence():session.silence();
       if(data.action==='stop'){animations.stop();
-        if(donations?.queue.enabled)await donations.stop();else await session.stop();
+        if(donations)await donations.stop();else await session.stop();
         return {stopped:true};}
       if(data.action==='arm'){
         const result=await session.arm();
