@@ -7,7 +7,8 @@
 - First source revision `d88f3d7`: all four GitHub Actions configurations passed,
   including the 68 Node / 4 Python tests present at that revision:
   [run 38491860822](https://github.com/Strange-Machinery/shanny-rev-live-puppet/actions/runs/38491860822).
-  The final desktop-audio revision is verified separately before delivery.
+- Final source revision `c937bb2`: **69 Node / 6 Python tests passed in all four jobs**,
+  [run 38492950237](https://github.com/Strange-Machinery/shanny-rev-live-puppet/actions/runs/38492950237).
 - Deterministic HTTP demonstration: donation read started → Qwen fixture completion
   → 10-second actual PCM duration prepared → donation finished → same held WAV
   released → response finished. Repeated stop resumed the retained fixture episode once.
