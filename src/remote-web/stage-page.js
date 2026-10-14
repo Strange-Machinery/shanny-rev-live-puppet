@@ -53,8 +53,21 @@ function startRain(nonce){
   rainCue.muted=false;
   // MUST follow the accepted OBS media-presented receipt. The host will
   // not count this as "playing" until HTMLMediaElement.play() resolves.
-  void Promise.resolve().then(()=>rainCue.play()).then(async()=>{
-    if(!activeRain(nonce))return;
+  void Promise.resolve().then(()=>{
+    // STOP, "Shut up" and disconnect may hide the frame between
+    // media-presented and this scheduled browser task. Do not start a
+    // belated howl in an invisible OBS browser source.
+    if(!activeRain(nonce))return false;
+    return rainCue.play().then(()=>true);
+  }).then(async played=>{
+    if(!played)return;
+    if(!activeRain(nonce)){
+      // Never stop a newer rain nonce that happened to replace this one.
+      if(activeRainNonce===null||activeRainNonce===nonce){
+        rainCue.pause();rainCue.currentTime=0;
+      }
+      return;
+    }
     await reportRain('media-rain-started',nonce);
   }).catch(()=>{
     if(!activeRain(nonce))return;
