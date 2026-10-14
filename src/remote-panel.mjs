@@ -78,6 +78,11 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
         revision++;lastInterruption='silence';lease=Date.now()+15000;
         return send(200,await action({action:'silence'}));
       }
+      if(input.action==='rain-now'){
+        // Trusted operator only; no payment object or text is fabricated.
+        if(busy)return send(409,{error:'A recording/test is running; finish it before money rain.'});
+        return send(200,await action({action:'rain-now'}));
+      }
       if(input.action==='donation-enable'){
         return send(200,await action({action:'donation-enable',make_it_rain:input.make_it_rain===true}));
       }
