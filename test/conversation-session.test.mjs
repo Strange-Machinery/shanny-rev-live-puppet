@@ -180,3 +180,30 @@ test('seated hotmic popup hides on final Unity playback.finished without the old
  assert.equal(states.at(-1)[0],'hidden');
  assert.ok(Date.now()-finishedAt<500,'seated response must hide right after the last speech receipt');
 });
+
+test('operator money-rain button runs native paired animation without faking speech/payment and STOP wins',async()=>{
+ let begun,ended=0,stopped=0;
+ const f=fixture({generate:async()=>{throw new Error('Manual rain must not invoke Qwen');}});
+ f.session.presentation={
+  begin:async args=>{begun=args;return {duration_ms:20500};},
+  end:async()=>{ended++;},stop:()=>{stopped++;}
+ };
+ await f.session.initialize();
+ assert.throws(()=>f.session.startRainNow(),/armed and idle/);
+ await f.session.arm();
+ const command=f.session.startRainNow();
+ assert.equal(command.status,'accepted');
+ assert.equal(command.paid_donation,false);
+ assert.equal(command.kind,'MEMBERSHIP_CELEBRATION');
+ assert.throws(()=>f.session.startRainNow(),/armed and idle/);
+ await until(()=>Boolean(begun));
+ assert.equal(begun.rain,true);
+ assert.deepEqual(begun.popup,{type:'celebration'});
+ assert.equal(f.spoken.length,0);
+ assert.equal(f.released.length,0);
+ await f.session.stop();
+ await until(()=>!f.session.turn);
+ assert.equal(ended,0,'STOP must never send a stale presentation_end');
+ assert.ok(stopped>=1);
+ assert.equal(f.session.history.length,0);
+});

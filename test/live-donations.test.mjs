@@ -103,3 +103,31 @@ test('no provider account is contacted or silently armed with missing credential
  await assert.rejects(manager.enable(),/No donation provider/);
  assert.equal(calls.length,0);
 });
+
+test('USD $100+ always rains automatically; $99.99 and 100 JPY do not',async t=>{
+ const f=fixture(t);
+ await f.manager.enable({make_it_rain:false});
+ const emit=(id,micros,currency='USD')=>f.sources.youtube.emit({
+  id,snippet:{type:'superChatEvent',publishedAt:'2026-10-14T09:00:00Z',
+   superChatDetails:{amountMicros:String(micros),currency,userComment:'Donation '+id}}
+ });
+ emit('below',99990000);
+ emit('yen',100000000,'JPY');
+ emit('threshold',100000000);
+ await until(()=>f.hostCalls.filter(x=>x.action==='donate').length===1);
+ const calls=()=>f.hostCalls.filter(x=>x.action==='donate');
+ assert.equal(calls()[0].make_it_rain,false);
+ assert.equal(calls()[0].donation.amount,99.99);
+ f.finish();
+ await until(()=>calls().length===2);
+ assert.equal(calls()[1].donation.currency,'JPY');
+ assert.equal(calls()[1].make_it_rain,false);
+ f.finish();
+ await until(()=>calls().length===3);
+ assert.equal(calls()[2].donation.amount,100);
+ assert.equal(calls()[2].make_it_rain,true);
+ // The mode is frozen even though Buff did not check make-it-rain.
+ assert.equal(f.manager.status().make_it_rain,false);
+ f.finish();
+ await until(()=>f.manager.status().pending===0&&f.manager.status().inflight===0);
+});

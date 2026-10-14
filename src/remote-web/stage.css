@@ -50,14 +50,24 @@ body{position:relative;font-family:Arial,"Segoe UI",sans-serif}
 }
 .brand-wordmark{
   display:block;white-space:nowrap;
-  font:1000 52px/.99 Impact,"Arial Black","Segoe UI Black",sans-serif;
+  font:1000 48px/.99 Impact,"Arial Black","Segoe UI Black",sans-serif;
   letter-spacing:.022em;transform:skewX(-3deg);
   background:linear-gradient(180deg,#f2ffb4 0%,#c7ff63 16%,#84d724 55%,#428e17 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent;
   -webkit-text-stroke:1.7px #132c0b;
   filter:drop-shadow(2px 4px 0 #061307) drop-shadow(0 0 6px rgba(143,255,58,.2));
 }
-.brand-wordmark span:last-child{letter-spacing:.006em}
+.brand-wordmark span:nth-child(2){letter-spacing:.006em}
+.brand-wordmark .brand-ai{
+  display:inline-block;
+  font-size:.78em;
+  letter-spacing:-.045em;
+  vertical-align:5px;
+  padding-left:3px;
+  background:linear-gradient(165deg,#fcffe0,#c5ff71 35%,#69be28 83%,#366d1b);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-stroke:1.4px #142c0a;
+}
 .alert-type{
   display:flex;flex:none;align-items:center;gap:9px;
   padding:9px 12px;
@@ -69,13 +79,105 @@ body{position:relative;font-family:Arial,"Segoe UI",sans-serif}
 }
 .alert-lamp,.bug-dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex:none;
   background:#b7f859;box-shadow:0 0 9px rgba(163,246,68,.7)}
-/* Static decorative drips: lightweight CSS, no downloaded font, GIF or JS
-   animation layer competing with the video encoder. */
-.goo{position:absolute;z-index:3;pointer-events:none;background:linear-gradient(#a9f83f,#69af1e);
-  box-shadow:1px 2px 0 #193c0d,0 2px 5px rgba(0,0,0,.4)}
-.goo-1{width:17px;height:38px;left:80px;top:7px;border-radius:0 0 10px 10px}
-.goo-2{width:10px;height:24px;left:129px;top:7px;border-radius:0 0 7px 7px}
-.goo-3{width:13px;height:31px;right:94px;top:7px;border-radius:0 0 7px 7px}
+/* The approved PAINTED 12-cel sprite is a real animated WebP image, not
+   an SVG/CSS procedural drip. Nine-slice keeps title, plaque art and
+   brand marks undistorted while the long METAL RAILS accommodate a native
+   16:9 Unity video window. The image interior is actually transparent. */
+.painted-frame{display:none;pointer-events:none}
+.stank-popup[data-art="painted"]{
+  width:780px;height:638px;
+  filter:drop-shadow(0 14px 16px #000b)
+}
+.stank-popup[data-art="painted"] .painted-frame{
+  display:block;
+  position:absolute;inset:0;z-index:3;
+  border-style:solid;
+  border-width:112px 52px 157px;
+  border-image-source:url("/popup-art.webp");
+  border-image-slice:220 102 309 102 fill;
+  border-image-width:112px 52px 157px;
+  border-image-repeat:stretch;
+}
+.stank-popup[data-art="painted"]:is([data-kind="hotmic"],[data-kind="celebration"]){
+  height:555px
+}
+.stank-popup[data-art="painted"]:is([data-kind="hotmic"],[data-kind="celebration"]) .painted-frame{
+  border-width:112px 52px 78px;
+  border-image-source:url("/popup-hotmic.webp");
+  border-image-slice:220 102 153 102 fill;
+  border-image-width:112px 52px 78px;
+}
+/* Live text and H.264 remain regular DOM layers inside the illustrated shell.
+   Never rasterize untrusted donor text or captions into artwork. */
+.stank-popup[data-art="painted"] .popup-rim{
+  position:static;z-index:auto;overflow:visible;
+  border:0;border-radius:0;padding:0;background:none;box-shadow:none
+}
+.stank-popup[data-art="painted"] .popup-rim::before,
+.stank-popup[data-art="painted"] .popup-rim::after,
+.stank-popup[data-art="painted"] .popup-header,
+.stank-popup[data-art="painted"] .stage-bug,
+.stank-popup[data-art="painted"] .frame-bottom{display:none}
+.stank-popup[data-art="painted"] .stage-well{
+  position:absolute;left:66px;top:125px;
+  width:648px;height:364.5px;
+  aspect-ratio:16/9;margin:0;
+  z-index:1;overflow:hidden;
+  border:0;border-radius:0;background:#08100c;box-shadow:none
+}
+.stank-popup[data-art="painted"] .stage-vignette{
+  box-shadow:inset 0 0 18px 6px rgba(0,0,0,.4)
+}
+.stank-popup[data-art="painted"] .donation-plaque{
+  display:block;position:absolute;inset:0;z-index:4;
+  margin:0;min-height:0;pointer-events:none
+}
+.stank-popup[data-art="painted"] .donor-plaque,
+.stank-popup[data-art="painted"] .message-plaque{
+  position:absolute;overflow:hidden;margin:0;
+  padding:0;border:0;border-radius:0;
+  background:none;box-shadow:none
+}
+.stank-popup[data-art="painted"] .donor-plaque{
+  left:101px;top:515px;width:225px;height:57px;
+}
+.stank-popup[data-art="painted"] .message-plaque{
+  left:353px;top:516px;width:345px;height:57px;
+  padding:0 14px 0 0
+}
+.stank-popup[data-art="painted"] .plaque-kicker{display:none}
+.stank-popup[data-art="painted"] #donor-name{
+  font:900 17px/1.08 Impact,"Arial Black",sans-serif;
+  color:#f0ffd9;max-height:24px;
+}
+.stank-popup[data-art="painted"] .donation-amount{
+  font:800 14px/1.06 "Arial Black",Arial,sans-serif;
+  color:#b6fa78;padding-top:2px
+}
+.stank-popup[data-art="painted"] .message-viewport{
+  height:47px;max-height:47px;overflow:hidden;
+  padding:1px 1px 0 0
+}
+.stank-popup[data-art="painted"] #donation-message{
+  font:700 15px/1.27 "Segoe UI",Arial,sans-serif;
+  color:#f4fff1;margin:0;padding:0 17px 0 0;
+  overflow:visible;max-height:none;
+  display:block;-webkit-line-clamp:unset;line-clamp:unset;
+  white-space:pre-wrap;overflow-wrap:anywhere
+}
+.stank-popup[data-art="painted"] .message-progress{
+  position:absolute;right:3px;bottom:1px;
+  color:#d2ff7c;background:#0a1309d9;
+  padding:2px 3px;font:800 10px Arial,sans-serif
+}
+.stank-popup[data-art="painted"] .painted-strap{
+  position:absolute;top:9px;left:13px;z-index:4;
+  padding:6px 10px;border:1px solid #88c644;
+  border-radius:5px;background:rgba(7,20,10,.87);
+  color:#d6ff99;font:800 12px/1.1 Arial,sans-serif;
+  letter-spacing:.08em
+}
+.stank-popup[data-art="painted"]:is([data-kind="hotmic"],[data-kind="celebration"]) .donation-plaque{display:none}
 .stage-well{
   position:relative;overflow:hidden;margin-top:7px;
   aspect-ratio:16/9;border:3px solid #10190e;border-radius:6px;
@@ -114,6 +216,18 @@ body{position:relative;font-family:Arial,"Segoe UI",sans-serif}
     radial-gradient(ellipse at 0% 20%,rgba(103,188,42,.23),transparent 72%),
     linear-gradient(155deg,#263d1b,#101c12)}
 .message-plaque{padding-right:18px}
+/* Keep the complete message in the DOM. JavaScript scrolls this clipped
+   interior without changing the plaque dimensions or underlying camera. */
+.message-viewport{max-height:4em;overflow:hidden;scroll-behavior:auto}
+.message-viewport #donation-message{
+  /* Scrolling must remain functional even while approved painted art is
+     temporarily unavailable and the minimal fallback chassis is visible. */
+  display:block;-webkit-line-clamp:unset;line-clamp:unset;
+  max-height:none;overflow:visible;white-space:pre-wrap
+}
+.message-progress{position:absolute;right:8px;top:8px;color:#b8f47f;font:800 10px Arial}
+.painted-strap{display:none}
+
 .plaque-kicker{
   display:block;margin-bottom:5px;color:#acdd7f;
   font:800 10px/1.15 "Arial Narrow","Segoe UI",sans-serif;letter-spacing:.2em
@@ -142,6 +256,7 @@ body{position:relative;font-family:Arial,"Segoe UI",sans-serif}
 /* Hotmic is not a donation. Show ONLY the branded header and performance,
    leaving the native Unity subtitles unobscured inside the video window. */
 .stank-popup[data-kind="hotmic"] .donation-plaque{display:none}
+.stank-popup[data-kind="celebration"] .donation-plaque{display:none}
 .stank-popup[data-kind="hotmic"] .stage-well{margin-bottom:4px}
 /* Early production 1920x1080 Browser Source is authoritative. Retain fit
    for smaller browser-window QA without changing the internal 16:9 video. */
@@ -152,9 +267,18 @@ body{position:relative;font-family:Arial,"Segoe UI",sans-serif}
   #donor-name{font-size:clamp(16px,3.4vw,26px)}
   #donation-message{font-size:clamp(12px,2.25vw,17px)}
   .alert-type{font-size:9px;padding:6px}
-  .goo-1,.goo-2,.goo-3{transform:scale(.75);transform-origin:top}
+  /* The production OBS source is 1920px; narrower local QA can scroll. */
+  .stank-popup[data-art="painted"]{left:14px;top:14px}
 }
-@media(prefers-reduced-motion:reduce){.stank-popup{animation:none}}
+@media(prefers-reduced-motion:reduce){
+  .stank-popup{animation:none}
+  .stank-popup[data-art="painted"] .painted-frame{
+    border-image-source:url("/popup-art-still.webp")
+  }
+  .stank-popup[data-art="painted"]:is([data-kind="hotmic"],[data-kind="celebration"]) .painted-frame{
+    border-image-source:url("/popup-hotmic-still.webp")
+  }
+}
 @keyframes stank-arrive{
   from{opacity:0;transform:translateY(-5px) scale(.992)}
   to{opacity:1;transform:none}

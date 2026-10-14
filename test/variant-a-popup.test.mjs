@@ -82,6 +82,18 @@ test('public metadata is invisible until the native player acknowledges reveal; 
   assert.equal(stage.info().popup,null);
   assert.equal(stage.info().caption,null);
 });
+test('manual membership celebration exposes no payment fields and hides on native end receipt',async t=>{
+  const {stage,post}=await source(t);
+  stage.setPopup({type:'celebration',donor:'SHOULD_NOT_APPEAR',amount:999});
+  await commandReceipt(stage,post,'make_it_rain');
+  const state=stage.info();
+  assert.deepEqual(state.popup,{type:'celebration'});
+  assert.equal(popupView(state).heading,'MEMBERSHIP BOMB · MAKE IT RAIN');
+  assert.equal(popupView(state).amount,'');
+  await commandReceipt(stage,post,'presentation_end');
+  assert.equal(stage.info().popup,null);
+  assert.equal(stage.info().presentation_visible,false);
+});
 test('Shut up and STOP clear public fields immediately and reject spoofed subtitle actor',async t=>{
   const {stage,post}=await source(t);
   stage.setPopup({type:'hotmic'});
@@ -102,7 +114,7 @@ test('Variant A is contained in top-left of a transparent OBS page, with no exte
   assert.match(css,/background:transparent!important/);
   assert.match(css,/top:27px;left:29px/);
   assert.match(css,/\.stank-popup\[data-kind="hotmic"\] \.donation-plaque\{display:none\}/);
-  assert.doesNotMatch(css,/@import|fonts\.googleapis|url\(/i);
+  assert.doesNotMatch(css,/@import|fonts\.googleapis|url\(["']?https?:/i);
   assert.match(script,/video\.muted=true/);
   assert.match(script,/donor\.textContent=view\.donor/);
   assert.match(script,/subtitleWords\.textContent=line\.text/);

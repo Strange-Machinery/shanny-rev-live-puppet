@@ -16,6 +16,17 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
   const viewToken=viewerKey||createHmac('sha256',token).update('buff-obs-view-v1').digest('hex');
   for(const [route,file,type] of [['/','index.html','text/html'],['/stage','stage.html','text/html'],['/stage-player.js','stage-player.js','text/javascript'],['/stage-page.js','stage-page.js','text/javascript'],['/panel.js','panel.js','text/javascript'],['/mic-worklet.js','mic-worklet.js','text/javascript'],['/panel.css','panel.css','text/css'],['/stage.css','stage.css','text/css']])
     assets.set(route,{body:await readFile(new URL('./remote-web/'+file,import.meta.url)),type});
+  // Source-painted transparent 12-cel assets are producer-installed, not
+  // external URLs. Missing artwork leaves the existing simple HUD operational.
+  // Only these exact four fixed names can ever be served publicly.
+  for(const file of ['popup-art.webp','popup-hotmic.webp','popup-art-still.webp','popup-hotmic-still.webp']){
+    try{
+      assets.set('/'+file,{body:await readFile(new URL('./remote-web/'+file,import.meta.url)),
+        type:'image/webp'});
+    }catch(error){if(error.code!=='ENOENT')throw error;}
+  }
+  assets.set('/message-scroll.js',{body:await readFile(new URL('./remote-web/message-scroll.js',import.meta.url)),
+    type:'text/javascript'});
   await mkdir(scratch,{recursive:true});
   let closed=false,busy=false,revision=0,lease=0,lastInterruption='stop';
   const halt=async()=>{revision++;lastInterruption='stop';lease=0;await action({action:'stop'});};
@@ -77,6 +88,11 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
         // Only trusted operator transcript/control, never paid donor text.
         revision++;lastInterruption='silence';lease=Date.now()+15000;
         return send(200,await action({action:'silence'}));
+      }
+      if(input.action==='rain-now'){
+        // Trusted operator only; no payment object or text is fabricated.
+        if(busy)return send(409,{error:'A recording/test is running; finish it before money rain.'});
+        return send(200,await action({action:'rain-now'}));
       }
       if(input.action==='donation-enable'){
         return send(200,await action({action:'donation-enable',make_it_rain:input.make_it_rain===true}));

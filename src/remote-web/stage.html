@@ -4,21 +4,21 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>Stank Tank — Buff OBS alert</title>
+  <title>Stank Tank AI — Buff OBS alert</title>
   <link rel="stylesheet" href="/stage.css">
   <script type="module" src="/stage-page.js"></script>
 </head>
 <body>
   <!-- This document fills the transparent 1920×1080 Browser Source. OBS keeps it loaded. -->
-  <main id="stank-popup" class="stank-popup" data-kind="hidden" hidden aria-label="Stank Tank live alert">
-    <div class="goo goo-1" aria-hidden="true"></div>
-    <div class="goo goo-2" aria-hidden="true"></div>
-    <div class="goo goo-3" aria-hidden="true"></div>
+  <main id="stank-popup" class="stank-popup" data-kind="hidden" data-art="fallback" hidden aria-label="Stank Tank AI live alert">
+    <!-- The 12-frame painted flipbook is the ONLY live artwork layer.
+         Nine-sliced in CSS to preserve the 16:9 Unity camera and crisp wordmark. -->
+    <div class="painted-frame" aria-hidden="true"></div>
     <div class="popup-rim">
       <header class="popup-header">
         <div class="brand-block">
           <span class="brand-eyebrow">STRANGE MACHINERY PRESENTS</span>
-          <strong class="brand-wordmark" aria-label="Stank Tank"><span>STANK</span> <span>TANK</span></strong>
+          <strong class="brand-wordmark" aria-label="Stank Tank AI"><span>STANK</span> <span>TANK</span> <span class="brand-ai">AI</span></strong>
         </div>
         <div class="alert-type">
           <span class="alert-lamp" aria-hidden="true"></span>
@@ -34,6 +34,7 @@
           <p id="subtitle-words" class="subtitle-words"></p>
         </div>
         <span class="stage-bug" aria-hidden="true"><span class="bug-dot"></span> THE STANK TANK</span>
+        <span id="painted-strap" class="painted-strap" hidden aria-hidden="true"></span>
       </section>
       <section class="donation-plaque" aria-label="Alert information">
         <div class="donor-plaque">
@@ -43,7 +44,10 @@
         </div>
         <div class="message-plaque">
           <span class="plaque-kicker" id="message-kicker">THE MESSAGE</span>
-          <p id="donation-message"> </p>
+          <div id="message-viewport" class="message-viewport">
+            <p id="donation-message"> </p>
+          </div>
+          <span id="message-progress" class="message-progress" hidden aria-hidden="true"></span>
         </div>
       </section>
       <div class="frame-bottom" aria-hidden="true"><span></span><span></span><span></span></div>

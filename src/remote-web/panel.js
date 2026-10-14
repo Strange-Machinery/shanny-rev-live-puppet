@@ -9,7 +9,7 @@ $('connect-stage').onclick=()=>void stage.connect();
 $('stage-sound').onclick=async()=>{const video=$('stage-preview');video.muted=!video.muted;try{await video.play();$('stage-sound').textContent=video.muted?'Enable preview sound':'Mute preview sound';}catch{$('stage-status').textContent='Connect the preview first.';}};
 $('copy-obs').onclick=async()=>{try{const result=await api('obs-link');try{await navigator.clipboard.writeText(result.url);$('stage-status').textContent='OBS link copied. Paste into a 1920 × 1080 Browser source.';}catch{$('obs-link').hidden=false;$('obs-link').value=result.url;$('obs-link').select();$('stage-status').textContent='Copy this link into your OBS Browser source.';}}catch(error){$('stage-status').textContent=error.message;}};
 window.addEventListener('pagehide',()=>void stage.close());
-let revision=0,request=null,stream=null,context=null,recording=false,starting=false,chunks=[],frames=0,timer=null,online=false,donationsEnabled=false;
+let revision=0,request=null,stream=null,context=null,recording=false,starting=false,chunks=[],frames=0,timer=null,online=false,donationsEnabled=false,stageBusy=false,stageAvailable=false;
 async function api(path,body,signal){const response=await fetch('/api/'+path,{method:body?'POST':'GET',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,signal,redirect:'error',cache:'no-store'});const result=await response.json();if(!response.ok)throw new Error(result.error||'Connection failed');return result;}
 function stopCapture(){recording=false;starting=false;clearTimeout(timer);stream?.getTracks().forEach(track=>track.stop());stream=null;void context?.close();context=null;$('mic').textContent='Test microphone';}
 function stop(){revision++;request?.abort();stopCapture();chunks=[];frames=0;donationsEnabled=false;
@@ -38,6 +38,16 @@ async function microphone(){if(recording){finish();return;}if(starting||!online)
 $('donate').onclick=()=>void run('donate',{text:$('text').value});$('replay').onclick=()=>void run('transcript',{text:$('text').value});$('mic').onclick=()=>void microphone();$('stop').onclick=stop;
 $('donation-enable').onclick=()=>void donationAction('donation-enable');
 $('donation-stop').onclick=()=>void donationAction('donation-stop');
+$('rain-now').onclick=async()=>{
+ $('rain-now').disabled=true;
+ $('rain-now-status').textContent='Starting the paired money-rain choreography…';
+ try {
+   const result=await api('action',{action:'rain-now'});
+   $('rain-now-status').textContent=result.status==='accepted'
+     ?'MAKE IT RAIN! Shanny and Rev are performing the full native paired choreography.'
+     :'Manual celebration was not accepted.';
+ }catch(error){$('rain-now-status').textContent=error.message;}
+};
 $('shut-up').onclick=()=>{
  revision++;request?.abort();stopCapture();
  $('result').textContent='Interrupting the current characters…';
@@ -49,14 +59,14 @@ $('shut-up').onclick=()=>{
 $('make-it-rain').onchange=()=>{
  if(donationsEnabled)void donationAction('donation-mode');
 };
-window.addEventListener('offline',()=>{if(!donationsEnabled)stop();});
+window.addEventListener('offline',()=>{stageAvailable=false;$('rain-now').disabled=true;if(!donationsEnabled)stop();});
 window.addEventListener('pagehide',()=>{stopCapture();
  // The OBS Browser source and opted-in feed outlive this control page.
  if(!donationsEnabled)void fetch('/api/action',{method:'POST',
    headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},
    body:JSON.stringify({action:'stop'}),keepalive:true}).catch(()=>{});
 });
-let polling=false;async function status(){if(polling)return;polling=true;try{const s=await api('status');online=true;showDonations(s.donations);$('status').textContent='Connected to producer · '+(s.real_characters?'Real characters · Blackout Shanny':'Testing fixtures')+' · '+(s.whisper?'Whisper ready':'Whisper unavailable');if(s.real_characters){$('service-note').textContent='Real Qwen, character voices and Unity run on the producer computer. No YouTube livestream is needed. Use Connect preview to watch and hear the stage.';$('dialogue').textContent=s.error||s.history.map(row=>row.actor+': '+row.text).join('\n\n');}}catch(error){if(online&&!donationsEnabled)stop();online=false;$('status').textContent='Producer unavailable. Ask them to start sharing, then reopen your launcher.';}finally{polling=false;for(const id of ['donate','replay','mic'])$(id).disabled=!online;}}
+let polling=false;async function status(){if(polling)return;polling=true;try{const s=await api('status');online=true;stageBusy=Boolean(s.busy);stageAvailable=Boolean(s.media?.available);showDonations(s.donations);$('status').textContent='Connected to producer · '+(s.real_characters?'Real characters · Blackout Shanny':'Testing fixtures')+' · '+(s.whisper?'Whisper ready':'Whisper unavailable');if(s.real_characters){$('service-note').textContent='Real Qwen, character voices and Unity run on the producer computer. No YouTube livestream is needed. Use Connect preview to watch and hear the stage.';$('dialogue').textContent=s.error||s.history.map(row=>row.actor+': '+row.text).join('\n\n');}}catch(error){if(online&&!donationsEnabled)stop();online=false;$('status').textContent='Producer unavailable. Ask them to start sharing, then reopen your launcher.';}finally{polling=false;for(const id of ['donate','replay','mic'])$(id).disabled=!online;$('rain-now').disabled=!online||stageBusy||!stageAvailable;}}
 void status();setInterval(()=>void status(),3000);
 let catalog={revision:'',items:[]};
 function options(id,values){$(id).replaceChildren(...values.map(value=>new Option(value.label||value,value.value||value)));}

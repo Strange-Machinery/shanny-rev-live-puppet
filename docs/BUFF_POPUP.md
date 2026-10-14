@@ -35,6 +35,32 @@ ownership remains native. The browser sends a bounded ready/visible receipt
 before the host releases the first prepared voice; remote OBS autoplay must
 still be tested with Buff.
 
+**Mucus HUD art pass (separate draft):** the header is branded
+**STANK TANK AI**, beneath **STRANGE MACHINERY PRESENTS**; the miniature live
+camera bug continues to say **THE STANK TANK**. Four self-contained SVG
+coatings add volume-shaded acid-green mucus to the outer frame: a thin top
+film, two lower-side rails and a thinner bottom reservoir. Five narrow,
+independently phased strands slowly stretch and recoil; two tiny droplets release
+occasionally below the bottom edge. Four short travelling specular tracks
+visibly move along the outside bottom lip and down the lower side rails,
+without crossing the camera, subtitles, or donor plates. Wet highlights, cast
+shadows and a metal bevel are layered without a fluid shader, external fonts,
+sprites or video assets. The camera window and donor/subtitle content remain
+structurally unchanged and unobstructed. `prefers-reduced-motion` disables
+all mucus animations while retaining the static frame; an idle or stopped OBS
+popup remains entirely hidden.
+
+`node scripts/preview-stank-popup.mjs` offers visual-only `/donation` and
+`/hotmic` examples, with `?backdrop=1` for a simulated stream and
+`?backdrop=1&motion=demo` to accelerate the actual CSS animations for
+quick inspection **in the preview only**. The preview's status card reports
+whether the current browser/Windows Reduced Motion setting has disabled them.
+The full speed is intentionally subtler than the motion-study demo. Chromium
+real-time validation observed changes in the lower frame over 1.5 seconds
+(4,251 changed pixels in the accelerated demonstration), and confirmed
+that `prefers-reduced-motion: reduce` sets strand and flow animation to
+`none`. These checks do not establish remote OBS/CEF performance on Buff's PC.
+
 `scripts/prepare-buff-presentation.mjs` requires private build configuration with
 `project`, `productionUnity`, `contractPath`, `templateTrack` and `rainTrack`.
 `project` must be an isolated presentation copy carrying its existing marker.

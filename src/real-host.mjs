@@ -130,6 +130,7 @@ export async function serveRealHost(config){
       try {const {stage}=await gateway.metrics();if(!stage||Date.now()-stage.received_unix_ms>4000||player.exitCode!==null||model.exitCode!==null)await session.stop();}
       catch {await session.stop().catch(()=>{});}finally{monitorBusy=false;}
     },1000);
+    let manualRainArming=false;
     const action=async data=>{
       if(data.action==='status')return {...session.status(),qwen:modelName+' (local CPU)',performance_mode:performanceMode,media:media?.info()||null,
         presentation_visible:media?.info().presentation_visible||false,donations:donations?.status()||null,
@@ -137,6 +138,17 @@ export async function serveRealHost(config){
       if(data.action?.startsWith('media-')){if(!media)throw new Error('Stage feed not configured');return media.viewer(data);}
       if(data.action==='animations')return animations.menu();
       if(data.action==='animate'){if(session.mode!=='live')await session.arm();return animations.play(data);}
+      if(data.action==='rain-now'){
+        if(!media?.info().available)throw new Error('Native paired stage is unavailable');
+        if(manualRainArming||session.turn)throw new Error('Stage busy; finish the current donation before money rain');
+        manualRainArming=true;
+        try {
+          // Pressing the trusted button explicitly arms a ONE-OFF dance.
+          // This does not enable/re-enable paid provider intake after STOP.
+          if(session.mode!=='live')await session.arm();
+          return session.startRainNow();
+        }finally{manualRainArming=false;}
+      }
       if(data.action==='donation-status')return donations.status();
       if(data.action==='donation-enable'){
         if(!media?.info().available)throw new Error('The paired OBS stage must be ready before donation reactions are enabled');

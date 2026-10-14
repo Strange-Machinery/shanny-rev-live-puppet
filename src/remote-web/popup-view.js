@@ -12,6 +12,10 @@ export function popupView(status){
     visible:true,kind:'hotmic',heading:'LIVE RESPONSE',
     donor:'',amount:'',message:''
   };
+  if(p.type==='celebration')return {
+    visible:true,kind:'celebration',heading:'MEMBERSHIP BOMB · MAKE IT RAIN',
+    donor:'',amount:'',message:''
+  };
   if(p.type==='test')return {
     visible:true,kind:'test',heading:'TEST DONATION',donor:'TEST ALERT',
     amount:'PREVIEW',message:typeof p.message==='string'?p.message.slice(0,1000):''
