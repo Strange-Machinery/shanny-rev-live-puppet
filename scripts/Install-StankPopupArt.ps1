@@ -15,7 +15,7 @@ $expected = [ordered]@{
   'popup-hotmic.webp' = '8a40c3369fdd8942cc0f9c1bbb3c81ab5e9b135c1f189a8f9fedfb21059beea0'
   'popup-art-still.webp' = '2db165ba516a9570a397149eeee1d2fa2855f5e512d72b8cab5f430a97811a89'
   'popup-hotmic-still.webp' = '56e6d9154ebccf770ab7e16f48f436de78bd3b6d8326cb5f3d1913bbbd7789a6'
-  'rain-intro.mp3' = 'c39f65dbdcd3a0fb348722c93dade445e0e892d6f5cd72378e214747d2f63e3c'
+  'rain-intro.mp3' = 'edf7c81f86f6ce446066a1d06274a72d7b3e00746c0578d8ad3ed4b143f57cec'
 }
 $temp = Join-Path $env:TEMP ('stank-popup-art-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $temp -Force | Out-Null
@@ -34,7 +34,7 @@ try {
     Copy-Item -LiteralPath (Join-Path $temp $name) -Destination (Join-Path $target $name) -Force
     Write-Host "INSTALLED $name"
   }
-  Write-Host 'PAINTED_SPRITE_AND_RAIN_MUSIC_INSTALLED. Restart local preview/producer host; verify cue boundaries by listening before live use.'
+  Write-Host 'PAINTED_SPRITE_AND_APPROVED_RAIN_MUSIC_INSTALLED. Restart the local producer/preview host to load approved 23.862-second theme.'
 } finally {
   Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
 }
