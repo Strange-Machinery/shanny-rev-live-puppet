@@ -139,10 +139,10 @@ body{position:relative;font-family:Arial,"Segoe UI",sans-serif}
   background:none;box-shadow:none
 }
 .stank-popup[data-art="painted"] .donor-plaque{
-  left:101px;top:536px;width:225px;height:57px;
+  left:101px;top:515px;width:225px;height:57px;
 }
 .stank-popup[data-art="painted"] .message-plaque{
-  left:353px;top:536px;width:345px;height:57px;
+  left:353px;top:516px;width:345px;height:57px;
   padding:0 14px 0 0
 }
 .stank-popup[data-art="painted"] .plaque-kicker{display:none}
