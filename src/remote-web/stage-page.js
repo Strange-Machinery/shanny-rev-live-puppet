@@ -135,7 +135,15 @@ function renderPresentation(visible,status){
   popup.hidden=false;
   // The element must be laid out and visible BEFORE reading scrollHeight.
   // Initial/hidden measurements always return 0 and would lose long messages.
-  if(scrollText!==null)scroller.show({text:scrollText,nonce:status?.presentation_nonce});
+  if(scrollText!==null){
+    if(status?.presentation_mode==='rain'){
+      // During the 23.9-second paid dance the message stays at the TOP;
+      // only scroll down when Shanny/Rev have seated for their actual TTS.
+      // The audience must not miss the beginning before it is read aloud.
+      scroller.reset();
+      message.textContent=scrollText;
+    }else scroller.show({text:scrollText,nonce:status?.presentation_nonce});
+  }
   video.muted=false;
   // Sound never begins before the OBS viewer acknowledges a visible,
   // unmuted video frame. This allows the host to validate music receipts
