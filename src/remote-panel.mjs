@@ -25,6 +25,14 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
         type:'image/webp'});
     }catch(error){if(error.code!=='ENOENT')throw error;}
   }
+  // The music is producer-provided, locally served over the same private
+  // OBS origin and never fetched from YouTube or third-party servers.
+  try{
+    assets.set('/rain-intro.mp3',{
+      body:await readFile(new URL('./remote-web/rain-intro.mp3',import.meta.url)),
+      type:'audio/mpeg'
+    });
+  }catch(error){if(error.code!=='ENOENT')throw error;}
   assets.set('/message-scroll.js',{body:await readFile(new URL('./remote-web/message-scroll.js',import.meta.url)),
     type:'text/javascript'});
   await mkdir(scratch,{recursive:true});
