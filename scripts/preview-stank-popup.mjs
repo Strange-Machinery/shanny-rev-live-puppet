@@ -40,6 +40,12 @@ export async function startPreview({port=0}={}){
     try{assets.set('/'+name,{body:await readFile(remote(name)),type:'image/webp'});}
     catch(error){if(error.code!=='ENOENT')throw error;}
   }
+  // The optional locally pinned soundtrack is available for a producer
+  // listening check; the static art preview never triggers it by itself.
+  try{
+    assets.set('/rain-intro.mp3',{body:await readFile(remote('rain-intro.mp3')),
+      type:'audio/mpeg'});
+  }catch(error){if(error.code!=='ENOENT')throw error;}
   const server=createServer((req,res)=>{
     const path=new URL(req.url||'/', 'http://127.0.0.1').pathname;
     res.setHeader('Cache-Control','no-store');
@@ -67,6 +73,7 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   process.stdout.write('LONG_DONATION '+preview.url+'/donation?backdrop=1&long=1\n');
   process.stdout.write('HOTMIC '+preview.url+'/hotmic?backdrop=1\n');
   process.stdout.write('MEMBERSHIP_BOMB '+preview.url+'/celebration?backdrop=1\n');
+  process.stdout.write('RAIN_AUDIO_AUDITION '+preview.url+'/rain-intro.mp3\n');
   process.stdout.write('Local art review only. No Unity, provider, account, OBS or TTS.\n');
   process.on('SIGINT',()=>void preview.close());
   process.on('SIGTERM',()=>void preview.close());

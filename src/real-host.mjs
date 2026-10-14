@@ -102,6 +102,9 @@ export async function serveRealHost(config){
             targets:['SHANNY','REV'],signal});
         }catch(error){media.stopAnimations();throw error;}
       },
+      // Mid-show handoff: native seated_response resets camera/chairs while
+      // keeping the public popup visible. TTS is NOT released until receipt.
+      seat:({signal})=>media.animate({id:'seated_response',targets:['SHANNY','REV'],signal}),
       end:({signal})=>media.animate({id:'presentation_end',targets:['SHANNY','REV'],signal}),
       waitVisible:({signal})=>media.waitForViewer({signal}),stop:()=>media.stopAnimations()
     }:undefined});await session.initialize();

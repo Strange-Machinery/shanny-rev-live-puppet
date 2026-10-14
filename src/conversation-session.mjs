@@ -2,11 +2,12 @@ import {randomUUID} from 'node:crypto';
 import {setTimeout as delay} from 'node:timers/promises';
 import {parseDonationText} from './donations/parse.mjs';
 import {preparePopupDetails} from './popup-details.mjs';
+import {RAIN_CUE_DURATION_MS,RAIN_DANCE_MIN_MS,RAIN_SEAT_SETTLE_MS} from './rain-cue.mjs';
 
 /** One conversation turn at a time. Only actual playback receipts advance speech. */
 export class ConversationSession {
-  constructor({gateway,director,whisper,presentation,onChange=()=>{},now=Date.now}) {
-    Object.assign(this,{gateway,director,whisper,presentation,onChange,now});
+  constructor({gateway,director,whisper,presentation,onChange=()=>{},now=Date.now,pause=delay}) {
+    Object.assign(this,{gateway,director,whisper,presentation,onChange,now,pause});
     this.mode='muted';this.epoch=0;this.revision=0;this.history=[];this.trace=[];this.cursor=0;this.turn=null;this.error='';this.lastTiming=null;
   }
   async initialize(){await this.gateway.panic();this.scope=await this.gateway.status();this.cursor=this.scope.cursor;}
@@ -164,8 +165,17 @@ export class ConversationSession {
       this.check(turn);
       await this.presentation.waitVisible?.({signal:turn.abort.signal});
       this.check(turn);
-      const duration=Math.max(20000,Math.min(60000,performance?.duration_ms||20000));
-      await delay(duration,undefined,{signal:turn.abort.signal});
+      const startedAt=this.now();
+      const duration=Math.max(RAIN_DANCE_MIN_MS,RAIN_CUE_DURATION_MS,
+        Math.min(60000,performance?.duration_ms||RAIN_DANCE_MIN_MS))+RAIN_SEAT_SETTLE_MS;
+      const remaining=duration-(this.now()-startedAt);
+      if(remaining>0)await this.pause(remaining,undefined,{signal:turn.abort.signal});
+      this.check(turn);
+      if(typeof this.presentation.seat!=='function')
+        throw new Error('Native desk recovery is required after manual rain');
+      await this.presentation.seat({signal:turn.abort.signal});
+      this.check(turn);
+      await this.presentation.waitVisible?.({signal:turn.abort.signal});
       this.check(turn);
       await this.presentation.end({signal:turn.abort.signal});
       this.check(turn);
@@ -213,10 +223,10 @@ export class ConversationSession {
       });prior=id;
     }
   }
-  async runPresentation(turn){
-    // Prepare the complete exchange while OBS remains transparent. Bodies are
-    // already preloaded; this never generates or overlays conversational motion
-    // onto the rain routine.
+  async preparePresentationRows(turn){
+    // The exact same voice/plan verification is shared by both paths.
+    // Seated starts hidden until this finishes; RAIN starts on stage first,
+    // while these fully held voices are prepared in parallel.
     const read=turn.kind==='donation'?{actor:turn.readActor||'SHANNY',text:turn.text}:null;
     const readId=read?await this.queuePrepared(turn,read):null;
     const generatedAt=this.now();let early;
@@ -228,12 +238,10 @@ export class ConversationSession {
     for(let i=0;i<plan.lines.length;i++)rows.push({line:plan.lines[i],id:i===0&&first?.id?first.id:await this.queuePrepared(turn,plan.lines[i])});
     for(const row of rows)await this.wait(turn,'speech.prepared',row.id);
     this.check(turn);this.onChange({type:'plan.ready',turn_id:turn.id,lines:plan.lines});
-    const performance=await this.presentation.begin({rain:turn.make_it_rain,popup:turn.popup,signal:turn.abort.signal});this.check(turn);
-    // The media page gets its reveal state asynchronously. Give OBS the
-    // chance to draw/unmute before the first actual Unity audio receipt.
-    await this.presentation.waitVisible?.({signal:turn.abort.signal});
-    this.check(turn);
-    const visibleAt=this.now();let prior;
+    return rows;
+  }
+  async playPreparedPresentationRows(turn,rows){
+    let prior;
     for(const row of rows){
       if(row.read){
         await this.gateway.release({id:row.id,session_id:this.scope.session_id,epoch:this.scope.epoch});
@@ -244,16 +252,60 @@ export class ConversationSession {
       }else await this.play(turn,row.line,row.id,prior);
       prior=row.id;
     }
-    // Seated and hotmic popups hide immediately after Unity acknowledges the
-    // FINAL audible speech. No arbitrary 20-second dead-air hold.
-    // Preserve the full authored paired money-rain choreography and chair
-    // return; rain never cuts off speech even when it runs beyond the motion.
+  }
+  async runPresentation(turn){
+    let visibleAt,rows;
     if(turn.make_it_rain){
-      const duration=Math.max(20000,Math.min(60000,performance?.duration_ms||20000));
-      const remaining=duration-(this.now()-visibleAt);
-      if(remaining>0)await delay(remaining,undefined,{signal:turn.abort.signal});
+      // Paid $100+ and the checked-rain option are SHOW FIRST.
+      // Issue the native stage request BEFORE Qwen or any TTS call.
+      // Render held voices concurrently with the 20s choreography+music.
+      const started=this.presentation.begin({
+        rain:true,popup:turn.popup,signal:turn.abort.signal});
+      // Capture both successes and failures immediately so Stop during
+      // rain never creates an unhandled rejection from a late worker.
+      const preparing=this.preparePresentationRows(turn).then(
+        value=>({value}),error=>({error}));
+      const performance=await started;
+      this.check(turn);
+      await this.presentation.waitVisible?.({signal:turn.abort.signal});
+      this.check(turn);
+      visibleAt=this.now();
+      // The producer-approved audio cut is 22.152s, a little longer
+      // than the native dance. Never start the donor's first word until
+      // the "lit-lit-lit" echo tail and actual chair recovery are done.
+      const choreography=Math.max(RAIN_DANCE_MIN_MS,
+        Number.isFinite(performance?.duration_ms)?performance.duration_ms:RAIN_DANCE_MIN_MS);
+      const target=Math.max(choreography,RAIN_CUE_DURATION_MS)+RAIN_SEAT_SETTLE_MS;
+      const remaining=target-(this.now()-visibleAt);
+      if(remaining>0)await this.pause(remaining,undefined,{signal:turn.abort.signal});
+      this.check(turn);
+      if(typeof this.presentation.seat!=='function')
+        throw new Error('Native seated camera/desk recovery is required after rain');
+      await this.presentation.seat({signal:turn.abort.signal});
+      this.check(turn);
+      // Seating keeps the same popup visible but rotates presentation nonce,
+      // causing the OBS page to stop music and show the desk before speech.
+      await this.presentation.waitVisible?.({signal:turn.abort.signal});
+      this.check(turn);
+      const result=await preparing;
+      if(result.error)throw result.error;
+      rows=result.value;
+    }else{
+      // Ordinary/small donation and hotmic MUST remain transparent until
+      // the complete validated plan and every speaker's audio is prepared.
+      rows=await this.preparePresentationRows(turn);
+      this.check(turn);
+      await this.presentation.begin({rain:false,popup:turn.popup,signal:turn.abort.signal});
+      this.check(turn);
+      await this.presentation.waitVisible?.({signal:turn.abort.signal});
+      this.check(turn);
+      visibleAt=this.now();
     }
-    this.check(turn);await this.presentation.end({signal:turn.abort.signal});this.check(turn);
+    await this.playPreparedPresentationRows(turn,rows);
+    this.check(turn);
+    // Once speech finishes, hide immediately. Only genuine rain uses the
+    // long musical prelude; it never continues behind speech.
+    await this.presentation.end({signal:turn.abort.signal});this.check(turn);
     turn.timing.presentation_ms=this.now()-visibleAt;
   }
   status(){return {mode:this.mode,session_id:this.scope?.session_id,mode_epoch:this.epoch,gateway_epoch:this.scope?.epoch,

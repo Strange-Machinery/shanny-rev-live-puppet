@@ -1,111 +1,120 @@
-# Prepared donation popup
+# STANK TANK AI — live OBS popup and rain-first soundtrack
 
-The producer real host keeps Qwen, OmniVoice, Whisper, the original character rigs
-and the Unity stage resident. Buff can leave OBS open with the view-only Browser
-source supplied by **Copy OBS link**, at 1920×1080. The source is transparent while
-preparation runs, appears for the accepted performance, and disappears afterward.
+The upper-left OBS Browser Source is a private view-only webpage at 1920 × 1080.
+The producer hosts Unity, Qwen, OmniVoice and Whisper; Buff does not run those
+models. The camera is an **opaque 16:9 H.264 stage inside the painted frame**,
+not a keyable cutout. The surrounding OBS source remains transparent while
+no popup is visible.
 
-The launcher checkbox `make_it_rain` defaults to false. False selects the seated
-M16 conversation and listening banks. True selects the installed paired function:
-Shanny continuously twerks low for twenty seconds; Rev faces her and repeatedly
-swipes the approved bills. The native furniture recovery then seats both actors.
-Speech drives the full original coordinated mouth routes and facial reactions.
-Conversational body gestures and partner-gaze corrections are suppressed during
-rain, preserving its full-body ownership.
+## Approved painted artwork and soundtrack
 
-`ConversationSession` prepares the donation reading and complete validated reply
-exchange before exposing either mode. It releases voices in order, using actual
-Unity playback receipts. **Seated donation and hotmic popups hide promptly
-after the final playback.finished receipt**, rather than idling for twenty
-seconds. The paired money-rain popup remains visible through its native
-twenty-second choreography and furniture return (or longer to finish audible
-speech). STOP cancels preparation, mutes audio and hides the source.
-Restart/reconnect does not automatically arm speech.
+The design is the producer-approved **12-frame painted flipbook** made from
+the ImageGen master, with a separate hotmic frame and reduced-motion stills.
+All original SVG/CSS fake slime strands have been retired. The branding
+reads **STRANGE MACHINERY PRESENTS / STANK TANK AI** and the little
+camera bug remains **THE STANK TANK**. The frame is nine-sliced to preserve
+the title, donor plates and native 16:9 camera proportions.
 
-The finished Variant A Browser Source is a **contained upper-left Stank Tank
-window**, not a transparent H.264 character cutout. Outside the frame, OBS
-remains transparent so Buff's stream stays visible. A private view-only key
-survives normal producer restarts. Paid alerts show a whitelisted donor,
-amount/currency and donation message in an acid-green slime-framed plaque;
-hotmic replies have no fake donor or Buff transcript. The browser composites
-Shanny/Rev speech subtitles within the stage window, based on *actual Unity
-voice-start/finish receipts*. This visual caption treatment is not a rebuilt
-native Unity EpisodeSubtitles component. All source playback and animation
-ownership remains native. The browser sends a bounded ready/visible receipt
-before the host releases the first prepared voice; remote OBS autoplay must
-still be tested with Buff.
+The sound is the **user-provided FINAL edited** `Make_it_rain_theme.wav`:
+44,100 Hz, stereo PCM16, 23.862426 seconds. The privately delivered local
+`rain-intro.mp3` is transcoded at 192 kbps, duration **23.902041 seconds**
+including its encoder framing. **No further trimming, fade, or echo was
+added to the user's edit.** SHA-256 of the MP3 is:
 
-**Mucus HUD art pass (separate draft):** the header is branded
-**STANK TANK AI**, beneath **STRANGE MACHINERY PRESENTS**; the miniature live
-camera bug continues to say **THE STANK TANK**. Four self-contained SVG
-coatings add volume-shaded acid-green mucus to the outer frame: a thin top
-film, two lower-side rails and a thinner bottom reservoir. Five narrow,
-independently phased strands slowly stretch and recoil; two tiny droplets release
-occasionally below the bottom edge. Four short travelling specular tracks
-visibly move along the outside bottom lip and down the lower side rails,
-without crossing the camera, subtitles, or donor plates. Wet highlights, cast
-shadows and a metal bevel are layered without a fluid shader, external fonts,
-sprites or video assets. The camera window and donor/subtitle content remain
-structurally unchanged and unobstructed. `prefers-reduced-motion` disables
-all mucus animations while retaining the static frame; an idle or stopped OBS
-popup remains entirely hidden.
+`edf7c81f86f6ce446066a1d06274a72d7b3e00746c0578d8ad3ed4b143f57cec`
 
-`node scripts/preview-stank-popup.mjs` offers visual-only `/donation` and
-`/hotmic` examples, with `?backdrop=1` for a simulated stream and
-`?backdrop=1&motion=demo` to accelerate the actual CSS animations for
-quick inspection **in the preview only**. The preview's status card reports
-whether the current browser/Windows Reduced Motion setting has disabled them.
-The full speed is intentionally subtler than the motion-study demo. Chromium
-real-time validation observed changes in the lower frame over 1.5 seconds
-(4,251 changed pixels in the accelerated demonstration), and confirmed
-that `prefers-reduced-motion: reduce` sets strand and flow animation to
-`none`. These checks do not establish remote OBS/CEF performance on Buff's PC.
+The audio and painted WebP binaries are **not in GitHub**. They are packaged
+in the approved offline art+cue ZIP, alongside `RAIN_CUE_MANIFEST.json`.
+Install into a *clean isolated review checkout* from PowerShell 7:
 
-`scripts/prepare-buff-presentation.mjs` requires private build configuration with
-`project`, `productionUnity`, `contractPath`, `templateTrack` and `rainTrack`.
-`project` must be an isolated presentation copy carrying its existing marker.
-`rainTrack` must be the current installed already-oriented twenty-second paired
-function with two furniture returns. This importer preserves the native extended
-twerk bank and removes unrelated later episode actions; it never loops the older
-six-second rise-and-crouch take. Production assets, voices, local paths and build
-configuration are deliberately absent from this source repository.
+```powershell
+./scripts/Install-StankPopupArt.ps1 -BundlePath 'C:\Path\To\STANK_TANK_AI_Approved_Make_It_Rain_Bundle.zip'
+```
 
-`EpisodeBodySharedConversation` and the guarded source preparation script share
-the selected M16 calibration-origin repair, mild left-arm clearance and bounded
-direct/indirect partner gaze with the production episode/short body player. Source
-motion bytes/times and the existing right-arm fit are retained. Buff's immediate
-waveform mouth driver remains a live adapter; authored episode phoneme timing is
-preserved. DSP is separate.
+The installer checks all five exact asset SHA-256 values before copying
+anything into `src/remote-web/`. An old clip fails integrity checks. Restart
+the local preview/producer after installing the assets. The real private
+producer server and loopback-only preview both serve the song locally;
+no YouTube/player iframe or external audio CDN is used. A missing art asset
+falls back to the plain HUD; **the live rain soundtrack still requires
+the correctly installed music file**. Browser media autoplay and OBS
+"Control Audio via OBS" remain hardware acceptance gates.
 
-## Automatic donation integration: next slice
+## Presentation choreography and speech
 
-Implement authenticated adapters for **YouTube Super Chat, Streamlabs and
-StreamElements**, all entering one bounded durable queue. Reuse the existing
-donation ledger/admission and real ConversationSession. Keep the selected rain
-mode stable per admitted queue item. Handle provider reconnect/restart and use
-canonical transaction IDs/configured authority to prevent mirrored alerts from
-playing twice. Distinct payments with identical text/amount must remain distinct.
+### Paid donations of USD $100 or more, checked rain donations
 
-Add an explicit operator Enable donation reactions control and preserve STOP
-authority; incoming events cannot silently rearm after restart or STOP. Trusted
-adapters submit the existing real-host `donate` action with bounded readable text,
-the boolean `make_it_rain` and current session/mode scope. Do not add another voice
-player, timeline, model, or Unity body owner. Chat/subscriber events are not paid
-donations. Check current official provider API/auth documentation when implementing.
+1. Verified payment is accepted once through the durable queue. **USD $100+**
+   forces rain at queue admission, even if Buff's usual checkbox is off.
+   Amounts in other currencies are not silently treated as USD.
+2. **Immediately** send `make_it_rain` to the paired native M16 Unity
+   choreography, reveal the popup, and play the song on the browser source.
+   No donor TTS is released during the dance/music prelude.
+3. While the music/dance runs, Qwen plans the response and OmniVoice
+   prepares every held donor-reading/reaction clip. Those are never played
+   before actual stage and camera readiness.
+4. Wait until **both** the native choreography duration and the **23.903 s**
+   MP3 music window have ended, with a small 250 ms boundary guard. Request
+   native `seated_response` to put both actors at the desk and rotate the
+   camera state; await the Unity command receipt and OBS visible/unmute gate.
+   This seated command also stops the rain song. If voice preparation takes
+   longer than the music, remain at the desk until preparation is ready.
+5. Shanny reads the authentic donation (or Rev when explicitly selected by
+   prefix). They deliver the actual validated back-and-forth response.
+   Character subtitles appear from actual playback-start/finish receipts;
+   Buff's Whisper transcript is **never publicly displayed**.
+6. After the final `playback.finished`, send `presentation_end`. The
+   browser source hides and mutes, leaving the system idle and ready for
+   hotmic or the next donor.
 
-Make the view-only OBS URL stable across normal producer restarts. The current
-producer-local preview URL cannot be used on Buff's remote computer: private
-sharing/deployment and WebRTC connectivity/relay acceptance remain necessary.
-Inspect `python/remote_sharing.py`; keep access keys private and OBS access
-view-only. Account connections and Buff's real running OBS have not been tested.
+If the native animation is longer than the song, animation safety wins:
+speech waits for actual native completion/seat receipt rather than interrupting
+the body pose. The known raw local Unity checks are not acceptance of
+the finished OBS/streamer setup.
 
-Read `src/real-host.mjs`, `src/conversation-session.mjs`, `src/stage-media.mjs`,
-`src/remote-panel.mjs`, `src/remote-web/` and `src/donations/` before starting.
-Build provider adapters/queue in new files and realistic fixture tests for
-duplicates, mirrors, cancellation, reconnect and crash recovery. Use mock host
-receipts initially; coordinate before changing the existing native presentation.
+### Ordinary paid donations below USD $100 (checkbox off), hotmic
 
-Source tests: 118 Node tests and 10 Python offline tests passed. Native mouth,
-pose-return and repeated direct/indirect gaze checks passed in the isolated stage.
-Fresh full-host popup acceptance is recorded privately on the producer. These
-checks do not constitute account-connected donation or remote OBS acceptance.
+Prepare the *complete* Qwen and OmniVoice exchange while the popup is hidden.
+Once all held clips are ready, show the seated native stage, read genuine
+donor TTS (or hotmic reply), react, then hide immediately after final speech.
+There is no arbitrary 20-second linger. The optional rain checkbox still
+forces rain for smaller donations when Buff intentionally selects it.
+
+### Buff's manual `MAKE IT RAIN NOW!` button
+
+This is a trusted operator-only **non-payment celebration** useful for a
+membership bomb. It starts the real paired rain choreography/music when
+the stage is armed/available/idle, returns both characters to their seats,
+then hides. It does **not** invent a donation, amount, or TTS. STOP/silence
+immediately cancels it; STOP remains sticky for automatic provider intake.
+The view-only OBS link has no control permission.
+
+## Long donation messages
+
+Paid donor name, amount/currency and message remain text supplied via
+`textContent`, not interpolated HTML. The painted donor plaque and message
+well are separately composited on top of the artwork. The message well uses
+an overflow-clipped viewport that smoothly scrolls **downward** for long
+messages; `↓ current/total` shows progress. Frequent WebRTC media-poll
+updates do not rewind the scroll. Reduced-motion viewers get discrete
+page-position changes instead of smooth animation. STOP, Shut up,
+reconnect/hide and replacement by a new donor cancel the scroller and
+clear stale text immediately. The browser never deliberately prolongs
+a completed presentation merely to finish cosmetic scrolling.
+
+## Safety and acceptance
+
+YouTube authenticated Super Chats, Streamlabs native tips and StreamElements
+approved tips all flow through one bounded durable queue with verified
+transaction IDs and mirror suppression. STOP disables automatic donations,
+while Shut up stops just the current response without disabling already
+authorized future alerts. Do not invent provider metadata for membership
+events. No credentials are checked into this repo.
+
+The media view-only private link is hosted by the producer's approved
+Tailscale Funnel path; a producer-local `127.0.0.1` link does not work
+on Buff's remote computer. A TURN relay may be necessary for cross-NAT
+WebRTC. The remote OBS audio playback, transparency, stage-camera chair
+position, final music end timing and provider-connected tests remain **pending
+real hardware/account acceptance**. No changes are required in shared
+Unity production engine, DSP or MotionLab to install the browser assets.
