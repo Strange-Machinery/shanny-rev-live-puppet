@@ -114,6 +114,7 @@ export class ConversationSession {
       }
       turn.timing.within_target=(turn.kind==='donation'?turn.timing.donation_end_to_reply_ms:turn.timing.first_reply_ms)<=turn.timing.target_ms;
     }
+    this.onChange({type:'line.started',turn_id:turn.id,...line});
     await onStarted?.();
     await this.wait(turn,'playback.finished',id,45000);
     this.check(turn);
@@ -198,7 +199,10 @@ export class ConversationSession {
     for(const row of rows){
       if(row.read){
         await this.gateway.release({id:row.id,session_id:this.scope.session_id,epoch:this.scope.epoch});
-        await this.wait(turn,'playback.started',row.id,15000);await this.wait(turn,'playback.finished',row.id,45000);
+        await this.wait(turn,'playback.started',row.id,15000);
+        this.onChange({type:'line.started',turn_id:turn.id,...row.line});
+        await this.wait(turn,'playback.finished',row.id,45000);
+        this.check(turn);this.onChange({type:'line.finished',turn_id:turn.id,...row.line});
       }else await this.play(turn,row.line,row.id,prior);
       prior=row.id;
     }
