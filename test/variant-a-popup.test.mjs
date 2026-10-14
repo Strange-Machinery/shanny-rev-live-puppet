@@ -121,6 +121,25 @@ test('Variant A is contained in top-left of a transparent OBS page, with no exte
   assert.doesNotMatch(script,/innerHTML/);
 });
 
+test('native rain-to-seated receipt changes camera and stops music without hiding donor information',async t=>{
+  const {stage,post}=await source(t);
+  stage.setPopup({type:'donation',donor:'BIG TIP',amount:100,currency:'USD',message:'STANK!'});
+  await commandReceipt(stage,post,'make_it_rain');
+  const dancing=stage.info();
+  assert.equal(dancing.presentation_mode,'rain');
+  assert.equal(dancing.presentation_visible,true);
+  const rainNonce=dancing.presentation_nonce;
+  await commandReceipt(stage,post,'seated_response');
+  const sitting=stage.info();
+  assert.equal(sitting.presentation_mode,'seated');
+  assert.equal(sitting.presentation_visible,true);
+  assert.notEqual(sitting.presentation_nonce,rainNonce);
+  assert.deepEqual(sitting.popup,dancing.popup);
+  await commandReceipt(stage,post,'presentation_end');
+  assert.equal(stage.info().popup,null);
+  assert.equal(stage.info().presentation_visible,false);
+});
+
 test('OBS presentation acknowledgment requires view-only role and current visible nonce',async t=>{
   const {stage,post}=await source(t);
   const obs=stage.viewer({action:'media-open',viewer_role:'obs'});
