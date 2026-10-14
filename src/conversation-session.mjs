@@ -1,6 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import {setTimeout as delay} from 'node:timers/promises';
 import {parseDonationText} from './donations/parse.mjs';
+import {preparePopupDetails} from './popup-details.mjs';
 
 /** One conversation turn at a time. Only actual playback receipts advance speech. */
 export class ConversationSession {
@@ -119,7 +120,7 @@ export class ConversationSession {
     this.history.push({...line,input:turn.text,source:turn.kind});this.history=this.history.slice(-8);
     this.onChange({type:'line.finished',...line});
   }
-  async submit({kind,text,audioPath,session_id,mode_epoch,make_it_rain=false}){
+  async submit({kind,text,audioPath,session_id,mode_epoch,make_it_rain=false,donation}){
     if(this.mode!=='live'||this.turn||session_id!==this.scope.session_id||mode_epoch!==this.epoch)throw new Error('Stopped, stale, or busy conversation');
     if(!['donation','microphone'].includes(kind))throw new Error('Unknown response kind');
     if(typeof make_it_rain!=='boolean')throw new Error('Make it rain must be a checkbox choice');
@@ -135,6 +136,9 @@ export class ConversationSession {
         turn.readActor=parsed.actor;text=parsed.text;
       }
       turn.text=text;
+      // Public popup data is strictly whitelisted; never publish private
+      // transaction IDs or invent donor/amount fields for hotmic turns.
+      turn.popup=preparePopupDetails({kind,donation,text});
       turn.task=this.run(turn).catch(async error=>{
         if(this.current(turn)){this.error=error.message;await this.stop().catch(()=>{});}
       }).finally(()=>{turn.timing.total_ms=this.now()-turn.started;if(this.turn===turn)this.turn=null;});
@@ -189,7 +193,7 @@ export class ConversationSession {
     for(let i=0;i<plan.lines.length;i++)rows.push({line:plan.lines[i],id:i===0&&first?.id?first.id:await this.queuePrepared(turn,plan.lines[i])});
     for(const row of rows)await this.wait(turn,'speech.prepared',row.id);
     this.check(turn);this.onChange({type:'plan.ready',turn_id:turn.id,lines:plan.lines});
-    const performance=await this.presentation.begin({rain:turn.make_it_rain,signal:turn.abort.signal});this.check(turn);
+    const performance=await this.presentation.begin({rain:turn.make_it_rain,popup:turn.popup,signal:turn.abort.signal});this.check(turn);
     const visibleAt=this.now();let prior;
     for(const row of rows){
       if(row.read){
@@ -198,11 +202,15 @@ export class ConversationSession {
       }else await this.play(turn,row.line,row.id,prior);
       prior=row.id;
     }
-    // Never cut off an audible reply. A short exchange holds the performance
-    // for twenty seconds; unusually long speech finishes before it disappears.
-    const duration=Math.max(20000,Math.min(60000,performance?.duration_ms||20000));
-    const remaining=duration-(this.now()-visibleAt);
-    if(remaining>0)await delay(remaining,undefined,{signal:turn.abort.signal});
+    // Seated and hotmic popups hide immediately after Unity acknowledges the
+    // FINAL audible speech. No arbitrary 20-second dead-air hold.
+    // Preserve the full authored paired money-rain choreography and chair
+    // return; rain never cuts off speech even when it runs beyond the motion.
+    if(turn.make_it_rain){
+      const duration=Math.max(20000,Math.min(60000,performance?.duration_ms||20000));
+      const remaining=duration-(this.now()-visibleAt);
+      if(remaining>0)await delay(remaining,undefined,{signal:turn.abort.signal});
+    }
     this.check(turn);await this.presentation.end({signal:turn.abort.signal});this.check(turn);
     turn.timing.presentation_ms=this.now()-visibleAt;
   }
