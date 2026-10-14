@@ -5,7 +5,7 @@ import {createMessageScroller} from './message-scroll.js';
 const key=new URLSearchParams(location.hash.slice(1)).get('key')||'';
 history.replaceState(null,'',location.pathname);
 const $=id=>document.getElementById(id);
-const video=$('stage'),popup=$('stank-popup');
+const video=$('stage'),popup=$('stank-popup'),rainCue=$('rain-cue');
 const connection=$('connection'),state=$('state');
 const label=$('alert-label'),donor=$('donor-name'),amount=$('donation-amount'),message=$('donation-message');
 const donorKicker=$('donor-kicker'),messageKicker=$('message-kicker');
@@ -25,9 +25,31 @@ if(typeof Image==='function'){
 const subtitle=$('actor-caption'),subtitleActor=$('subtitle-actor'),subtitleWords=$('subtitle-words');
 const strap=$('painted-strap');
 let activePresentationNonce=null;
+let activeRainNonce=null;
+// Do not mix the celebration soundtrack into a stale/hotmic/seated popup.
+// This audio element is captured by OBS Browser Source separately from the
+// native WebRTC TTS; test OBS "Control audio via OBS" before going live.
+function stopRain(){
+  if(activeRainNonce===null&&rainCue.paused)return;
+  activeRainNonce=null;
+  rainCue.pause();
+  rainCue.currentTime=0;
+}
+function startRain(nonce){
+  if(!nonce||nonce===activeRainNonce)return;
+  stopRain();
+  activeRainNonce=nonce;
+  rainCue.currentTime=0;
+  rainCue.muted=false;
+  void Promise.resolve(rainCue.play()).catch(()=>{
+    if(activeRainNonce===nonce)
+      state.textContent='Rain soundtrack did not autoplay. Check installed MP3 and OBS Browser Source audio.';
+  });
+}
 
 function hide(){
   activePresentationNonce=null;
+  stopRain();
   scroller.reset();
   // Visibility and AUDIO are separate. The page remains connected to WebRTC
   // but never lets hidden idle audio escape to Buff's stream.
@@ -78,6 +100,12 @@ function renderPresentation(visible,status){
   // Initial/hidden measurements always return 0 and would lose long messages.
   if(scrollText!==null)scroller.show({text:scrollText,nonce:status?.presentation_nonce});
   video.muted=false;
+  // The first visual frame of an accepted RAIN presentation triggers
+  // the howl/music immediately; no Qwen/voice preparation is required.
+  // Native seating rotates presentation mode to "seated", stopping music
+  // before Shanny or Rev release any prepared TTS.
+  if(status?.presentation_mode==='rain')startRain(status.presentation_nonce);
+  else stopRain();
   // Only a visibly rendering, unmuted OBS viewer acknowledges presentation.
   // The host can then release the first voice after this brief preroll.
   const nonce=status?.presentation_nonce;
