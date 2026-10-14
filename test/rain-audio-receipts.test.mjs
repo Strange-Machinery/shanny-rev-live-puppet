@@ -83,5 +83,21 @@ test('no OBS viewer allows documented local-only unverified timing fallback',asy
  const result=await stage.waitForRainEnd({timeoutMs:100});
  assert.deepEqual(result,{verified:false,reason:'no-obs-viewer'});
  assert.equal(stage.info().rain_audio,'pending');
+ // A producer rehearsal can fall back; REAL $100 donations cannot.
+ await assert.rejects(stage.waitForRainEnd({timeoutMs:100,requireViewer:true}),/viewer unavailable/);
+ await command('presentation_end');
+});
+
+test('a lost OBS viewer cannot downgrade actual on-stream rain into unverified no-viewer rehearsal',async t=>{
+ const {stage,command}=await fixture(t);
+ const viewer=stage.viewer({action:'media-open',viewer_role:'obs'});
+ stage.setPopup({type:'donation',donor:'WHALE',amount:100,currency:'USD',message:'Do it'});
+ await command('make_it_rain');
+ const nonce=stage.info().presentation_nonce;
+ stage.viewer({action:'media-presented',id:viewer.id,nonce});
+ stage.viewer({action:'media-rain-started',id:viewer.id,nonce});
+ stage.viewer({action:'media-close',id:viewer.id});
+ await assert.rejects(stage.waitForRainEnd({timeoutMs:100}),/viewer unavailable/);
+ assert.equal(stage.info().rain_audio,'playing');
  await command('presentation_end');
 });
