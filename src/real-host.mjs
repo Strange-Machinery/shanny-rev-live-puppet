@@ -149,7 +149,15 @@ export async function serveRealHost(config){
     };
     // The trusted dispatcher calls the existing one-turn /action contract,
     // not another speech controller. STOP from queue must not recurse.
-    donations=new LiveDonations({directory:join(root,'donation-intake'),config:config.donations||{},
+    // Producer may simply place donations.local.json under the owned scratch
+    // folder. The launcher never prints or transmits its credentials to Buff.
+    let donationConfig=config.donations||{};
+    if(!config.donations){
+      const localCredentials=join(root,'donations.local.json');
+      try{await readFile(localCredentials,'utf8');donationConfig={credentialsFile:localCredentials};}
+      catch(error){if(error.code!=='ENOENT')throw error;}
+    }
+    donations=new LiveDonations({directory:join(root,'donation-intake'),config:donationConfig,
       host:async data=>data.action==='stop'?(await session.stop(),{stopped:true}):
         data.action==='silence'?session.silence():action(data)});
     if(media)preview=await serveRemotePanel({action,publicOrigin:'http://127.0.0.1',
