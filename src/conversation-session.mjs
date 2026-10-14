@@ -278,14 +278,16 @@ export class ConversationSession {
       await this.presentation.waitVisible?.({signal:turn.abort.signal});
       this.check(turn);
       visibleAt=this.now();
-      // The producer-approved audio cut is 22.152s, a little longer
-      // than the native dance. Never start the donor's first word until
-      // the "lit-lit-lit" echo tail and actual chair recovery are done.
+      // The approved 23.902s encoded cue must actually finish in OBS.
+      // Nominal timing is a minimum; an authenticated media-ended receipt
+      // from the currently active OBS viewer gates donor TTS after dancing.
       const choreography=Math.max(RAIN_DANCE_MIN_MS,
         Number.isFinite(performance?.duration_ms)?performance.duration_ms:RAIN_DANCE_MIN_MS);
       const target=Math.max(choreography,RAIN_CUE_DURATION_MS)+RAIN_SEAT_SETTLE_MS;
       const remaining=target-(this.now()-visibleAt);
       if(remaining>0)await this.pause(remaining,undefined,{signal:turn.abort.signal});
+      this.check(turn);
+      await this.presentation.waitRainEnd?.({signal:turn.abort.signal});
       this.check(turn);
       if(typeof this.presentation.seat!=='function')
         throw new Error('Native seated camera/desk recovery is required after rain');
