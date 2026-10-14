@@ -28,7 +28,7 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
     const request=randomUUID(),abort=()=>stopAnimations();
     const timer=setTimeout(()=>{controlEpoch++;finish(new Error('Player did not acknowledge animation'));},2500);
     const finish=(error,result)=>{clearTimeout(timer);signal?.removeEventListener('abort',abort);commands.delete(request);error?reject(error):resolve(result);};
-    commands.set(request,{id:request,targets,alias:presentation?id:id.slice(4),finish});signal?.addEventListener('abort',abort,{once:true});
+    commands.set(request,{id:request,targets,alias:presentation||incensedCameraFlip?id:id.slice(4),finish});signal?.addEventListener('abort',abort,{once:true});
   });
   const sweep=()=>{for(const [id,p] of peers)if(now()-p.seen>15000)peers.delete(id);};
   const timer=setInterval(sweep,1000);timer.unref();
