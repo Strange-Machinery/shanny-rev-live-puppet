@@ -96,6 +96,7 @@ export class DurableDonationQueue {
       ['streamelements','disconnected']]);
     this.enabled=false;this.closed=false;this.scope=null;
     this.revision=0;this.task=null;this.lastError='';
+    this.interruptEpoch=0;this.silencing=false;this.interruption=null;
     if(this.recoveredStarted)saveAtomic(this.path,this.items);
   }
   status() {
@@ -130,10 +131,38 @@ export class DurableDonationQueue {
    * preserved but cannot resume until the operator explicitly calls enable().
    */
   async stop() {
-    this.enabled=false;this.scope=null;this.revision++;
+    this.enabled=false;this.scope=null;this.revision++;this.silencing=false;
     this._signal();
     await this.host({action:'stop'});
     return this.status();
+  }
+  /**
+   * "Shut up": kill only the active popup. The queue stays armed and pending
+   * purchases keep their frozen mode. A returned NEW mode_epoch invalidates
+   * any pre-interrupt host call. Duplicate interrupts share one transition.
+   */
+  async interruptCurrent(){
+    if(!this.enabled)return this.status();
+    if(this.interruption)return this.interruption;
+    const revision=this.revision;
+    this.interruptEpoch++;this.silencing=true;this._signal();
+    this.interruption=(async()=>{
+      try {
+        const scope=await this.host({action:'silence'});
+        if(!this.enabled||revision!==this.revision)return this.status();
+        if(!scope?.waiting_for_tts)throw new Error('Host did not resume after silence');
+        validateScope(scope);
+        this.scope=Object.freeze({session_id:scope.session_id,mode_epoch:scope.mode_epoch});
+        this.lastError='';return this.status();
+      }catch(error){
+        if(revision===this.revision){
+          this.lastError='Silence failed: '+error.message;
+          await this.stop().catch(()=>{});
+        }
+        throw error;
+      }finally{this.silencing=false;this.interruption=null;this._signal();}
+    })();
+    return this.interruption;
   }
   /** Ingest after authentication. The selected animation mode is snapshotted
    * per accepted payment and cannot drift with the launcher checkbox.
@@ -185,6 +214,7 @@ export class DurableDonationQueue {
     while(this._current(revision)) {
       const status=await this.host({action:'status'});
       if(!this._current(revision))return false;
+      if(this.silencing){await sleep(this.pollMs);continue;}
       if(status.mode!=='live'||status.error)throw new Error('Host is stopped or failed');
       if(!status.turn_busy&&!status.conversation_busy&&!status.presentation_visible)return true;
       if(this.now()>=deadline)throw new Error('Host was busy past the donation deadline');
@@ -193,7 +223,7 @@ export class DurableDonationQueue {
     return false;
   }
   async _drain() {
-    const revision=this.revision,scope=this.scope;
+    const revision=this.revision;
     while(this._current(revision)) {
       const row=this.items.find(value=>value.state==='queued');
       if(!row)return;
@@ -201,13 +231,19 @@ export class DurableDonationQueue {
       row.state='started';
       // Crash safe: persist before an uncertain network/action attempt.
       saveAtomic(this.path,this.items);this._signal();
+      const dispatchEpoch=this.interruptEpoch;
       try {
+        while(this._current(revision)&&this.silencing)await sleep(this.pollMs);
         if(!this._current(revision))return;
         const result=await this.host({action:'donate',text:row.text,
-          make_it_rain:row.make_it_rain,...scope});
+          make_it_rain:row.make_it_rain,...this.scope});
         if(!this._current(revision))return;
         if(result?.status!=='accepted')throw new Error('Host did not accept donation');
         if(!await this._waitReady(revision))return;
+      } catch(error) {
+        // A known user interrupt may race an in-flight host request.
+        // Its failed/stale result must not disarm the donation pipeline.
+        if(this.interruptEpoch===dispatchEpoch)throw error;
       } finally {
         // Even after a timeout or cancellation, started work may not replay.
         this._remove(row);
