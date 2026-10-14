@@ -49,6 +49,7 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
       if(peers.size>=maxViewers)throw new Error('Stage viewer limit reached; close an unused preview');
       const id=randomUUID();peers.set(id,{id,seen:now(),offer:null,answer:null,error:null,
         role:input.viewer_role==='obs'?'obs':'preview',presentedNonce:null});
+      if(input.viewer_role==='obs'&&rainPlayback)rainPlayback.hadObsViewer=true;
       return {id,iceServers,...info()};
     }
     const p=peers.get(input.id);if(!p)throw new Error('Stage connection expired; reconnect');
@@ -58,7 +59,9 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
       if(p.role!=='obs'||!presentationVisible||input.nonce!==presentationNonce)
         throw new Error('Stale or unauthorized OBS presentation receipt');
       if(input.action==='media-presented'){
-        p.presentedNonce=input.nonce;return {accepted:true};
+        p.presentedNonce=input.nonce;
+        if(rainPlayback?.nonce===input.nonce)rainPlayback.hadObsViewer=true;
+        return {accepted:true};
       }
       if(presentationMode!=='rain'||!rainPlayback||rainPlayback.nonce!==input.nonce)
         throw new Error('Rain soundtrack is not active');
@@ -108,7 +111,8 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
             presentationMode=c.alias==='make_it_rain'?'rain':'seated';
             presentationNonce=randomUUID();
             rainPlayback=presentationMode==='rain'
-              ?{nonce:presentationNonce,state:'pending',startedAt:null,endedAt:null}:null;
+              ?{nonce:presentationNonce,state:'pending',startedAt:null,endedAt:null,
+                hadObsViewer:[...peers.values()].some(p=>p.role==='obs'&&now()-p.seen<15000)}:null;
           }else{popup=null;caption=null;presentationNonce=null;rainPlayback=null;}
         }
         c.finish(data.accepted===true?null:new Error('Player could not prepare the requested performance'),{status:'accepted',kind:'M16_FITTED',targets:c.targets,duration_ms:Number.isSafeInteger(data.duration_ms)&&data.duration_ms>=20000&&data.duration_ms<=60000?data.duration_ms:20000});
@@ -133,12 +137,19 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
      * With no OBS viewer, local fixture mode reports an unverified fallback.
      * With an OBS viewer, actual completion is required before speech.
      */
-    async waitForRainEnd({signal,timeoutMs=8000}={}){
+    async waitForRainEnd({signal,timeoutMs=8000,requireViewer=false}={}){
       if(!presentationVisible||presentationMode!=='rain'||!rainPlayback)
         throw new Error('Rain music gate requires visible native rain');
       const nonce=presentationNonce;
       const obs=()=>[...peers.values()].some(p=>p.role==='obs'&&now()-p.seen<15000);
-      if(!obs())return {verified:false,reason:'no-obs-viewer'};
+      if(!obs()){
+        // A local-only fixture with NO viewer ever may use nominal timing.
+        // A REAL paid donation or a viewer that vanished after showing the
+        // rain MUST NOT pretend the music completed successfully.
+        if(requireViewer||rainPlayback.hadObsViewer)
+          throw new Error('OBS rain viewer unavailable; refusing unverified TTS');
+        return {verified:false,reason:'no-obs-viewer'};
+      }
       const deadline=Date.now()+timeoutMs;
       while(Date.now()<=deadline){
         if(signal?.aborted)throw signal.reason||new Error('Rain cancelled');
