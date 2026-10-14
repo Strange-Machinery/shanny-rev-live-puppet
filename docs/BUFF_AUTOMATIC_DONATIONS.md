@@ -36,6 +36,10 @@ media.enabled=true. Example launcher configuration:
 }
 ~~~
 
+The producer may also simply save donations.local.json under the real host's
+private scratch folder; the host discovers it automatically without a launcher
+configuration edit. Buff does not need to edit any JSON.
+
 Producer-owned credentials file schema, with placeholders only:
 
 ~~~json
