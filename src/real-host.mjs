@@ -166,7 +166,10 @@ export async function serveRealHost(config){
       }
       if(data.action==='donation-status')return donations.status();
       if(data.action==='donation-enable'){
-        if(!media?.info().available)throw new Error('The paired OBS stage must be ready before donation reactions are enabled');
+        const ready=media?.info();
+        if(!ready?.available)throw new Error('The paired OBS stage must be ready before donation reactions are enabled');
+        if(!ready.obs_viewers)
+          throw new Error('Connect the private OBS Browser Source before enabling automatic paid donations');
         return donations.enable({make_it_rain:data.make_it_rain===true});
       }
       if(data.action==='donation-mode')return donations.setMode(data.make_it_rain);
