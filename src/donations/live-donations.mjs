@@ -63,7 +63,11 @@ export class LiveDonations {
   if(this.closed)throw new Error('Donation coordinator closed');
   const result=[];
   for(const item of normalizeProviderEvent(source,payload,{authority:this.authority})){
-   const admitted=this.queue.ingest(item,{make_it_rain:this.make_it_rain});
+   // An authenticated USD $100+ contribution always earns money rain.
+   // Never compare bare amounts across currencies (e.g. 100 JPY).
+   // Freeze the result when admitting the queue item, not at dispatch.
+   const highValueRain=item.currency==='USD'&&item.amount>=100;
+   const admitted=this.queue.ingest(item,{make_it_rain:this.make_it_rain||highValueRain});
    if(admitted.status==='busy')throw new Error('Donation queue full; provider replay required');
    result.push(admitted);
   }
