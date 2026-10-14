@@ -88,7 +88,13 @@ export async function serveRealHost(config){
     await whisper.warmup();
     progress('Opening the character stage...');
     if(config.media?.enabled)media=await createStageMedia({token,iceServers:config.media.iceServers||[]});
-    session=new ConversationSession({gateway,director,whisper,presentation:media?{
+    session=new ConversationSession({gateway,director,whisper,
+      onChange:event=>{
+        if(!media)return;
+        if(event.type==='line.started')media.setCaption({actor:event.actor,text:event.text});
+        else if(event.type==='line.finished')media.setCaption(null);
+      },
+      presentation:media?{
       begin:async({rain,signal,popup})=>{
         media.setPopup(popup);
         try{
