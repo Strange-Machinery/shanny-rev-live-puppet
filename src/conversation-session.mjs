@@ -266,6 +266,16 @@ export class ConversationSession {
       prior=row.id;
     }
   }
+  async requirePresentationVisible(turn){
+    const acknowledged=await this.presentation.waitVisible?.({signal:turn.abort.signal});
+    this.check(turn);
+    // A real paid event must NEVER be consumed invisibly just because an
+    // OBS media-open peer exists but video frames/unmute were not confirmed.
+    // Local producer Test donation/hotmic may use bounded preroll fallback.
+    if(turn.popup?.type==='donation'&&acknowledged!==true)
+      throw new Error('OBS did not acknowledge visible paid donation; refusing unseen TTS');
+    return acknowledged;
+  }
   async runPresentation(turn){
     let visibleAt,rows;
     if(turn.make_it_rain){
@@ -280,8 +290,7 @@ export class ConversationSession {
         value=>({value}),error=>({error}));
       const performance=await started;
       this.check(turn);
-      await this.presentation.waitVisible?.({signal:turn.abort.signal});
-      this.check(turn);
+      await this.requirePresentationVisible(turn);
       visibleAt=this.now();
       // The approved 23.902s encoded cue must actually finish in OBS.
       // Nominal timing is a minimum; an authenticated media-ended receipt
@@ -306,8 +315,7 @@ export class ConversationSession {
       this.check(turn);
       // Seating keeps the same popup visible but rotates presentation nonce,
       // causing the OBS page to stop music and show the desk before speech.
-      await this.presentation.waitVisible?.({signal:turn.abort.signal});
-      this.check(turn);
+      await this.requirePresentationVisible(turn);
       const result=await preparing;
       if(result.error)throw result.error;
       rows=result.value;
@@ -318,8 +326,7 @@ export class ConversationSession {
       this.check(turn);
       await this.presentation.begin({rain:false,popup:turn.popup,signal:turn.abort.signal});
       this.check(turn);
-      await this.presentation.waitVisible?.({signal:turn.abort.signal});
-      this.check(turn);
+      await this.requirePresentationVisible(turn);
       visibleAt=this.now();
     }
     await this.playPreparedPresentationRows(turn,rows);
