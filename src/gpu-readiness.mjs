@@ -12,5 +12,5 @@ export async function waitForVoiceMemory({readFreeMiB,progress=()=>{},now=Date.n
       'Waiting for GPU memory ('+(free/1024).toFixed(1)+' GB free); retrying automatically. Microphone off.');
     await sleep(1000);
   }
-  throw new Error('The GPU stayed busy: '+(free/1024).toFixed(1)+' GB free; the voices need 4 GB. Let the rendering job finish, then click Restart testing.');
+  throw new Error('The GPU stayed busy: '+(free/1024).toFixed(1)+' GB free; the voices need 4 GB. Free room used by other GPU apps, then click Restart testing.');
 }

@@ -52,3 +52,10 @@ test('scope change while checking the player prevents an obsolete animation requ
   await assert.rejects(f.menu.play({id:'explain',target:'REV',context:'Standing',catalogRevision:catalog.revision}),/Stale/);
   assert.equal(plays,0);
 });
+
+test('selected M16 actor bindings are usable without inventing qualification for generic unscoped rows',async t=>{
+ const f=await fixture(t,{adapter:{accepted:true,canPlay:async()=>true}});
+ f.rows.push({id:'m16_objection',kind:'animation',status:'runtime_candidate',roles:1,contexts:['seated'],bindings:{SHANNY:'m16_objection_SHANNY',REV:'m16_objection_REV'},local_use_authorization:'M16_PRODUCER_SELECTED_20261014'});
+ await f.write();let catalog=await f.menu.menu();assert.equal(catalog.items.filter(r=>r.id==='m16_objection'&&r.playable).length,3);
+ delete f.rows[2].local_use_authorization;await f.write();catalog=await f.menu.menu();assert.ok(catalog.items.filter(r=>r.id==='m16_objection').every(r=>!r.playable));
+});

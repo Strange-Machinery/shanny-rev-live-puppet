@@ -20,7 +20,8 @@ export class AnimationMenu {
     for(const row of catalog.items) {
       if(!idPattern.test(row.id)||seen.has(row.id))throw new Error('Invalid or duplicate animation ID');
       seen.add(row.id);
-      const actors=Array.isArray(row.actors)?row.actors.filter(a=>['SHANNY','REV'].includes(a)):[];
+      const actors=Array.isArray(row.actors)?row.actors.filter(a=>['SHANNY','REV'].includes(a)):
+        row.local_use_authorization==='M16_PRODUCER_SELECTED_20261014'?Object.keys(row.bindings||{}).filter(a=>['SHANNY','REV'].includes(a)):[];
       const contexts=Array.isArray(row.contexts)&&row.contexts.length?row.contexts.filter(c=>idPattern.test(c)):['unspecified'];
       const kind=idPattern.test(row.kind)?row.kind:'animation';
       for(const [target,targets] of Object.entries(TARGETS)) {

@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
+import {liveMood,actorMoods} from '../live-moods.mjs';
 
 /**
  * Thin client for the EXISTING /LIVE/python/omnivoice_live_worker.py protocol.
@@ -31,6 +32,15 @@ export class OmniVoiceProvider {
     }
     this.config = { ...config, startupMs: config.startupMs || 180_000,
       requestMs: config.requestMs || 120_000 };
+    if(config.moodReferences!==undefined){
+      if(!config.moodReferences||Array.isArray(config.moodReferences)||typeof config.moodReferences!=='object')throw new Error('Invalid moodReferences');
+      for(const [actor,choices] of Object.entries(config.moodReferences)){
+        if(!actorMoods[actor]||!choices||Array.isArray(choices)||typeof choices!=='object')throw new Error('Invalid moodReferences actor');
+        for(const [mood,id] of Object.entries(choices)){
+          liveMood(actor,mood);if(typeof id!=='string'||!/^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/.test(id))throw new Error('Invalid moodReferences reference');
+        }
+      }
+    }
     this.child = null;
     this.ready = null;
     this.readyResolve = null;
@@ -58,7 +68,8 @@ export class OmniVoiceProvider {
         '--output-root', c.outputRoot,
         '--shanny-reference', c.shannyReference,
         '--rev-reference', c.revReference,
-        '--seed', String(c.seed || 73001)
+        '--seed', String(c.seed || 73001),
+        ...(c.moodReferences?['--mood-references',JSON.stringify(c.moodReferences)]:[])
       ], { stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true,
         // Limit only this worker; avoid CPU oversubscription alongside Whisper,
         // Qwen and Unity without changing the pinned voice generation settings.
@@ -144,11 +155,12 @@ export class OmniVoiceProvider {
     try { child?.kill(); } catch {}
   }
 
-  async generate({ actor, text }) {
+  async generate({ actor, text, mood }) {
     if (!['SHANNY', 'REV'].includes(actor)) throw new Error('Unknown actor');
+    if(mood!==undefined)liveMood(actor,mood);
     if (this.busy) throw new Error('OmniVoice worker is busy');
     this.busy = true;
-    try { return await this.#generate(actor, text); }
+    try { return await this.#generate(actor, text, mood); }
     finally { this.busy = false; }
   }
 
@@ -159,7 +171,7 @@ export class OmniVoiceProvider {
     finally { this.busy = false; }
   }
 
-  async #generate(actor, text) {
+  async #generate(actor, text, mood) {
     const cold = !this.ready;
     await this.#ensureWorker();
     if (!this.child) throw new Error('Worker not running');
@@ -172,7 +184,7 @@ export class OmniVoiceProvider {
       }, this.config.requestMs);
       this.pending.set(id, { resolve, reject, timer, path: relative });
       this.child.stdin.write(JSON.stringify({
-        type: 'GENERATE', id, actor, text, relative_path: relative
+        type: 'GENERATE', id, actor, text, ...(mood?{mood}:{}),relative_path: relative
       }) + '\n', error => {
         if (error) this.#fail(error);
       });
@@ -189,6 +201,7 @@ export class OmniVoiceProvider {
       if (!stat.isFile() || stat.size > 24 * 1024 * 1024) throw new Error('Worker WAV exceeds bounded file size');
       const wav = await fs.readFile(real);
       return { wav, timings: { worker_cold_startup_ms: cold ? this.startupMs : null,
+        mood:result.mood??mood??null,reference_id:result.reference_id??null,
         generation_ms: result.generation_ms ?? null,
         request_to_complete_wav_ms: performance.now() - started } };
     } finally {
