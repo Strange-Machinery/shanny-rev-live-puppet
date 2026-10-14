@@ -171,7 +171,7 @@ test('$100 rain begins before Qwen/voices; ends music and SEATS before first TTS
  await f.session.submit({kind:'donation',text:'A big one!',make_it_rain:true,...scope});
  await until(()=>typeof resolvePlan==='function'&&events.includes('desk'));
  assert.deepEqual(events.slice(0,3),['rain','shown','desk']);
- assert.ok(waits[0]>=22000,'dance+music hold must run before TTS');
+ assert.ok(waits[0]>=23903,'approved full theme and native dance must end before TTS');
  assert.equal(f.released.length,0);
  resolvePlan({lines:[{actor:'SHANNY',text:'Thank you!'}, {actor:'REV',text:'I agree.'}]});
  await until(()=>f.released.length===1);
