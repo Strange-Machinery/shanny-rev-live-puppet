@@ -260,3 +260,66 @@ test('operator money-rain button runs native paired animation without faking spe
  assert.ok(stopped>=1);
  assert.equal(f.session.history.length,0);
 });
+
+test('OBS actual music-ended receipt is mandatory before seat/TTS even when ALL voices are prepared early',async()=>{
+ let finishMusic,gateReached=false;
+ const music=new Promise(resolve=>{finishMusic=resolve;});
+ const f=fixture({generate:async()=>({lines:[
+  {actor:'SHANNY',text:'That is outrageous!',mood:'rage'},
+  {actor:'REV',text:'I am not thanking that commenter!',mood:'irritated'}
+ ],rev_reason:'Rev resents audience demands'})});
+ const sequence=[];
+ f.session.pause=async()=>{sequence.push('nominal-duration');};
+ f.session.presentation={
+  begin:async args=>{sequence.push('rain-start');return {duration_ms:20000};},
+  waitVisible:async()=>{sequence.push('obs-ready');},
+  waitRainEnd:async()=>{gateReached=true;sequence.push('waiting-audio-ended');await music;sequence.push('audio-ended');},
+  seat:async()=>sequence.push('seated'),
+  end:async()=>sequence.push('hidden'),
+  stop:()=>sequence.push('stop')
+ };
+ await f.session.initialize();const scope=await f.session.arm();
+ await f.session.submit({kind:'donation',text:'You are all so rude.',make_it_rain:true,...scope});
+ await until(()=>gateReached&&f.spoken.length===3);
+ assert.deepEqual(sequence,['rain-start','obs-ready','nominal-duration','waiting-audio-ended']);
+ assert.equal(f.released.length,0,'prepared donor/TTS must remain HELD while OBS sound is still audible');
+ finishMusic();
+ await until(()=>f.released.length===1);
+ assert.equal(sequence.indexOf('audio-ended')<sequence.indexOf('seated'),true);
+ assert.equal(sequence.includes('hidden'),false);
+ f.emit('playback.started',f.spoken[0].id);f.emit('playback.finished',f.spoken[0].id);
+ await until(()=>f.released.length===2);
+ f.emit('playback.started',f.spoken[1].id);f.emit('playback.finished',f.spoken[1].id);
+ await until(()=>f.released.length===3);
+ f.emit('playback.started',f.spoken[2].id);f.emit('playback.finished',f.spoken[2].id);
+ await until(()=>!f.session.turn);
+ assert.deepEqual(sequence,['rain-start','obs-ready','nominal-duration','waiting-audio-ended',
+  'audio-ended','seated','obs-ready','hidden']);
+});
+
+test('STOP during delayed OBS soundtrack receipt cancels rain and prevents ANY read/TTS release',async()=>{
+ let finishMusic,gateReached=false;
+ const music=new Promise(resolve=>{finishMusic=resolve;});
+ const f=fixture({generate:async()=>({lines:[
+  {actor:'SHANNY',text:'No.',mood:'anger'},
+  {actor:'REV',text:'Absolutely not.',mood:'skeptical'}
+ ],rev_reason:'Rev rejects demand'})});
+ const events=[];
+ f.session.pause=async()=>{};
+ f.session.presentation={
+  begin:async()=>({duration_ms:20000}),
+  waitVisible:async()=>{},
+  waitRainEnd:async()=>{gateReached=true;await music;},
+  seat:async()=>events.push('seated'),
+  end:async()=>events.push('hidden'),
+  stop:()=>events.push('stop')
+ };
+ await f.session.initialize();const scope=await f.session.arm();
+ await f.session.submit({kind:'donation',text:'No thanks.',make_it_rain:true,...scope});
+ await until(()=>gateReached);
+ await f.session.stop();
+ finishMusic();
+ await until(()=>!f.session.turn);
+ assert.equal(f.released.length,0);
+ assert.deepEqual(events,['stop']);
+});
