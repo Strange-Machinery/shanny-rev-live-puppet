@@ -2,6 +2,13 @@
 
 ## Button-only deployment follow-up
 
+Source revision `31e6763aa0cb50d0f56aae7db7ccbf757464776e` passes all four
+Windows/Ubuntu × Node 22/24 jobs, including the Python UI checks:
+[source CI](https://github.com/Strange-Machinery/shanny-rev-live-puppet/actions/runs/38498087995).
+An earlier CI run exposed a stale event-page race during rearm. The lab now ignores
+events behind the current baseline and never rewinds its event cursor; an old stop
+page can no longer clear timers for a newly armed response.
+
 The producer owns the model bundle and host app. Buff receives a browser shortcut
 generated only after the authenticated HTTPS connection passes the owner's sharing
 check. There is no existing deployed Buff launcher to discover. Current remote
