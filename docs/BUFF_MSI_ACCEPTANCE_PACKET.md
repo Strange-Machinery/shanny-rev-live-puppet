@@ -85,6 +85,9 @@ Open the printed localhost URL in Chrome/Edge ON THE MSI.
   next-donation feed only when previously authorized.
 - Drop remote receiver during rain: NO fallback to timer-only
   overlapping TTS. Check reconnect and known failure status.
+- Automatic paid-feed Enable must reject a missing authenticated OBS
+  viewer. After a temporary viewer outage, accepted queued payments
+  must wait for reconnection instead of being silently consumed.
 
 ## Phase D: optional authorized Streamlabs/StreamElements accounts
 
