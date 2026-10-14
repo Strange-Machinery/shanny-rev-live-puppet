@@ -123,8 +123,10 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
     setPopup(details){
       if(presentationVisible||commands.size)throw new Error('Cannot change details during visible performance');
       if(details===null){popup=null;return;}
-      if(!details||!['hotmic','donation','test'].includes(details.type))
+      if(!details||!['hotmic','donation','test','celebration'].includes(details.type))
         throw new Error('Invalid public popup details');
+      // Manual membership celebrations carry NO donor/payment identity.
+      if(details.type==='celebration'){popup={type:'celebration'};return;}
       // Whitelist fields: no provider IDs, receipts, secrets or source objects.
       if(details.type==='hotmic'){popup={type:'hotmic'};return;}
       if(typeof details.message!=='string'||details.message.length>1000)
