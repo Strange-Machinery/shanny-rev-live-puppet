@@ -142,6 +142,18 @@ WAVs are private scratch and removed after the turn. It never grants production 
 admission. Windows device TTS is a generic audible offline voice and is identified
 as such; fixture puppet WAVs are silent and are not real OmniVoice playback.
 
+For the complete offline **audio** path, use `offline-testing-full.example.json`
+with existing local Whisper/Qwen, external approved personas, and the existing
+private OmniVoice worker/references. Confirm resource headroom first; this mode owns
+one persistent OmniVoice worker. Do not start a duplicate worker beside another
+active voice session. The panel plays its real WAVs through Windows waveOut and
+reports playback submission and actual buffer completion to the same gateway API.
+Stop synchronously resets its owned output handle under a lock, clears queued
+playback, disarms capture and invalidates model jobs. Test auto VAD waits while the
+response pipeline or local audio is busy. These are desktop audio observations,
+separate from Unity receipts and physical speaker-onset measurements. Private
+full-model mode is implemented but not hardware-qualified in this pass.
+
 **Current limits:** Qwen fixture/real local Qwen can be tested with simulated stage
 responses. Actual Shanny/Rev voices and Unity can still be exercised through the
 existing private puppet launcher; this Testing tab does not yet drive a verified

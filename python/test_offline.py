@@ -4,10 +4,46 @@ import struct
 import tempfile
 import tkinter as tk
 import unittest
+from unittest.mock import MagicMock, patch
+import io
+import wave
 from microphone import EnergyVAD
 from testing_tab import install_testing
+import desktop_audio
 
 class OfflineTests(unittest.TestCase):
+    def audio(self):
+        stream = io.BytesIO()
+        with wave.open(stream, 'wb') as audio:
+            audio.setnchannels(1); audio.setsampwidth(2); audio.setframerate(48000); audio.writeframes(b'\0' * 960)
+        return stream.getvalue()
+    def fake_output(self):
+        dll = MagicMock()
+        def opened(pointer, *_):
+            pointer._obj.value = 123
+            return 0
+        def written(_handle, pointer, _size):
+            pointer._obj.dwFlags = 1
+            return 0
+        dll.waveOutOpen.side_effect = opened
+        dll.waveOutPrepareHeader.return_value = 0
+        dll.waveOutWrite.side_effect = written
+        return dll
+    def test_desktop_buffer_completion_and_stop_use_owned_audio_handle(self):
+        dll = self.fake_output(); player = desktop_audio.DesktopAudio(); receipts = []
+        with patch.object(desktop_audio.os, 'name', 'nt'), patch.object(desktop_audio.c, 'WinDLL', return_value=dll, create=True):
+            self.assertTrue(player.play(self.audio(), lambda: True, lambda: receipts.append('submitted')))
+            self.assertEqual(receipts, ['submitted'])
+            self.assertIsNone(player.handle)
+            dll.waveOutReset.assert_called_once()
+            dll.waveOutClose.assert_called_once()
+    def test_desktop_stale_generation_cannot_start_and_stop_wins_pending_playback(self):
+        dll = self.fake_output(); player = desktop_audio.DesktopAudio()
+        with patch.object(desktop_audio.os, 'name', 'nt'), patch.object(desktop_audio.c, 'WinDLL', return_value=dll, create=True):
+            self.assertFalse(player.play(self.audio(), lambda: False, lambda: self.fail('stale audio started')))
+            dll.waveOutOpen.assert_not_called()
+            self.assertFalse(player.play(self.audio(), lambda: True, player.stop))
+            self.assertIsNone(player.handle)
     def test_vad_silence_never_emits_an_utterance(self):
         vad = EnergyVAD()
         for _ in range(20):

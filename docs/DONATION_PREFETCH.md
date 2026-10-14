@@ -1,3 +1,10 @@
+# v0.3 integration update
+
+The executable runner, bounded Qwen HTTP provider and offline Testing tab are now
+implemented. Read [BUFF_LIVE_V03.md](BUFF_LIVE_V03.md) for configuration, fail-closed
+semantics and adapter contracts, and [ACCEPTANCE_V03.md](ACCEPTANCE_V03.md) for evidence.
+The prototype notes below describe the starting commit, not the current integration.
+
 # Donation pre-generation and hold/release — GitHub-side prototype
 
 This feature branch adds source-level, fixture-testable donation reactions.

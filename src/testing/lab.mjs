@@ -7,14 +7,15 @@ import { showFixture, wav } from './fixture.mjs';
 import { OfflineConversation, createFileWhisper } from './conversation.mjs';
 import { createQwenCompletion } from '../providers/qwen.mjs';
 import { createReactionDirector } from '../donations/reaction.mjs';
+import { OmniVoiceProvider } from '../providers/omnivoice.mjs';
 
-export async function createOfflineLab({ whisper, realDirector } = {}) {
+export async function createOfflineLab({ whisper, realDirector, voiceProvider, desktopAudio = false } = {}) {
   let scenario='normal',lastDonation='',cursor=0,closed=false,driving=false;
   const trace=[],timers=new Set(),active=new Map();
   let generation=0;
   const later=(fn,ms)=>{const captured=generation;const timer=setTimeout(()=>{timers.delete(timer);if(captured===generation)void fn().catch(()=>{});},ms);timers.add(timer);};
   const f=await showFixture({
-    provider:{name:'offline-silent-PCM-fixture',async generate(job){
+    provider:voiceProvider || {name:'offline-silent-PCM-fixture',async generate(job){
       if(scenario==='synthesis_failure')throw new Error('Injected synthesis failure');
       if(scenario==='panic_during_synthesis')await new Promise(resolve=>setTimeout(resolve,1000));
       return wav(job.prepareOnly?(scenario==='invalid_duration'?4000:10000):1000);
@@ -50,8 +51,11 @@ export async function createOfflineLab({ whisper, realDirector } = {}) {
         conversation.onEvent(event);
         if(['panic','interrupt'].includes(event.type))clear();
         if(event.type==='speech.ready'&&f.controller.mode==='live') {
-          const started=await f.ack(event,'started');
-          if(started.status===200){active.set(event.id,event);later(async()=>{await f.ack(event,'finished');active.delete(event.id);},event.prepared_release?700:1000);}
+          active.set(event.id,event);
+          if(!desktopAudio) {
+            const started=await f.ack(event,'started');
+            if(started.status===200)later(async()=>{await f.ack(event,'finished');active.delete(event.id);},event.prepared_release?700:1000);
+          }
         }
       }
       cursor=page.cursor;
@@ -59,7 +63,7 @@ export async function createOfflineLab({ whisper, realDirector } = {}) {
   }
   const pump=setInterval(()=>{void drive().catch(()=>{});},40);
   return {
-    async action({action,text='Buff, tell us what happened.',actor='SHANNY',audioPath,final=true,session_id,mode_epoch}) {
+    async action({action,text='Buff, tell us what happened.',actor='SHANNY',audioPath,final=true,session_id,mode_epoch,id,state,source}) {
       if(action==='arm') {
         const result=await call('/live',{});
         cursor=(await f.gateway.status()).cursor;
@@ -89,23 +93,41 @@ export async function createOfflineLab({ whisper, realDirector } = {}) {
       if(action==='transcript') {
         if(f.runner.turn||active.size)throw new Error('Wait until the test stage is idle');
         if(typeof session_id!=='string'||!Number.isSafeInteger(mode_epoch))throw new Error('Explicit test session/mode epoch required');
-        return conversation.respond({text,actor,audioPath,final,source:audioPath?'OFFLINE_WAV':'OFFLINE_REPLAY',
+        return conversation.respond({text,actor,audioPath,final,source:source||(audioPath?'OFFLINE_WAV':'OFFLINE_REPLAY'),
           session_id,mode_epoch});
       }
-      if(action==='finish') {for(const event of active.values())await f.ack(event,'finished');active.clear();return {status:'finished'};}
+      if(action==='finish') {
+        if(desktopAudio)throw new Error('Desktop audio must finish on its output device; use Stop to cancel');
+        for(const event of active.values())await f.ack(event,'finished');active.clear();return {status:'finished'};
+      }
+      if(action==='playback') {
+        if(!desktopAudio||!active.has(id)||!['started','finished','stopped'].includes(state))throw new Error('Unknown desktop test playback');
+        const event=active.get(id);
+        const result=await f.ack(event,state);
+        if(result.status!==200)throw new Error('Desktop playback acknowledgement rejected');
+        if(state!=='started')active.delete(id);
+        return result.body;
+      }
       if(action==='status')return {...await call('/status'),scenario,trace:[...trace],
-        playback:'SIMULATED_RECEIPTS',speech:'SILENT_PCM_FIXTURE',qwen:realDirector?'LOCAL_CONFIGURED_QWEN':'DETERMINISTIC_FIXTURE',
+        gateway_epoch:f.coordinator.epoch,
+        playback:desktopAudio?'WINDOWS_DESKTOP_AUDIO':'SIMULATED_RECEIPTS',speech:voiceProvider?'PRIVATE_OMNIVOICE':'SILENT_PCM_FIXTURE',qwen:realDirector?'LOCAL_CONFIGURED_QWEN':'DETERMINISTIC_FIXTURE',
         whisper_available:Boolean(whisper),conversation_busy:Boolean(conversation.busy),conversation_context_turns:conversation.context.length,
         active_audio:active.size,
         resume_count:f.installed.trace.filter(x=>x==='episode.resume').length};
       throw new Error('Unknown test action');
+    },
+    async audio(id) {
+      if(!desktopAudio||!active.has(id))throw new Error('No current desktop test audio');
+      const response=await fetch(f.origin+'/v1/audio/'+id,{headers:{Authorization:'Bearer '+f.token},redirect:'error',signal:AbortSignal.timeout(5000)});
+      if(!response.ok)throw new Error('Audio expired or cancelled');
+      return Buffer.from(await response.arrayBuffer());
     },
     async close(){closed=true;conversation.stop();clear();clearInterval(pump);await f.close();}
   };
 }
 
 export async function serveLab(config={}) {
-  let realDirector;
+  let realDirector,voiceProvider;
   if(config.qwen) {
     const host=new URL(config.qwen.endpoint).hostname;
     if(!['127.0.0.1','localhost','[::1]'].includes(host))throw new Error('Offline testing requires a local Qwen endpoint');
@@ -114,12 +136,21 @@ export async function serveLab(config={}) {
     realDirector=createReactionDirector({complete:createQwenCompletion(config.qwen),personaNotes:persona});
   }
   const whisper=config.whisper?createFileWhisper({...config.whisper,workerScript:fileURLToPath(new URL('../../python/whisper_file.py',import.meta.url))}):undefined;
-  const lab=await createOfflineLab({whisper,realDirector});
+  if(config.omnivoice) {
+    if(config.resourceHeadroomVerified!==true)throw new Error('Real local OmniVoice testing requires explicit verified resource headroom');
+    voiceProvider=new OmniVoiceProvider(config.omnivoice);
+    try {await voiceProvider.warmup();}catch(error){await voiceProvider.close();throw error;}
+  }
+  const lab=await createOfflineLab({whisper,realDirector,voiceProvider,desktopAudio:Boolean(voiceProvider)});
   const token=randomBytes(24).toString('hex');
   const server=createServer((req,res)=>{
     void (async()=>{
       const a=Buffer.from(String(req.headers.authorization||'')),b=Buffer.from('Bearer '+token);
       if(a.length!==b.length||!timingSafeEqual(a,b)){res.writeHead(401);res.end();return;}
+      if(req.method==='GET'&&/^\/audio\/[a-f0-9-]{36}$/.test(req.url)) {
+        const bytes=await lab.audio(req.url.slice('/audio/'.length));
+        res.writeHead(200,{'Content-Type':'audio/wav','Cache-Control':'no-store','Content-Length':bytes.length});res.end(bytes);return;
+      }
       if(req.method!=='POST'||req.url!=='/action'){res.writeHead(404);res.end();return;}
       let size=0;const chunks=[];
       for await(const chunk of req){size+=chunk.length;if(size>8192)throw new Error('Test request too large');chunks.push(chunk);}

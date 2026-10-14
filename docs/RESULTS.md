@@ -1,3 +1,10 @@
+# v0.3 integration results
+
+See [ACCEPTANCE_V03.md](ACCEPTANCE_V03.md) for the donation runner, Qwen client,
+offline Testing tab, real CPU Whisper checks, passing tests and remaining hardware/
+deployed-service acceptance. The earlier real-voice evidence below is historical;
+it is not a claim that v0.3 has passed Unity/OBS/Qwen coexistence.
+
 # Hardware acceptance — 2026-10-13
 
 ## Outcome

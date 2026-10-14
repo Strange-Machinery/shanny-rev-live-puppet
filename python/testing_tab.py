@@ -26,6 +26,10 @@ class TestingPanel(ttk.Frame):
         self.configuration = str(self.repo / 'offline-testing.local.json') if (self.repo / 'offline-testing.local.json').is_file() else None
         self.mode_scope = {}; self.last_event_seq = 0
         self.poll_count = 0; self.status_pending = False
+        from desktop_audio import DesktopAudio
+        self.desktop_audio = DesktopAudio(); self.audio_jobs = queue.Queue(maxsize=20); self.played_ids = set()
+        self.audio_admission = False
+        threading.Thread(target=self.audio_worker, daemon=True).start()
         ttk.Label(self, text='Testing — offline R&D', font=('Segoe UI', 20, 'bold')).pack(anchor='w')
         ttk.Label(self, text='No YouTube session or livestream needed. Default: mock Qwen, silent WAVs, simulated stage/player.', wraplength=900).pack(anchor='w', pady=(4, 10))
         row = ttk.Frame(self); row.pack(fill='x')
@@ -98,7 +102,7 @@ class TestingPanel(ttk.Frame):
         self.stop_local(); self.generation += 1; captured = self.generation
         if self.process:
             self.process.stdin.close(); self.process = None
-        self.endpoint = None; self.token = None; self.mode_scope = {}; self.last_event_seq = 0
+        self.endpoint = None; self.token = None; self.mode_scope = {}; self.last_event_seq = 0; self.played_ids.clear()
         self.status.set('Starting isolated offline services…')
         args = [shutil.which('node.exe') or shutil.which('node') or 'node', str(self.repo / 'src/testing/lab.mjs')]
         if self.configuration:
@@ -155,6 +159,13 @@ class TestingPanel(ttk.Frame):
         self.action('donate', ('(' + actor.lower() + ') ' if actor else '') + text)
     def stop_local(self):
         self.mic_armed = False; self.record_stop.set(); self.auto_vad.set(False)
+        self.audio_admission = False
+        self.desktop_audio.stop()
+        try:
+            while True:
+                self.audio_jobs.get_nowait()
+        except queue.Empty:
+            pass
         self.mic_state.set('Microphone disarmed — no capture')
         if self.tts_process and self.tts_process.poll() is None:
             self.tts_process.terminate()
@@ -173,8 +184,8 @@ class TestingPanel(ttk.Frame):
         except Exception as error:
             self.devices = {}; self.mic_state.set(str(error))
     def arm_mic(self):
-        if not self.endpoint or not self.isolated.get() or self.device.get() not in self.devices:
-            self.mic_state.set('Start the lab, select an isolated input, and confirm its source before arming.'); return
+        if not self.endpoint or not self.mode_scope or not self.isolated.get() or self.device.get() not in self.devices:
+            self.mic_state.set('Start the lab, arm the test stage, select an isolated input, and confirm its source before arming.'); return
         self.mic_armed = True; self.mic_state.set('Test microphone armed. Hold to talk; stop always disarms it.')
     def record_start(self, event=None):
         if not self.mic_armed or self.recording:
@@ -195,7 +206,7 @@ class TestingPanel(ttk.Frame):
                     folder = self.repo / 'work/test-audio'; folder.mkdir(parents=True, exist_ok=True)
                     with tempfile.NamedTemporaryFile(dir=folder, suffix='.wav', delete=False) as handle:
                         handle.write(data); path = Path(handle.name)
-                    result = self.request(dict(action='transcript', actor=self.actor_value, audioPath=str(path), **mode_scope))
+                    result = self.request(dict(action='transcript', actor=self.actor_value, audioPath=str(path), source='BUFF_ISOLATED_MIC_TEST', **mode_scope))
                     if captured == self.generation:
                         self.events.put(('result', ('microphone → Whisper → response', result, captured)))
             except Exception as error:
@@ -210,9 +221,20 @@ class TestingPanel(ttk.Frame):
         self.record_stop.set()
     def toggle_vad(self):
         if self.auto_vad.get() and self.mic_armed:
-            self.record_start()
+            self.check_vad_ready()
         else:
             self.record_stop.set()
+    def check_vad_ready(self):
+        if not self.mic_armed or not self.auto_vad.get() or self.closed:
+            return
+        captured = self.generation
+        def worker():
+            try:
+                result = self.request(dict(action='status'))
+                self.events.put(('vad_ready', (captured, not result['active_audio'] and not result['conversation_busy'] and not result['turn_busy'])))
+            except Exception as error:
+                self.events.put(('message', str(error)))
+        threading.Thread(target=worker, daemon=True).start()
     def audio_file(self):
         path = filedialog.askopenfilename(parent=self, title='Local PCM16 mono WAV (16/48 kHz, up to 30 seconds)', filetypes=[('WAV audio', '*.wav')])
         if path:
@@ -227,6 +249,29 @@ class TestingPanel(ttk.Frame):
             self.tts_process.terminate()
         self.tts_process = subprocess.Popen(['powershell.exe', '-NoProfile', '-EncodedCommand', base64.b64encode(script.encode('utf-16le')).decode('ascii')], creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         self.write('Device TTS: Windows generic voice, not Shanny/Rev OmniVoice.')
+    def audio_worker(self):
+        while True:
+            item = self.audio_jobs.get()
+            if item is None:
+                return
+            event, captured, endpoint, token = item
+            if self.closed or captured != self.generation:
+                continue
+            try:
+                req = Request(endpoint.replace('/action', '/audio/' + event['id']), headers={'Authorization': 'Bearer ' + token})
+                with build_opener(ProxyHandler({})).open(req, timeout=5) as reply:
+                    audio = reply.read(24 * 1024 * 1024 + 1)
+                if len(audio) > 24 * 1024 * 1024:
+                    raise RuntimeError('Desktop audio budget exceeded')
+                completed = self.desktop_audio.play(audio, lambda: not self.closed and self.audio_admission and captured == self.generation,
+                    lambda: self.request(dict(action='playback', id=event['id'], state='started')))
+                if captured == self.generation:
+                    self.request(dict(action='playback', id=event['id'], state='finished' if completed else 'stopped'))
+            except Exception as error:
+                self.desktop_audio.stop()
+                if captured == self.generation:
+                    self.events.put(('message', 'Desktop audio failed: ' + str(error)))
+                    self.events.put(('audio_failed', captured))
     def poll(self):
         if self.closed:
             return
@@ -237,12 +282,22 @@ class TestingPanel(ttk.Frame):
                     self.level['value'] = value
                 elif kind == 'status_failed':
                     self.status_pending = False
+                elif kind == 'audio_failed':
+                    if value == self.generation:
+                        self.stop()
+                elif kind == 'vad_ready':
+                    captured, ready = value
+                    if captured == self.generation and self.mic_armed and self.auto_vad.get():
+                        if ready:
+                            self.record_start()
+                        else:
+                            self.after(250, self.check_vad_ready)
                 elif kind == 'record_done':
                     self.recording = False
                     if value == self.generation and self.mic_armed:
                         self.mic_state.set('Test mic armed; capture complete.')
                         if self.auto_vad.get():
-                            self.after(300, self.record_start)
+                            self.after(300, self.check_vad_ready)
                 elif kind == 'result':
                     action, result, captured = value
                     if action == 'status':
@@ -251,11 +306,20 @@ class TestingPanel(ttk.Frame):
                         continue
                     if action == 'arm':
                         self.mode_scope = {key: result[key] for key in ('session_id', 'mode_epoch')}
+                        self.audio_admission = True
                     if action == 'status':
                         self.status.set(f"{result['mode']} | mic {'armed' if self.mic_armed else 'disarmed'} | {result['qwen']} | {result['playback']} | Whisper {'configured' if result['whisper_available'] else 'needs local config'}")
                         for event in result['trace']:
                             if event['seq'] > self.last_event_seq:
                                 self.write(json.dumps(event)); self.last_event_seq = event['seq']
+                            if self.audio_admission and result['playback'] == 'WINDOWS_DESKTOP_AUDIO' and result['mode'] == 'live' and event['epoch'] == result['gateway_epoch'] and event['type'] == 'speech.ready' and event['id'] not in self.played_ids:
+                                self.played_ids.add(event['id'])
+                                try:
+                                    self.audio_jobs.put_nowait((event, captured, self.endpoint, self.token))
+                                except queue.Full:
+                                    self.stop()
+                                if len(self.played_ids) > 256:
+                                    self.played_ids = {row.get('id') for row in result['trace']}
                         if result['reaction_metrics']['sample_count']:
                             self.write('Metrics: ' + json.dumps(result['reaction_metrics']))
                     else:
@@ -272,6 +336,7 @@ class TestingPanel(ttk.Frame):
         if self.closed:
             return
         self.closed = True; self.generation += 1; self.stop_local()
+        self.audio_jobs.put_nowait(None)
         if self.process:
             try:
                 self.process.stdin.close()

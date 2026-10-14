@@ -1,5 +1,13 @@
 # Shanny & Rev Live Puppet
 
+v0.3 adds the executable donation/Qwen runner and an **offline Testing tab** for
+donations, microphone push-to-talk/VAD, Whisper, transcript replay and local responses.
+Run `python python/testing_tab.py` or `npm run demo:offline`; no YouTube session is
+required. See [setup and configuration](docs/BUFF_LIVE_V03.md),
+[verification and remaining acceptance](docs/ACCEPTANCE_V03.md), and
+[microphone continuation](docs/MICROPHONE_NEXT_WORK.md). Private full-model testing
+is explicit opt-in; the default response/stage path is a labelled fixture.
+
 Private standalone live stage: one authenticated localhost Node gateway, one persistent complete-WAV OmniVoice worker, and two continuously loaded Unity puppets. Each face follows its own actual playing AudioSource. No Rhubarb, Timeline, Recorder, episode rendering or per-utterance video is used.
 
 The fresh root commit imports exactly 17 files from engine prototype commit `e1d8986477986cd2e710baa531ac111dcf43d464`; it contains no production Git history. Production assets, model weights and approved voice references remain external.

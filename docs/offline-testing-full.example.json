@@ -1,0 +1,24 @@
+{
+  "resourceHeadroomVerified": false,
+  "whisper": {
+    "python": "C:/your-existing-whisper-runtime/python.exe",
+    "modelPath": "C:/your-existing-ctranslate2-whisper-model-folder"
+  },
+  "personaFile": "C:/private/approved-personas.local.json",
+  "qwen": {
+    "endpoint": "http://127.0.0.1:8080/v1/chat/completions",
+    "model": "YOUR_INSTALLED_QWEN35_MODEL_ID",
+    "placement": "cpu",
+    "timeoutMs": 6000,
+    "maxTokens": 192
+  },
+  "omnivoice": {
+    "python": "C:/your-existing-omnivoice-runtime/python.exe",
+    "workerScript": "C:/private/omnivoice_live_worker.py",
+    "appRoot": "C:/private/existing-app",
+    "outputRoot": "C:/private/test-audio-scratch",
+    "shannyReference": "YOUR_APPROVED_SHANNY_REFERENCE_ID",
+    "revReference": "YOUR_APPROVED_REV_REFERENCE_ID",
+    "seed": 73001
+  }
+}
