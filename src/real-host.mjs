@@ -18,6 +18,8 @@ import {AnimationMenu} from './animation-menu.mjs';
 import {waitForVoiceMemory} from './gpu-readiness.mjs';
 import {createStageMedia} from './stage-media.mjs';
 import {serveRemotePanel} from './remote-panel.mjs';
+import {LiveDonations} from './donations/live-donations.mjs';
+import {loadOrCreateViewerKey} from './obs-viewer-key.mjs';
 
 async function freePort(){const socket=tcpServer();await new Promise((r,j)=>{socket.once('error',j);socket.listen(0,'127.0.0.1',r);});const port=socket.address().port;await new Promise(r=>socket.close(r));return port;}
 async function waitUntil(check,ms){const end=Date.now()+ms;while(Date.now()<end){if(await check())return;await delay(200);}throw new Error('A character service did not become ready');}
@@ -38,11 +40,12 @@ export async function serveRealHost(config){
     await unlink(lockPath);lock=await open(lockPath,'wx');
   }
   await lock.writeFile(JSON.stringify({pid:process.pid}));
-  const children=[],logs=[];let live,session,http,voice,whisper,monitor,media,preview,closed=false;
+  const children=[],logs=[];let live,session,http,voice,whisper,monitor,media,preview,donations,closed=false;
   const stopChildren=()=>{for(const child of children)if(child.exitCode===null)child.kill();};
   const close=async()=>{
     if(closed)return;closed=true;clearInterval(monitor);
-    await preview?.close();await session?.stop().catch(()=>{});stopChildren();
+    await preview?.close();await donations?.close().catch(()=>{});
+    await session?.stop().catch(()=>{});stopChildren();
     await whisper?.close();
     await media?.close();
     if(http){http.closeAllConnections();await new Promise(r=>http.close(r));}
@@ -116,21 +119,39 @@ export async function serveRealHost(config){
     },1000);
     const action=async data=>{
       if(data.action==='status')return {...session.status(),qwen:modelName+' (local CPU)',performance_mode:performanceMode,media:media?.info()||null,
+        presentation_visible:media?.info().presentation_visible||false,donations:donations?.status()||null,
         preview_url:preview?'http://127.0.0.1:'+preview.port+'/#key='+preview.token:null};
       if(data.action?.startsWith('media-')){if(!media)throw new Error('Stage feed not configured');return media.viewer(data);}
       if(data.action==='animations')return animations.menu();
       if(data.action==='animate'){if(session.mode!=='live')await session.arm();return animations.play(data);}
-      if(data.action==='stop'){animations.stop();await session.stop();return {stopped:true};}
+      if(data.action==='donation-status')return donations.status();
+      if(data.action==='donation-enable')return donations.enable({make_it_rain:data.make_it_rain===true});
+      if(data.action==='donation-mode')return donations.setMode(data.make_it_rain);
+      if(data.action==='donation-stop')return donations.stop();
+      if(data.action==='silence')return donations.queue.enabled?donations.silence():session.silence();
+      if(data.action==='stop'){animations.stop();
+        if(donations?.queue.enabled)await donations.stop();else await session.stop();
+        return {stopped:true};}
       if(data.action==='arm'){
         const result=await session.arm();
         await waitUntil(async()=>{const {stage}=await gateway.metrics();return stage&&!stage.muted&&Date.now()-stage.received_unix_ms<2500;},5000);
         return result;
       }
+      if(data.action==='transcript'&&!data.audioPath&&
+          typeof data.text==='string'&&/^\s*shut\s+up[.!?]*\s*$/i.test(data.text))
+        return donations.queue.enabled?donations.silence():session.silence();
       if(data.action==='donate'||data.action==='transcript')return session.submit({...data,kind:data.action==='donate'?'donation':'microphone',
         session_id:data.session_id||session.scope.session_id,mode_epoch:data.mode_epoch??session.epoch});
       throw new Error('This control is unavailable in real character mode');
     };
-    if(media)preview=await serveRemotePanel({action,publicOrigin:'http://127.0.0.1',allowLocalPreview:true,scratch:join(root,'preview')});
+    // The trusted dispatcher calls the existing one-turn /action contract,
+    // not another speech controller. STOP from queue must not recurse.
+    donations=new LiveDonations({directory:join(root,'donation-intake'),config:config.donations||{},
+      host:async data=>data.action==='stop'?(await session.stop(),{stopped:true}):
+        data.action==='silence'?session.silence():action(data)});
+    if(media)preview=await serveRemotePanel({action,publicOrigin:'http://127.0.0.1',
+      allowLocalPreview:true,scratch:join(root,'preview'),
+      viewerKey:loadOrCreateViewerKey(join(root,'obs-viewer-key.local.json'))});
     http=createServer((req,res)=>{const revision=session.revision;void(async()=>{
       const supplied=Buffer.from(String(req.headers.authorization||'')),expected=Buffer.from('Bearer '+token);
       if(supplied.length!==expected.length||!timingSafeEqual(supplied,expected)){res.writeHead(401);res.end();return;}
