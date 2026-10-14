@@ -102,7 +102,8 @@ export async function serveRealHost(config){
             targets:['SHANNY','REV'],signal});
         }catch(error){media.stopAnimations();throw error;}
       },
-      end:({signal})=>media.animate({id:'presentation_end',targets:['SHANNY','REV'],signal}),stop:()=>media.stopAnimations()
+      end:({signal})=>media.animate({id:'presentation_end',targets:['SHANNY','REV'],signal}),
+      waitVisible:({signal})=>media.waitForViewer({signal}),stop:()=>media.stopAnimations()
     }:undefined});await session.initialize();
     const player=spawn(config.player,['-force-d3d11','-screen-fullscreen','0','-videoMode',config.videoMode||'COLORBLIND','-logFile',join(root,'player.log')],
       {windowsHide:false,stdio:'ignore',env:{...process.env,LIVE_PUPPET_TOKEN:token,LIVE_PUPPET_URL:origin,
