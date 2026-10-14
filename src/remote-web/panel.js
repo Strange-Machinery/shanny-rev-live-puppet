@@ -9,7 +9,7 @@ $('connect-stage').onclick=()=>void stage.connect();
 $('stage-sound').onclick=async()=>{const video=$('stage-preview');video.muted=!video.muted;try{await video.play();$('stage-sound').textContent=video.muted?'Enable preview sound':'Mute preview sound';}catch{$('stage-status').textContent='Connect the preview first.';}};
 $('copy-obs').onclick=async()=>{try{const result=await api('obs-link');try{await navigator.clipboard.writeText(result.url);$('stage-status').textContent='OBS link copied. Paste into a 1920 × 1080 Browser source.';}catch{$('obs-link').hidden=false;$('obs-link').value=result.url;$('obs-link').select();$('stage-status').textContent='Copy this link into your OBS Browser source.';}}catch(error){$('stage-status').textContent=error.message;}};
 window.addEventListener('pagehide',()=>void stage.close());
-let revision=0,request=null,stream=null,context=null,recording=false,starting=false,chunks=[],frames=0,timer=null,online=false,donationsEnabled=false,stageBusy=false,stageAvailable=false;
+let revision=0,request=null,stream=null,context=null,recording=false,starting=false,chunks=[],frames=0,timer=null,online=false,donationsEnabled=false,stageBusy=false,stageAvailable=false,lastQueueDepth=0;
 async function api(path,body,signal){const response=await fetch('/api/'+path,{method:body?'POST':'GET',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,signal,redirect:'error',cache:'no-store'});const result=await response.json();if(!response.ok)throw new Error(result.error||'Connection failed');return result;}
 function stopCapture(){recording=false;starting=false;clearTimeout(timer);stream?.getTracks().forEach(track=>track.stop());stream=null;void context?.close();context=null;$('mic').textContent='Test microphone';}
 function stop(){revision++;request?.abort();stopCapture();chunks=[];frames=0;donationsEnabled=false;
@@ -24,10 +24,23 @@ async function donationAction(action){
 function showDonations(d){
  if(!d)return;
  donationsEnabled=Boolean(d.enabled);
+ lastQueueDepth=Math.max(0,Number(d.pending)||0)+Math.max(0,Number(d.inflight)||0);
  const labels={youtube:'YouTube',streamlabs:'Streamlabs',streamelements:'StreamElements'};
  const states=Object.entries(d.providers||{}).map(([p,v])=>(labels[p]||p)+': '+(v==='not_configured'?'needs connection':v)).join(' · ');
+ const intake=d.intake_diagnostics;
+ const counters=Object.values(intake?.counts||{});
+ const observed=counters.reduce((n,c)=>n+(c.observed||0),0);
+ const accepted=counters.reduce((n,c)=>n+(c.accepted||0),0);
+ const ignored=counters.reduce((n,c)=>n+(c.ignored||0),0);
+ // A Streamlabs/SE dashboard "test alert" may only reach their widget and
+ // never deliver an authenticated paid-event packet to OUR socket. Make
+ // that visible without exposing donor names, amounts or private tokens.
+ const diagnostics=observed?' · Provider packets '+observed+
+  ' · accepted '+accepted+' · ignored '+ignored:
+  ' · No paid-source packets observed yet';
  $('donation-status').textContent=(d.enabled?'Automatic reactions ENABLED':'Automatic reactions OFF')+
-  (d.pending?' · '+d.pending+' waiting':'')+(states?' · '+states:'')+(d.error?' · '+d.error:'');
+  (d.pending?' · '+d.pending+' waiting':'')+(states?' · '+states:'')+
+  diagnostics+(d.error?' · '+d.error:'');
  $('donation-enable').disabled=!online||d.enabled||d.requires_setup;
  $('donation-stop').disabled=!online||!d.enabled;
 }
@@ -66,7 +79,7 @@ window.addEventListener('pagehide',()=>{stopCapture();
    headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},
    body:JSON.stringify({action:'stop'}),keepalive:true}).catch(()=>{});
 });
-let polling=false;async function status(){if(polling)return;polling=true;try{const s=await api('status');online=true;stageBusy=Boolean(s.busy);stageAvailable=Boolean(s.media?.available);showDonations(s.donations);$('status').textContent='Connected to producer · '+(s.real_characters?'Real characters · Blackout Shanny':'Testing fixtures')+' · '+(s.whisper?'Whisper ready':'Whisper unavailable');if(s.real_characters){$('service-note').textContent='Real Qwen, character voices and Unity run on the producer computer. No YouTube livestream is needed. Use Connect preview to watch and hear the stage.';$('dialogue').textContent=s.error||s.history.map(row=>row.actor+': '+row.text).join('\n\n');}}catch(error){if(online&&!donationsEnabled)stop();online=false;$('status').textContent='Producer unavailable. Ask them to start sharing, then reopen your launcher.';}finally{polling=false;for(const id of ['donate','replay','mic'])$(id).disabled=!online;$('rain-now').disabled=!online||stageBusy||!stageAvailable;}}
+let polling=false;async function status(){if(polling)return;polling=true;try{const s=await api('status');online=true;stageBusy=Boolean(s.busy);stageAvailable=Boolean(s.media?.available);showDonations(s.donations);$('status').textContent='Connected to producer · '+(s.real_characters?'Real characters · Blackout Shanny':'Testing fixtures')+' · '+(s.whisper?'Whisper ready':'Whisper unavailable');if(s.real_characters){$('service-note').textContent='Real Qwen, character voices and Unity run on the producer computer. No YouTube livestream is needed. Use Connect preview to watch and hear the stage.';$('dialogue').textContent=s.error||s.history.map(row=>row.actor+': '+row.text).join('\n\n');}}catch(error){if(online&&!donationsEnabled)stop();online=false;$('status').textContent='Producer unavailable. Ask them to start sharing, then reopen your launcher.';}finally{polling=false;for(const id of ['donate','replay','mic'])$(id).disabled=!online;$('rain-now').disabled=!online||stageBusy||!stageAvailable||Boolean(donationsEnabled&&lastQueueDepth>0);}}
 void status();setInterval(()=>void status(),3000);
 let catalog={revision:'',items:[]};
 function options(id,values){$(id).replaceChildren(...values.map(value=>new Option(value.label||value,value.value||value)));}

@@ -35,17 +35,54 @@ function stopRain(){
   rainCue.pause();
   rainCue.currentTime=0;
 }
+function activeRain(nonce){
+  return nonce&&activeRainNonce===nonce&&!popup.hidden&&popup.dataset.kind!=='hidden';
+}
+function reportRain(action,nonce){
+  if(!activeRain(nonce))return Promise.resolve();
+  return player.api({action,id:player.id,nonce}).catch(()=>{
+    if(activeRain(nonce))
+      state.textContent='OBS rain playback receipt failed. Check the producer stage and audio connection.';
+  });
+}
 function startRain(nonce){
   if(!nonce||nonce===activeRainNonce)return;
   stopRain();
   activeRainNonce=nonce;
   rainCue.currentTime=0;
   rainCue.muted=false;
-  void Promise.resolve(rainCue.play()).catch(()=>{
-    if(activeRainNonce===nonce)
-      state.textContent='Rain soundtrack did not autoplay. Check installed MP3 and OBS Browser Source audio.';
+  // MUST follow the accepted OBS media-presented receipt. The host will
+  // not count this as "playing" until HTMLMediaElement.play() resolves.
+  void Promise.resolve().then(()=>{
+    // STOP, "Shut up" and disconnect may hide the frame between
+    // media-presented and this scheduled browser task. Do not start a
+    // belated howl in an invisible OBS browser source.
+    if(!activeRain(nonce))return false;
+    return rainCue.play().then(()=>true);
+  }).then(async played=>{
+    if(!played)return;
+    if(!activeRain(nonce)){
+      // Never stop a newer rain nonce that happened to replace this one.
+      if(activeRainNonce===null||activeRainNonce===nonce){
+        rainCue.pause();rainCue.currentTime=0;
+      }
+      return;
+    }
+    await reportRain('media-rain-started',nonce);
+  }).catch(()=>{
+    if(!activeRain(nonce))return;
+    state.textContent='Rain soundtrack did not autoplay. Check installed MP3 and OBS Browser Source audio.';
+    void reportRain('media-rain-failed',nonce);
   });
 }
+rainCue.onended=()=>{
+  const nonce=activeRainNonce;
+  if(nonce)void reportRain('media-rain-ended',nonce);
+};
+rainCue.onerror=()=>{
+  const nonce=activeRainNonce;
+  if(nonce)void reportRain('media-rain-failed',nonce);
+};
 
 function hide(){
   activePresentationNonce=null;
@@ -98,23 +135,31 @@ function renderPresentation(visible,status){
   popup.hidden=false;
   // The element must be laid out and visible BEFORE reading scrollHeight.
   // Initial/hidden measurements always return 0 and would lose long messages.
-  if(scrollText!==null)scroller.show({text:scrollText,nonce:status?.presentation_nonce});
+  if(scrollText!==null){
+    if(status?.presentation_mode==='rain'){
+      // During the 23.9-second paid dance the message stays at the TOP;
+      // only scroll down when Shanny/Rev have seated for their actual TTS.
+      // The audience must not miss the beginning before it is read aloud.
+      scroller.reset();
+      message.textContent=scrollText;
+    }else scroller.show({text:scrollText,nonce:status?.presentation_nonce});
+  }
   video.muted=false;
-  // The first visual frame of an accepted RAIN presentation triggers
-  // the howl/music immediately; no Qwen/voice preparation is required.
-  // Native seating rotates presentation mode to "seated", stopping music
-  // before Shanny or Rev release any prepared TTS.
-  if(status?.presentation_mode==='rain')startRain(status.presentation_nonce);
-  else stopRain();
+  // Sound never begins before the OBS viewer acknowledges a visible,
+  // unmuted video frame. This allows the host to validate music receipts
+  // as belonging to the same exact presentation nonce.
+  if(status?.presentation_mode!=='rain')stopRain();
   // Only a visibly rendering, unmuted OBS viewer acknowledges presentation.
   // The host can then release the first voice after this brief preroll.
   const nonce=status?.presentation_nonce;
   if(nonce&&nonce!==activePresentationNonce){
     activePresentationNonce=nonce;
     const playing=video.paused?video.play():Promise.resolve();
-    void Promise.resolve(playing).then(()=>{
+    void Promise.resolve(playing).then(async()=>{
       if(activePresentationNonce!==nonce||popup.hidden||video.muted)return;
-      return player.api({action:'media-presented',id:player.id,nonce});
+      await player.api({action:'media-presented',id:player.id,nonce});
+      if(activePresentationNonce===nonce&&!popup.hidden&&!video.muted&&status?.presentation_mode==='rain')
+        startRain(nonce);
     }).catch(()=>{
       if(activePresentationNonce===nonce)activePresentationNonce=null;
       state.textContent='OBS Browser Source blocked playback or presentation acknowledgment.';

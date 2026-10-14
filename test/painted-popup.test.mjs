@@ -54,6 +54,10 @@ test('Buff has distinct manual command and $100 USD override without impersonati
   const host=text('src/real-host.mjs');
   assert.match(host,/data\.action==='rain-now'/);
   assert.match(host,/session\.startRainNow\(\)/);
+  assert.match(host,/queue\?\.enabled&&\(paid\?\.pending>0\|\|paid\?\.inflight>0\|\|queue\.task\)/);
+  assert.match(host,/Paid donations are waiting; manual rain is available when the queue is idle/);
+  assert.match(launcherScript,/lastQueueDepth=Math\.max\(0,Number\(d\.pending\)/);
+  assert.match(launcherScript,/donationsEnabled&&lastQueueDepth>0/);
   const session=text('src/conversation-session.mjs');
   assert.match(session,/startRainNow\(\)/);
   assert.match(session,/popup:\{type:'celebration'\}/);

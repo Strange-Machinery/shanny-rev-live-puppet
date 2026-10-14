@@ -30,3 +30,11 @@ work/
 *.ledger.lock
 *.url
 
+
+# Approved painted HUD flipbook + user-edited song are installed from
+# a hash-pinned local ZIP; never accidentally commit or publish these binaries.
+/src/remote-web/popup-art.webp
+/src/remote-web/popup-hotmic.webp
+/src/remote-web/popup-art-still.webp
+/src/remote-web/popup-hotmic-still.webp
+/src/remote-web/rain-intro.mp3

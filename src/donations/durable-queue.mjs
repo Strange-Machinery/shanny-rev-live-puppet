@@ -229,8 +229,16 @@ export class DurableDonationQueue {
       if(!this._current(revision))return false;
       if(this.silencing){await sleep(this.pollMs);continue;}
       if(status.mode!=='live'||status.error)throw new Error('Host is stopped or failed');
-      if(!status.turn_busy&&!status.conversation_busy&&!status.presentation_visible)return true;
-      if(this.now()>=deadline)throw new Error('Host was busy past the donation deadline');
+      // Real paid events must never disappear into an OBS stage with no
+      // authenticated Browser Source viewer. A producer-only fake host
+      // without a media property remains valid for offline fixtures.
+      const missingObs=Boolean(status.media&&
+        (status.media.available===false||
+          Number.isInteger(status.media.obs_viewers)&&status.media.obs_viewers<1));
+      if(!missingObs&&!status.turn_busy&&!status.conversation_busy&&!status.presentation_visible)return true;
+      if(this.now()>=deadline)throw new Error(missingObs?
+        'No connected OBS viewer to deliver paid donation':
+        'Host was busy past the donation deadline');
       await sleep(this.pollMs);
     }
     return false;

@@ -46,8 +46,17 @@ test('actual OBS DOM hides/clears audio and text, shows donor only for paid aler
     // $100 rain starts the locally hosted soundtrack BEFORE any TTS.
     const rain={...donation,presentation_nonce:'rain-01',presentation_mode:'rain'};
     player.onPresentation(true,rain);
+    // The howl begins AFTER OBS acknowledges a visible/unmuted video
+    // frame, not speculatively before media-presented is accepted.
+    assert.equal($('rain-cue').paused,true);
+    await delay(0);
     assert.equal($('rain-cue').paused,false);
     assert.equal($('rain-cue').currentTime,0);
+    assert.deepEqual(sent.slice(-2).map(x=>x.action),['media-presented','media-rain-started']);
+    $('rain-cue').onended();
+    await delay(0);
+    assert.equal(sent.at(-1).action,'media-rain-ended');
+    assert.equal(sent.at(-1).nonce,'rain-01');
     // Native M16 seated_response is still the SAME popup, not a new donor
     // event. The voice can release only after the rain audio has stopped.
     player.onPresentation(true,{...rain,presentation_nonce:'desk-02',presentation_mode:'seated'});

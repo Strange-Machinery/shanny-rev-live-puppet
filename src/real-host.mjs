@@ -116,7 +116,9 @@ export async function serveRealHost(config){
       // keeping the public popup visible. TTS is NOT released until receipt.
       seat:({signal})=>media.animate({id:'seated_response',targets:['SHANNY','REV'],signal}),
       end:({signal})=>media.animate({id:'presentation_end',targets:['SHANNY','REV'],signal}),
-      waitVisible:({signal})=>media.waitForViewer({signal}),stop:()=>media.stopAnimations()
+      waitVisible:({signal})=>media.waitForViewer({signal}),
+      waitRainEnd:({signal})=>media.waitForRainEnd({signal}),
+      stop:()=>media.stopAnimations()
     }:undefined});await session.initialize();
     const player=spawn(config.player,['-force-d3d11','-screen-fullscreen','0','-videoMode',config.videoMode||'COLORBLIND','-logFile',join(root,'player.log')],
       {windowsHide:false,stdio:'ignore',env:{...process.env,LIVE_PUPPET_TOKEN:token,LIVE_PUPPET_URL:origin,
@@ -154,6 +156,16 @@ export async function serveRealHost(config){
       if(data.action==='rain-now'){
         if(!media?.info().available)throw new Error('Native paired stage is unavailable');
         if(manualRainArming||session.turn)throw new Error('Stage busy; finish the current donation before money rain');
+        // A verified paid event may have been admitted just before the
+        // native session becomes busy. Never let an operator celebration
+        // steal that slot: the durable worker would otherwise mark the
+        // paid delivery STARTED and discard it after a busy-host error.
+        // Disabled/STOPped queues may retain old pending rows, which must
+        // not prevent a separate, authorized manual celebration.
+        const queue=donations?.queue;
+        const paid=queue?.status();
+        if(queue?.enabled&&(paid?.pending>0||paid?.inflight>0||queue.task))
+          throw new Error('Paid donations are waiting; manual rain is available when the queue is idle.');
         manualRainArming=true;
         try {
           // Pressing the trusted button explicitly arms a ONE-OFF dance.
@@ -164,7 +176,10 @@ export async function serveRealHost(config){
       }
       if(data.action==='donation-status')return donations.status();
       if(data.action==='donation-enable'){
-        if(!media?.info().available)throw new Error('The paired OBS stage must be ready before donation reactions are enabled');
+        const ready=media?.info();
+        if(!ready?.available)throw new Error('The paired OBS stage must be ready before donation reactions are enabled');
+        if(!ready.obs_viewers)
+          throw new Error('Connect the private OBS Browser Source before enabling automatic paid donations');
         return donations.enable({make_it_rain:data.make_it_rain===true});
       }
       if(data.action==='donation-mode')return donations.setMode(data.make_it_rain);

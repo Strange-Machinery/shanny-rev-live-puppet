@@ -41,6 +41,11 @@ export class LiveDonations {
   }catch(error){this.ledger.close();throw error;}
   this.sources=new Map();this.factories=factories;
   this.make_it_rain=false;this.closed=false;this.lastError='';
+  // Non-PII diagnostics: operator can distinguish a dashboard mock alert
+  // that NEVER hit the paid-event source from a real adapter event.
+  this.providerCounters=Object.fromEntries(PROVIDERS.map(provider=>[provider,
+    {observed:0,ignored:0,accepted:0,duplicate:0,disabled:0,busy:0}]));
+  this.lastProviderEvent=null;
  }
  status(){
   const base=this.queue.status();
@@ -53,6 +58,11 @@ export class LiveDonations {
   const providers={...base.providers};
   for(const p of PROVIDERS)if(!configured[p])providers[p]='not_configured';
   return {...base,providers,configured,make_it_rain:this.make_it_rain,
+   // No donor, transaction ID, text, JWT or raw socket response is exposed.
+   intake_diagnostics:{
+     counts:Object.fromEntries(PROVIDERS.map(p=>[p,{...this.providerCounters[p]}])),
+     last:this.lastProviderEvent?{...this.lastProviderEvent}:null
+   },
    error:this.lastError||base.error,requires_setup:!Object.values(configured).some(Boolean)};
  }
  setMode(rain){
@@ -61,13 +71,23 @@ export class LiveDonations {
  }
  ingest(source,payload){
   if(this.closed)throw new Error('Donation coordinator closed');
+  const packets=normalizeProviderEvent(source,payload,{authority:this.authority});
+  const counter=this.providerCounters[source];
+  if(!counter)throw new Error('Unknown authenticated paid source');
+  counter.observed++;
+  const mark=outcome=>{
+    if(Object.hasOwn(counter,outcome))counter[outcome]++;
+    this.lastProviderEvent={source,outcome,observed_unix_ms:Date.now()};
+  };
+  if(!packets.length)mark('ignored');
   const result=[];
-  for(const item of normalizeProviderEvent(source,payload,{authority:this.authority})){
+  for(const item of packets){
    // An authenticated USD $100+ contribution always earns money rain.
    // Never compare bare amounts across currencies (e.g. 100 JPY).
    // Freeze the result when admitting the queue item, not at dispatch.
    const highValueRain=item.currency==='USD'&&item.amount>=100;
    const admitted=this.queue.ingest(item,{make_it_rain:this.make_it_rain||highValueRain});
+   mark(admitted.status==='queued'?'accepted':admitted.status);
    if(admitted.status==='busy')throw new Error('Donation queue full; provider replay required');
    result.push(admitted);
   }

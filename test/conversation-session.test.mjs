@@ -260,3 +260,118 @@ test('operator money-rain button runs native paired animation without faking spe
  assert.ok(stopped>=1);
  assert.equal(f.session.history.length,0);
 });
+
+test('OBS actual music-ended receipt is mandatory before seat/TTS even when ALL voices are prepared early',async()=>{
+ let finishMusic,gateReached=false;
+ const music=new Promise(resolve=>{finishMusic=resolve;});
+ const f=fixture({generate:async()=>({lines:[
+  {actor:'SHANNY',text:'That is outrageous!',mood:'rage'},
+  {actor:'REV',text:'I am not thanking that commenter!',mood:'irritated'}
+ ],rev_reason:'Rev resents audience demands'})});
+ const sequence=[];
+ f.session.pause=async()=>{sequence.push('nominal-duration');};
+ f.session.presentation={
+  begin:async args=>{sequence.push('rain-start');return {duration_ms:20000};},
+  waitVisible:async()=>{sequence.push('obs-ready');},
+  waitRainEnd:async()=>{gateReached=true;sequence.push('waiting-audio-ended');await music;sequence.push('audio-ended');},
+  seat:async()=>sequence.push('seated'),
+  end:async()=>sequence.push('hidden'),
+  stop:()=>sequence.push('stop')
+ };
+ await f.session.initialize();const scope=await f.session.arm();
+ await f.session.submit({kind:'donation',text:'You are all so rude.',make_it_rain:true,...scope});
+ await until(()=>gateReached&&f.spoken.length===3);
+ assert.deepEqual(sequence,['rain-start','obs-ready','nominal-duration','waiting-audio-ended']);
+ assert.equal(f.released.length,0,'prepared donor/TTS must remain HELD while OBS sound is still audible');
+ finishMusic();
+ await until(()=>f.released.length===1);
+ assert.equal(sequence.indexOf('audio-ended')<sequence.indexOf('seated'),true);
+ assert.equal(sequence.includes('hidden'),false);
+ f.emit('playback.started',f.spoken[0].id);f.emit('playback.finished',f.spoken[0].id);
+ await until(()=>f.released.length===2);
+ f.emit('playback.started',f.spoken[1].id);f.emit('playback.finished',f.spoken[1].id);
+ await until(()=>f.released.length===3);
+ f.emit('playback.started',f.spoken[2].id);f.emit('playback.finished',f.spoken[2].id);
+ await until(()=>!f.session.turn);
+ assert.deepEqual(sequence,['rain-start','obs-ready','nominal-duration','waiting-audio-ended',
+  'audio-ended','seated','obs-ready','hidden']);
+});
+
+test('STOP during delayed OBS soundtrack receipt cancels rain and prevents ANY read/TTS release',async()=>{
+ let finishMusic,gateReached=false;
+ const music=new Promise(resolve=>{finishMusic=resolve;});
+ const f=fixture({generate:async()=>({lines:[
+  {actor:'SHANNY',text:'No.',mood:'anger'},
+  {actor:'REV',text:'Absolutely not.',mood:'skeptical'}
+ ],rev_reason:'Rev rejects demand'})});
+ const events=[];
+ f.session.pause=async()=>{};
+ f.session.presentation={
+  begin:async()=>({duration_ms:20000}),
+  waitVisible:async()=>{},
+  waitRainEnd:async()=>{gateReached=true;await music;},
+  seat:async()=>events.push('seated'),
+  end:async()=>events.push('hidden'),
+  stop:()=>events.push('stop')
+ };
+ await f.session.initialize();const scope=await f.session.arm();
+ await f.session.submit({kind:'donation',text:'No thanks.',make_it_rain:true,...scope});
+ await until(()=>gateReached);
+ await f.session.stop();
+ finishMusic();
+ await until(()=>!f.session.turn);
+ assert.equal(f.released.length,0);
+ assert.deepEqual(events,['stop']);
+});
+
+test('blocked OBS rain music fails FAST instead of waiting for nominal 24s; no TTS escapes',async()=>{
+ let releaseNominal,gateCalled=false;
+ const f=fixture({generate:async()=>({lines:[
+  {actor:'SHANNY',text:'You trolls are ungrateful!',mood:'rage'},
+  {actor:'REV',text:'I refuse to entertain you!',mood:'irritated'}
+ ],rev_reason:'Rev disputes viewers'})});
+ const calls=[];
+ f.session.pause=()=>new Promise(resolve=>{releaseNominal=resolve;});
+ f.session.presentation={
+  begin:async()=>({duration_ms:20000}),
+  waitVisible:async()=>{},
+  waitRainEnd:async()=>{gateCalled=true;throw Error('OBS rain autoplay refused');},
+  seat:async()=>{calls.push('seat');},
+  end:async()=>{calls.push('end');},
+  stop:()=>{calls.push('stop');}
+ };
+ await f.session.initialize();
+ const scope=await f.session.arm();
+ const answer=await f.session.submit({kind:'donation',make_it_rain:true,
+  text:'You should be polite!',...scope});
+ assert.equal(answer.status,'accepted');
+ await until(()=>gateCalled);
+ await until(()=>!f.session.turn);
+ assert.equal(f.released.length,0,'NO prepared voices released when music failed');
+ assert.deepEqual(calls,['stop'],'fail closed, no native seat/TTS behind failed song');
+ assert.equal(f.session.mode,'muted');
+ releaseNominal?.();
+});
+
+test('under-$100 VERIFIED paid donation never reads prepared TTS to an unacknowledged OBS video',async()=>{
+ const f=fixture({generate:async()=>({lines:[
+  {actor:'SHANNY',text:'That commenter is completely ridiculous.',mood:'anger'},
+  {actor:'REV',text:'I am sick of this audience.',mood:'irritated'}
+ ],rev_reason:'Rev objects to chat'})});
+ const events=[];
+ f.session.presentation={
+  begin:async()=>{events.push('seat-start');return {duration_ms:20000};},
+  waitVisible:async()=>{events.push('no-OBS-confirmation');return false;},
+  end:async()=>events.push('hidden'),
+  stop:()=>events.push('stopped')
+ };
+ await f.session.initialize();const scope=await f.session.arm();
+ await f.session.submit({kind:'donation',text:'Please be nice to everyone.',
+  donation:{provider:'streamelements',donor:'ACTUAL PAYING TEST',amount:5,currency:'USD'},
+  make_it_rain:false,...scope});
+ await until(()=>!f.session.turn);
+ assert.equal(f.released.length,0,'actual paid TTS must NOT leak without visible OBS');
+ assert.equal(f.spoken.length,3,'all clips prepared but safely held');
+ assert.deepEqual(events,['seat-start','no-OBS-confirmation','stopped']);
+ assert.equal(f.session.mode,'muted');
+});

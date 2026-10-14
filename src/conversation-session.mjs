@@ -173,7 +173,16 @@ export class ConversationSession {
       const duration=Math.max(RAIN_DANCE_MIN_MS,RAIN_CUE_DURATION_MS,
         Math.min(60000,performance?.duration_ms||RAIN_DANCE_MIN_MS))+RAIN_SEAT_SETTLE_MS;
       const remaining=duration-(this.now()-startedAt);
-      if(remaining>0)await this.pause(remaining,undefined,{signal:turn.abort.signal});
+      // Run the nominal 23.9s choreography hold and browser music-ended
+      // verification concurrently. Failed audio can now stop the popup
+      // promptly instead of silently completing a 24-second dance.
+      const nominalHold=remaining>0
+        ?this.pause(remaining,undefined,{signal:turn.abort.signal})
+        :Promise.resolve();
+      const soundEnd=Promise.resolve().then(()=>this.presentation.waitRainEnd?.({
+        signal:turn.abort.signal,timeoutMs:RAIN_CUE_DURATION_MS+10000
+      }));
+      await Promise.all([nominalHold,soundEnd]);
       this.check(turn);
       if(typeof this.presentation.seat!=='function')
         throw new Error('Native desk recovery is required after manual rain');
@@ -257,6 +266,16 @@ export class ConversationSession {
       prior=row.id;
     }
   }
+  async requirePresentationVisible(turn){
+    const acknowledged=await this.presentation.waitVisible?.({signal:turn.abort.signal});
+    this.check(turn);
+    // A real paid event must NEVER be consumed invisibly just because an
+    // OBS media-open peer exists but video frames/unmute were not confirmed.
+    // Local producer Test donation/hotmic may use bounded preroll fallback.
+    if(turn.popup?.type==='donation'&&acknowledged!==true)
+      throw new Error('OBS did not acknowledge visible paid donation; refusing unseen TTS');
+    return acknowledged;
+  }
   async runPresentation(turn){
     let visibleAt,rows;
     if(turn.make_it_rain){
@@ -271,17 +290,24 @@ export class ConversationSession {
         value=>({value}),error=>({error}));
       const performance=await started;
       this.check(turn);
-      await this.presentation.waitVisible?.({signal:turn.abort.signal});
-      this.check(turn);
+      await this.requirePresentationVisible(turn);
       visibleAt=this.now();
-      // The producer-approved audio cut is 22.152s, a little longer
-      // than the native dance. Never start the donor's first word until
-      // the "lit-lit-lit" echo tail and actual chair recovery are done.
+      // The approved 23.902s encoded cue must actually finish in OBS.
+      // Nominal timing is a minimum; an authenticated media-ended receipt
+      // from the currently active OBS viewer gates donor TTS after dancing.
       const choreography=Math.max(RAIN_DANCE_MIN_MS,
         Number.isFinite(performance?.duration_ms)?performance.duration_ms:RAIN_DANCE_MIN_MS);
       const target=Math.max(choreography,RAIN_CUE_DURATION_MS)+RAIN_SEAT_SETTLE_MS;
       const remaining=target-(this.now()-visibleAt);
-      if(remaining>0)await this.pause(remaining,undefined,{signal:turn.abort.signal});
+      const nominalHold=remaining>0
+        ?this.pause(remaining,undefined,{signal:turn.abort.signal})
+        :Promise.resolve();
+      const soundEnd=Promise.resolve().then(()=>this.presentation.waitRainEnd?.({
+        signal:turn.abort.signal,timeoutMs:RAIN_CUE_DURATION_MS+10000,
+        // Real paid events require an actual OBS viewer/music completion.
+        requireViewer:turn.popup?.type==='donation'
+      }));
+      await Promise.all([nominalHold,soundEnd]);
       this.check(turn);
       if(typeof this.presentation.seat!=='function')
         throw new Error('Native seated camera/desk recovery is required after rain');
@@ -289,8 +315,7 @@ export class ConversationSession {
       this.check(turn);
       // Seating keeps the same popup visible but rotates presentation nonce,
       // causing the OBS page to stop music and show the desk before speech.
-      await this.presentation.waitVisible?.({signal:turn.abort.signal});
-      this.check(turn);
+      await this.requirePresentationVisible(turn);
       const result=await preparing;
       if(result.error)throw result.error;
       rows=result.value;
@@ -301,8 +326,7 @@ export class ConversationSession {
       this.check(turn);
       await this.presentation.begin({rain:false,popup:turn.popup,signal:turn.abort.signal});
       this.check(turn);
-      await this.presentation.waitVisible?.({signal:turn.abort.signal});
-      this.check(turn);
+      await this.requirePresentationVisible(turn);
       visibleAt=this.now();
     }
     await this.playPreparedPresentationRows(turn,rows);
