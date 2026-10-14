@@ -23,6 +23,7 @@ if(typeof Image==='function'){
   }
 }
 const subtitle=$('actor-caption'),subtitleActor=$('subtitle-actor'),subtitleWords=$('subtitle-words');
+const strap=$('painted-strap');
 let activePresentationNonce=null;
 
 function hide(){
@@ -34,6 +35,7 @@ function hide(){
   popup.hidden=true;
   popup.dataset.kind='hidden';
   label.textContent='';donor.textContent='';amount.textContent='';message.textContent='';
+  strap.hidden=true;strap.textContent='';
   subtitle.hidden=true;subtitle.dataset.actor='';
   subtitleActor.textContent='';subtitleWords.textContent='';
 }
@@ -44,8 +46,11 @@ function renderPresentation(visible,status){
   popup.dataset.kind=view.kind;
   popup.dataset.art=painted.has(imageForKind(view.kind))?'painted':'fallback';
   label.textContent=view.heading;
+  strap.hidden=!['hotmic','celebration'].includes(view.kind);
+  strap.textContent=view.kind==='celebration'?'MEMBERSHIP BOMB · MONEY RAIN':
+    view.kind==='hotmic'?'LIVE RESPONSE':'';
   // All untrusted text uses textContent, never HTML or an interpolated URL.
-  if(view.kind==='hotmic'){
+  if(view.kind==='hotmic'||view.kind==='celebration'){
     // The native Shanny/Rev subtitle system is responsible for speech
     // captions inside the stage picture, NOT this donor/amount strip.
     scroller.reset();
