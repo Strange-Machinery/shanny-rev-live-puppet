@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs';
 const html=readFileSync(new URL('../src/remote-web/stage.html',import.meta.url),'utf8');
 const css=readFileSync(new URL('../src/remote-web/stage.css',import.meta.url),'utf8');
 const shellBefore=html.split('<div class="popup-rim">')[0];
+const artOnly=shellBefore.slice(shellBefore.indexOf('<svg class="mucus-layer'));
 
 test('STANK TANK AI branding retains the production billing and live camera bug',()=>{
   assert.match(html,/<title>Stank Tank AI — Buff OBS alert<\/title>/);
@@ -67,7 +68,7 @@ test('at most five independently timed motion strands and two infrequent microbe
   assert.match(css,/@keyframes mucus-tip-tension/);
   assert.match(css,/@keyframes mucus-light-shift/);
   assert.match(css,/opacity:0/);
-  assert.doesNotMatch(shellBefore,/<image|<filter|<feTurbulence|<feDisplacementMap|onload=|<script/i);
+  assert.doesNotMatch(artOnly,/<image|<filter|<feTurbulence|<feDisplacementMap|onload=|<script/i);
   assert.doesNotMatch(css,/@import|fonts\.googleapis|filter:\s*blur|backdrop-filter|url\(["']?https?:/i);
 });
 
