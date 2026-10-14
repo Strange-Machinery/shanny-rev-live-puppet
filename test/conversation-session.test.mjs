@@ -154,3 +154,29 @@ test('Stop during popup preparation releases no held audio and hides the stage',
  await f.session.stop();complete({lines:[{actor:'SHANNY',text:'Too late.'},{actor:'REV',text:'Cancelled.'}]});
  await until(()=>!f.session.turn);assert.equal(f.released.length,0);assert.equal(hidden,1);
 });
+
+test('seated hotmic popup hides on final Unity playback.finished without the old 20-second hold',async()=>{
+ const f=fixture({generate:async()=>({lines:[
+  {actor:'SHANNY',text:'We are still here.',mood:'anger'},
+  {actor:'REV',text:'And then we are gone.',mood:'irritated'}
+ ],rev_reason:'Replies'})});
+ const states=[];
+ f.session.presentation={
+  begin:async args=>{states.push(['visible',args]);return {duration_ms:20000};},
+  end:async()=>states.push(['hidden']),stop:()=>states.push(['stop'])
+ };
+ await f.session.initialize();
+ const scope=await f.session.arm();
+ await f.session.submit({kind:'microphone',text:'private Buff transcription',...scope});
+ await until(()=>f.released.length===1);
+ assert.equal(states[0][0],'visible');
+ assert.deepEqual(states[0][1].popup,{type:'hotmic'});
+ f.emit('playback.started',f.spoken[0].id);f.emit('playback.finished',f.spoken[0].id);
+ await until(()=>f.released.length===2);
+ f.emit('playback.started',f.spoken[1].id);
+ const finishedAt=Date.now();
+ f.emit('playback.finished',f.spoken[1].id);
+ await until(()=>!f.session.turn);
+ assert.equal(states.at(-1)[0],'hidden');
+ assert.ok(Date.now()-finishedAt<500,'seated response must hide right after the last speech receipt');
+});

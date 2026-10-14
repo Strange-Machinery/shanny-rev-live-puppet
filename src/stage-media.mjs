@@ -1,5 +1,6 @@
 import {createServer} from 'node:http';
 import {randomUUID,timingSafeEqual} from 'node:crypto';
+import {setTimeout as delay} from 'node:timers/promises';
 
 /** Signaling only. Camera/audio travel directly over encrypted WebRTC. */
 export async function createStageMedia({token,iceServers=[],now=Date.now,maxViewers=2}={}){
@@ -7,8 +8,8 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
   for(const server of iceServers){
     if(!Array.isArray(server.urls)||!server.urls.length||server.urls.length>4||server.urls.some(u=>typeof u!=='string'||u.length>500||!/^turns?:|^stun:/.test(u)))throw new Error('Invalid ICE service');
   }
-  const peers=new Map(),commands=new Map();let controlEpoch=0,closed=false,lastSource=0,sourceState='starting',presentationVisible=false,presentationMode='seated';
-  const stopAnimations=()=>{controlEpoch++;presentationVisible=false;for(const c of commands.values())c.finish(new Error('Animation stopped'));commands.clear();};
+  const peers=new Map(),commands=new Map();let controlEpoch=0,closed=false,lastSource=0,sourceState='starting',presentationVisible=false,presentationMode='seated',popup=null,caption=null,presentationNonce=null;
+  const stopAnimations=()=>{controlEpoch++;presentationVisible=false;popup=null;caption=null;presentationNonce=null;for(const c of commands.values())c.finish(new Error('Animation stopped'));commands.clear();};
   const animate=({targets,id,signal})=>new Promise((resolve,reject)=>{
     const presentation=['make_it_rain','seated_response','presentation_end'].includes(id);
     if(!info().available||!Array.isArray(targets)||!targets.length||targets.length>2||new Set(targets).size!==targets.length||targets.some(a=>!['SHANNY','REV'].includes(a))||!(presentation||/^m16_(conversation|directed_point|objection|open_explanation|quiet_listening|seated_listening)$/.test(id))||presentation&&targets.length!==2)return reject(new Error('Animation unavailable'));
@@ -23,6 +24,10 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
   const info=()=>({available:!closed&&lastSource>0&&now()-lastSource<5000&&sourceState==='ready',state:sourceState,
     width:1920,height:1080,fps:30,max_bitrate:12000000,
     presentation_visible:presentationVisible&&now()-lastSource<5000,presentation_mode:presentationMode,
+    popup:presentationVisible&&now()-lastSource<5000?popup:null,
+    caption:presentationVisible&&now()-lastSource<5000?caption:null,
+    presentation_nonce:presentationVisible?presentationNonce:null,
+    obs_viewers:[...peers.values()].filter(p=>p.role==='obs'&&now()-p.seen<15000).length,
     transport:'WebRTC',relay_configured:iceServers.some(s=>s.urls.some(u=>/^turns?:/.test(u)))});
   function viewer(input){
     sweep();if(closed)throw new Error('Stage feed closed');
@@ -30,12 +35,19 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
     if(input.action==='media-open'){
       if(!info().available)throw new Error('Stage camera is not ready');
       if(peers.size>=maxViewers)throw new Error('Stage viewer limit reached; close an unused preview');
-      const id=randomUUID();peers.set(id,{id,seen:now(),offer:null,answer:null,error:null});
+      const id=randomUUID();peers.set(id,{id,seen:now(),offer:null,answer:null,error:null,
+        role:input.viewer_role==='obs'?'obs':'preview',presentedNonce:null});
       return {id,iceServers,...info()};
     }
     const p=peers.get(input.id);if(!p)throw new Error('Stage connection expired; reconnect');
     if(input.action==='media-close'){peers.delete(p.id);return {closed:true};}
     p.seen=now();
+    if(input.action==='media-presented'){
+      if(p.role!=='obs'||!presentationVisible||input.nonce!==presentationNonce)
+        throw new Error('Stale or unauthorized OBS presentation receipt');
+      p.presentedNonce=input.nonce;
+      return {accepted:true};
+    }
     if(input.action==='media-offer'){
       if(p.offer||typeof input.sdp!=='string'||input.sdp.length>48000||!input.sdp.startsWith('v=0')||!/m=video /.test(input.sdp)||!/m=audio /.test(input.sdp))throw new Error('Invalid stage offer');
       p.offer=input.sdp;return {accepted:true};
@@ -58,7 +70,11 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
     }else if(req.url==='/command-receipt'){
       const c=commands.get(data.id);if(c){
         if(data.accepted===true&&['make_it_rain','seated_response','presentation_end'].includes(c.alias)){
-          presentationVisible=c.alias!=='presentation_end';if(presentationVisible)presentationMode=c.alias==='make_it_rain'?'rain':'seated';
+          presentationVisible=c.alias!=='presentation_end';
+          if(presentationVisible){
+            presentationMode=c.alias==='make_it_rain'?'rain':'seated';
+            presentationNonce=randomUUID();
+          }else{popup=null;caption=null;presentationNonce=null;}
         }
         c.finish(data.accepted===true?null:new Error('Player could not prepare the requested performance'),{status:'accepted',kind:'M16_FITTED',targets:c.targets,duration_ms:Number.isSafeInteger(data.duration_ms)&&data.duration_ms>=20000&&data.duration_ms<=60000?data.duration_ms:20000});
       }
@@ -76,5 +92,50 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
   server.requestTimeout=10000;server.headersTimeout=5000;server.maxConnections=8;
   await new Promise((r,j)=>{server.once('error',j);server.listen(0,'127.0.0.1',r);});
   return {url:'http://127.0.0.1:'+server.address().port,viewer,info,animate,stopAnimations,
+    async waitForViewer({signal,timeoutMs=1700}={}){
+      // The browser has to unmute and render the frame before first syllable.
+      // No OBS viewer during producer-only tests: modest deterministic preroll.
+      const nonce=presentationNonce;
+      if(!presentationVisible||!nonce)return false;
+      const hasObsViewer=[...peers.values()].some(p=>p.role==='obs'&&now()-p.seen<15000);
+      if(!hasObsViewer){
+        await delay(420,undefined,{signal});
+        return false;
+      }
+      const deadline=Date.now()+timeoutMs;
+      while(Date.now()<deadline){
+        if(!presentationVisible||presentationNonce!==nonce)return false;
+        if([...peers.values()].some(p=>p.role==='obs'&&p.presentedNonce===nonce))return true;
+        await delay(50,undefined,{signal});
+      }
+      return false;
+    },
+    setCaption(line){
+      if(!presentationVisible){caption=null;return;}
+      if(line===null){caption=null;return;}
+      if(!line||!['SHANNY','REV'].includes(line.actor)||
+         typeof line.text!=='string'||!line.text.trim()||line.text.length>1000)
+        throw new Error('Invalid character subtitle');
+      // Only played Shanny/Rev lines; the producer's hotmic input and
+      // private Qwen deliberation are never exposed in OBS.
+      caption={actor:line.actor,text:line.text.trim()};
+    },
+    setPopup(details){
+      if(presentationVisible||commands.size)throw new Error('Cannot change details during visible performance');
+      if(details===null){popup=null;return;}
+      if(!details||!['hotmic','donation','test'].includes(details.type))
+        throw new Error('Invalid public popup details');
+      // Whitelist fields: no provider IDs, receipts, secrets or source objects.
+      if(details.type==='hotmic'){popup={type:'hotmic'};return;}
+      if(typeof details.message!=='string'||details.message.length>1000)
+        throw new Error('Invalid public popup message');
+      if(details.type==='test'){popup={type:'test',message:details.message};return;}
+      if(typeof details.donor!=='string'||details.donor.length>80||
+         !Number.isFinite(details.amount)||details.amount<=0||
+         typeof details.currency!=='string'||!/^[A-Z]{3}$/.test(details.currency))
+        throw new Error('Invalid public donor display fields');
+      popup={type:'donation',donor:details.donor,amount:details.amount,
+        currency:details.currency,message:details.message};
+    },
     async close(){closed=true;stopAnimations();peers.clear();clearInterval(timer);server.closeAllConnections();await new Promise(r=>server.close(r));}};
 }

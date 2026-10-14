@@ -1,5 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import {setTimeout as delay} from 'node:timers/promises';
+import {parseDonationText} from './donations/parse.mjs';
+import {preparePopupDetails} from './popup-details.mjs';
 
 /** One conversation turn at a time. Only actual playback receipts advance speech. */
 export class ConversationSession {
@@ -18,7 +20,52 @@ export class ConversationSession {
     this.cursor=this.scope.cursor;this.mode='live';this.error='';
     return {session_id:this.scope.session_id,mode_epoch:this.epoch};
   }
-  async stop(){this.revision++;this.epoch++;this.mode='muted';this.turn?.abort.abort();this.presentation?.stop();await this.gateway.panic();}
+  async stop(){
+    this.revision++;this.epoch++;this.mode='muted';
+    this.turn?.abort.abort();this.turn=null;
+    this.presentation?.stop();await this.gateway.panic();
+  }
+  /**
+   * "Shut up" is an interrupt, NOT the sticky operator STOP.
+   * Hide the OBS presentation synchronously, invalidate stale model/voice
+   * continuations, panic the voice gateway, then re-arm the same operator
+   * session for the next TTS. No old turn may release or commit a line.
+   */
+  async silence(){
+    const wasLive=this.mode==='live';
+    const revision=++this.revision;
+    this.epoch++;
+    this.mode=wasLive?'silencing':'muted';
+    this.turn?.abort.abort();this.turn=null;
+    this.presentation?.stop();
+    try {
+      await this.gateway.panic();
+      if(!wasLive||revision!==this.revision)return {silenced:true,waiting_for_tts:false};
+      const stopped=await this.gateway.status();
+      if(revision!==this.revision)return {silenced:true,waiting_for_tts:false};
+      await this.gateway.resume({session_id:stopped.session_id,epoch:stopped.epoch});
+      if(revision!==this.revision){
+        // A concurrent master STOP must win over the interrupt's resume.
+        if(this.mode!=='live')await this.gateway.panic().catch(()=>{});
+        return {silenced:true,waiting_for_tts:false};
+      }
+      const resumed=await this.gateway.status();
+      if(resumed.muted||resumed.session_id!==stopped.session_id)
+        throw new Error('Voice gateway did not resume the same session');
+      if(revision!==this.revision){
+        if(this.mode!=='live')await this.gateway.panic().catch(()=>{});
+        return {silenced:true,waiting_for_tts:false};
+      }
+      this.scope=resumed;this.cursor=resumed.cursor;this.mode='live';this.error='';
+      return {silenced:true,waiting_for_tts:true,session_id:resumed.session_id,mode_epoch:this.epoch};
+    }catch(error){
+      if(revision===this.revision){
+        this.mode='muted';this.error='Could not safely resume after interrupt: '+error.message;
+        await this.gateway.panic().catch(()=>{});
+      }
+      throw error;
+    }
+  }
   current(turn){return this.turn===turn&&!turn.abort.signal.aborted&&turn.revision===this.revision&&this.mode==='live';}
   check(turn){if(!this.current(turn))throw new Error('Conversation cancelled');}
   async events(turn){
@@ -67,13 +114,14 @@ export class ConversationSession {
       }
       turn.timing.within_target=(turn.kind==='donation'?turn.timing.donation_end_to_reply_ms:turn.timing.first_reply_ms)<=turn.timing.target_ms;
     }
+    this.onChange({type:'line.started',turn_id:turn.id,...line});
     await onStarted?.();
     await this.wait(turn,'playback.finished',id,45000);
     this.check(turn);
     this.history.push({...line,input:turn.text,source:turn.kind});this.history=this.history.slice(-8);
     this.onChange({type:'line.finished',...line});
   }
-  async submit({kind,text,audioPath,session_id,mode_epoch,make_it_rain=false}){
+  async submit({kind,text,audioPath,session_id,mode_epoch,make_it_rain=false,donation}){
     if(this.mode!=='live'||this.turn||session_id!==this.scope.session_id||mode_epoch!==this.epoch)throw new Error('Stopped, stale, or busy conversation');
     if(!['donation','microphone'].includes(kind))throw new Error('Unknown response kind');
     if(typeof make_it_rain!=='boolean')throw new Error('Make it rain must be a checkbox choice');
@@ -83,7 +131,15 @@ export class ConversationSession {
     try {
       if(audioPath){if(!this.whisper)throw new Error('Whisper is unavailable');const result=await this.whisper.transcribe({audioPath,signal:turn.abort.signal});this.check(turn);if(result.final!==true)throw new Error('Whisper final transcript required');text=result.text;turn.timing.transcription_ms=this.now()-turn.started;}
       if(typeof text!=='string'||!text.trim()||text.length>1000)throw new Error('Enter bounded final speech');
-      this.check(turn);turn.text=text;
+      this.check(turn);
+      if(kind==='donation'){
+        const parsed=parseDonationText(text);
+        turn.readActor=parsed.actor;text=parsed.text;
+      }
+      turn.text=text;
+      // Public popup data is strictly whitelisted; never publish private
+      // transaction IDs or invent donor/amount fields for hotmic turns.
+      turn.popup=preparePopupDetails({kind,donation,text});
       turn.task=this.run(turn).catch(async error=>{
         if(this.current(turn)){this.error=error.message;await this.stop().catch(()=>{});}
       }).finally(()=>{turn.timing.total_ms=this.now()-turn.started;if(this.turn===turn)this.turn=null;});
@@ -94,7 +150,7 @@ export class ConversationSession {
     if(this.presentation)return this.runPresentation(turn);
     let prior;
     if(turn.kind==='donation'){
-      const read=await this.gateway.speak({actor:'SHANNY',text:turn.text,delivery:'queue',session_id:this.scope.session_id,epoch:this.scope.epoch});
+      const read=await this.gateway.speak({actor:turn.readActor||'SHANNY',text:turn.text,delivery:'queue',session_id:this.scope.session_id,epoch:this.scope.epoch});
       await this.wait(turn,'playback.started',read.request_id,120000);prior=read.request_id;
     }
     const generatedAt=this.now();
@@ -127,7 +183,7 @@ export class ConversationSession {
     // Prepare the complete exchange while OBS remains transparent. Bodies are
     // already preloaded; this never generates or overlays conversational motion
     // onto the rain routine.
-    const read=turn.kind==='donation'?{actor:'SHANNY',text:turn.text}:null;
+    const read=turn.kind==='donation'?{actor:turn.readActor||'SHANNY',text:turn.text}:null;
     const readId=read?await this.queuePrepared(turn,read):null;
     const generatedAt=this.now();let early;
     const plan=await this.director.generate({kind:turn.kind,text:turn.text,history:this.history,signal:turn.abort.signal,
@@ -138,20 +194,31 @@ export class ConversationSession {
     for(let i=0;i<plan.lines.length;i++)rows.push({line:plan.lines[i],id:i===0&&first?.id?first.id:await this.queuePrepared(turn,plan.lines[i])});
     for(const row of rows)await this.wait(turn,'speech.prepared',row.id);
     this.check(turn);this.onChange({type:'plan.ready',turn_id:turn.id,lines:plan.lines});
-    const performance=await this.presentation.begin({rain:turn.make_it_rain,signal:turn.abort.signal});this.check(turn);
+    const performance=await this.presentation.begin({rain:turn.make_it_rain,popup:turn.popup,signal:turn.abort.signal});this.check(turn);
+    // The media page gets its reveal state asynchronously. Give OBS the
+    // chance to draw/unmute before the first actual Unity audio receipt.
+    await this.presentation.waitVisible?.({signal:turn.abort.signal});
+    this.check(turn);
     const visibleAt=this.now();let prior;
     for(const row of rows){
       if(row.read){
         await this.gateway.release({id:row.id,session_id:this.scope.session_id,epoch:this.scope.epoch});
-        await this.wait(turn,'playback.started',row.id,15000);await this.wait(turn,'playback.finished',row.id,45000);
+        await this.wait(turn,'playback.started',row.id,15000);
+        this.onChange({type:'line.started',turn_id:turn.id,...row.line});
+        await this.wait(turn,'playback.finished',row.id,45000);
+        this.check(turn);this.onChange({type:'line.finished',turn_id:turn.id,...row.line});
       }else await this.play(turn,row.line,row.id,prior);
       prior=row.id;
     }
-    // Never cut off an audible reply. A short exchange holds the performance
-    // for twenty seconds; unusually long speech finishes before it disappears.
-    const duration=Math.max(20000,Math.min(60000,performance?.duration_ms||20000));
-    const remaining=duration-(this.now()-visibleAt);
-    if(remaining>0)await delay(remaining,undefined,{signal:turn.abort.signal});
+    // Seated and hotmic popups hide immediately after Unity acknowledges the
+    // FINAL audible speech. No arbitrary 20-second dead-air hold.
+    // Preserve the full authored paired money-rain choreography and chair
+    // return; rain never cuts off speech even when it runs beyond the motion.
+    if(turn.make_it_rain){
+      const duration=Math.max(20000,Math.min(60000,performance?.duration_ms||20000));
+      const remaining=duration-(this.now()-visibleAt);
+      if(remaining>0)await delay(remaining,undefined,{signal:turn.abort.signal});
+    }
     this.check(turn);await this.presentation.end({signal:turn.abort.signal});this.check(turn);
     turn.timing.presentation_ms=this.now()-visibleAt;
   }

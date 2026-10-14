@@ -57,10 +57,20 @@ class RemoteSharing:
                 key_file.write_text(json.dumps({'key': key}), encoding='utf-8')
             if not isinstance(key, str) or len(key) != 64 or any(c not in '0123456789abcdef' for c in key):
                 raise RuntimeError('The private launcher key needs repair.')
+            # Buff's view-only OBS link must survive producer restarts and
+            # operator-key rotation; never expose this key as an operator key.
+            viewer_file = self.engine.repo / 'work/obs-viewer-key.local.json'
+            if viewer_file.exists():
+                viewer_key = json.loads(viewer_file.read_text(encoding='utf-8'))['key']
+            else:
+                viewer_key = secrets.token_hex(32)
+                viewer_file.write_text(json.dumps({'key': viewer_key}), encoding='utf-8')
+            if not isinstance(viewer_key, str) or len(viewer_key) != 64 or any(c not in '0123456789abcdef' for c in viewer_key):
+                raise RuntimeError('Private OBS viewer key needs review.')
             origin = 'https://' + domain
             config = self.engine.repo / 'work/sharing.local.json'
             config.write_text(json.dumps({'endpoint': self.engine.endpoint, 'upstreamToken': self.engine.token,
-                                         'publicOrigin': origin, 'token': key,
+                                         'publicOrigin': origin, 'token': key, 'viewerKey': viewer_key,
                                          'scratch': str(self.engine.repo / 'work/remote-audio')}), encoding='utf-8')
             node = self.engine.node or shutil.which('node.exe') or shutil.which('node')
             bridge = subprocess.Popen([node, str(self.engine.repo / 'src/remote-panel.mjs'), str(config)],

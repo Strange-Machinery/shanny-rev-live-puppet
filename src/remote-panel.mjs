@@ -7,18 +7,28 @@ import {fileURLToPath} from 'node:url';
 import {inspectWav} from './wav.mjs';
 import {readJson} from './http-json.mjs';
 
-export async function serveRemotePanel({action, publicOrigin, scratch, token=randomBytes(32).toString('hex'), port=0,allowLocalPreview=false}) {
+export async function serveRemotePanel({action, publicOrigin, scratch, token=randomBytes(32).toString('hex'), port=0,allowLocalPreview=false,viewerKey}) {
   const origin=new URL(publicOrigin);
   if((origin.protocol!=='https:'&&!(allowLocalPreview&&origin.protocol==='http:'&&origin.hostname==='127.0.0.1'))||origin.username||origin.password||origin.pathname!=='/'||origin.search||origin.hash||token.length<32)
     throw new Error('A private HTTPS origin and strong access key are required');
   const assets=new Map();
-  const viewToken=createHmac('sha256',token).update('buff-obs-view-v1').digest('hex');
+  if(viewerKey!==undefined&&(typeof viewerKey!=='string'||!/^[a-f0-9]{64}$/.test(viewerKey)))throw new Error('Invalid private view-only OBS key');
+  const viewToken=viewerKey||createHmac('sha256',token).update('buff-obs-view-v1').digest('hex');
   for(const [route,file,type] of [['/','index.html','text/html'],['/stage','stage.html','text/html'],['/stage-player.js','stage-player.js','text/javascript'],['/stage-page.js','stage-page.js','text/javascript'],['/panel.js','panel.js','text/javascript'],['/mic-worklet.js','mic-worklet.js','text/javascript'],['/panel.css','panel.css','text/css'],['/stage.css','stage.css','text/css']])
     assets.set(route,{body:await readFile(new URL('./remote-web/'+file,import.meta.url)),type});
   await mkdir(scratch,{recursive:true});
-  let closed=false,busy=false,revision=0,lease=0;
-  const halt=async()=>{revision++;lease=0;await action({action:'stop'});};
-  const timer=setInterval(()=>{if(lease&&Date.now()>lease)void halt().catch(()=>{});},1000);
+  let closed=false,busy=false,revision=0,lease=0,lastInterruption='stop';
+  const halt=async()=>{revision++;lastInterruption='stop';lease=0;await action({action:'stop'});};
+  const timer=setInterval(()=>{
+    if(!lease||Date.now()<=lease)return;
+    lease=0;
+    void (async()=>{
+      // OBS Browser source must continue reacting while Buff's launcher is
+      // closed. Live opt-in cannot be silently disabled by panel lease expiry.
+      const state=await action({action:'donation-status'}).catch(()=>({}));
+      if(!state?.enabled)await halt();
+    })().catch(()=>{});
+  },1000);
   timer.unref();
   const server=createServer((req,res)=>{
     const requestRevision=revision;
@@ -38,8 +48,8 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
         let size=0;const parts=[];
         for await(const chunk of req){size+=chunk.length;if(size>64000)throw new Error('Stage message too large');parts.push(chunk);}
         const input=JSON.parse(Buffer.concat(parts).toString('utf8'));
-        if(!['media-status','media-open','media-offer','media-poll','media-close'].includes(input?.action)||Object.keys(input).some(k=>!['action','id','sdp'].includes(k)))return send(400,{error:'Unsupported stage request'});
-        return send(200,await action(input));
+        if(!['media-status','media-open','media-offer','media-poll','media-close','media-presented'].includes(input?.action)||Object.keys(input).some(k=>!['action','id','sdp','nonce'].includes(k)))return send(400,{error:'Unsupported stage request'});
+        return send(200,await action({...input,viewer_role:viewer?'obs':'preview'}));
       }
       if(!operator)return send(403,{error:'This OBS link is view-only.'});
       if(req.method==='GET'&&req.url==='/api/obs-link')return send(200,{url:(allowLocalPreview?localOrigin:origin.origin)+'/stage#key='+viewToken});
@@ -49,7 +59,7 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
         if(lease)lease=Date.now()+15000;
         return send(200,{mode:s.mode,whisper:s.whisper_available,qwen:s.qwen,speech:s.speech,
           busy:s.turn_busy||s.conversation_busy||s.active_audio>0,kind:'REMOTE_TESTING',production_ready:false,
-            real_characters:Boolean(s.real_characters),history:s.history||[],error:s.error||'',latency:s.latency||null,media:s.media||null});
+            real_characters:Boolean(s.real_characters),history:s.history||[],error:s.error||'',latency:s.latency||null,media:s.media||null,donations:s.donations||null});
       }
       if(req.method!=='POST'||req.url!=='/api/action')return send(404,{error:'Unavailable.'});
       if(!String(req.headers['content-type']).startsWith('application/json'))return send(415,{error:'JSON required.'});
@@ -58,6 +68,22 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
       const input=JSON.parse(Buffer.concat(chunks).toString('utf8'));
       if(!input||Array.isArray(input)||Object.keys(input).some(k=>!['action','text','audio','id','target','context','catalogRevision','make_it_rain'].includes(k))||input.make_it_rain!==undefined&&typeof input.make_it_rain!=='boolean')return send(400,{error:'Unsupported input.'});
       if(input.action==='stop'){await halt();return send(200,{stopped:true});}
+      if(input.action==='donation-stop'){
+        revision++;lastInterruption='stop';lease=0;
+        return send(200,await action({action:'donation-stop'}));
+      }
+      if(input.action==='silence'||input.action==='transcript'&&
+          typeof input.text==='string'&&/^\s*shut\s+up[.!?]*\s*$/i.test(input.text)){
+        // Only trusted operator transcript/control, never paid donor text.
+        revision++;lastInterruption='silence';lease=Date.now()+15000;
+        return send(200,await action({action:'silence'}));
+      }
+      if(input.action==='donation-enable'){
+        return send(200,await action({action:'donation-enable',make_it_rain:input.make_it_rain===true}));
+      }
+      if(input.action==='donation-mode'){
+        return send(200,await action({action:'donation-mode',make_it_rain:input.make_it_rain===true}));
+      }
       if(requestRevision!==revision)return send(409,{error:'Cancelled.'});
       if(input.action==='animate') {
         const result=await action({action:'animate',id:input.id,target:input.target,context:input.context,catalogRevision:input.catalogRevision});
@@ -80,7 +106,10 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
         }
         if(!current())return send(409,{error:'Cancelled.'});
         const scope=await action({action:'arm'});
-        if(!current()){await halt();return send(409,{error:'Cancelled.'});}
+        if(!current()){
+          if(lastInterruption!=='silence')await halt();
+          return send(409,{error:'Cancelled.'});
+        }
         lease=Date.now()+15000;
         const result=await action({action:input.action==='donate'?'donate':'transcript',text:input.text,make_it_rain:input.make_it_rain===true,
           ...(audioPath?{audioPath,source:'OFFLINE_WAV'}:{}),actor:'SHANNY',session_id:scope.session_id,mode_epoch:scope.mode_epoch});

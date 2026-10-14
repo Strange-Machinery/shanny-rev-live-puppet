@@ -1,1 +1,184 @@
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;color:#fff;font:16px system-ui}video{width:100%;height:100%;object-fit:contain}#connection{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:20px;background:#151719;border-radius:10px;text-align:center}button{padding:12px 18px;margin:4px;border:0;border-radius:6px;cursor:pointer}#connection[hidden]{display:none}
+/* Variant A — Classic Slime. OBS canvas itself remains 100% transparent.
+   The live Unity H.264 frame is intentionally confined to the inner stage
+   well: no alpha-video or chroma-key acceptance is assumed. */
+:root{
+  color-scheme:dark;
+  --slime:#a8fd48;--slime-hi:#d7ff7a;--acid:#80d928;--deep:#14230d;
+  --moss:#324d1d;--tar:#090f0a;--ink:#080d09;--text:#f1f6e8;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent!important;color:var(--text)}
+body{position:relative;font-family:Arial,"Segoe UI",sans-serif}
+[hidden],.stank-popup[hidden],#connection[hidden]{display:none!important}
+.stank-popup{
+  position:absolute;
+  top:27px;left:29px;
+  width:min(780px,calc(100vw - 58px));
+  z-index:1;
+  isolation:isolate;
+  filter:drop-shadow(0 12px 17px rgba(0,0,0,.72));
+  animation:stank-arrive 180ms ease-out both;
+}
+.stank-popup[data-kind="hidden"]{display:none!important}
+.popup-rim{
+  position:relative;overflow:hidden;
+  border:4px solid #071306;
+  border-radius:24px 24px 18px 18px;
+  padding:9px;
+  background:linear-gradient(150deg,#c0ff5a 0%,#498f20 8%,#0c240d 22%,#172712 82%,#76c132 96%,#b1eb52 100%);
+  box-shadow:
+    0 0 0 2px #293f19,
+    inset 0 0 0 2px rgba(194,255,124,.46),
+    inset 0 -8px 14px rgba(0,0,0,.52),
+    0 0 25px rgba(102,218,44,.12);
+}
+.popup-rim::after{content:"";position:absolute;inset:5px;pointer-events:none;
+  border:1px solid rgba(221,255,157,.3);border-radius:16px}
+.popup-header{
+  position:relative;min-height:95px;padding:13px 19px 11px;
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
+  border:2px solid #0b1609;border-radius:15px 15px 6px 6px;
+  background:
+    radial-gradient(ellipse at 20% 0%,rgba(166,255,69,.22),transparent 58%),
+    linear-gradient(110deg,#273f19 0%,#13220f 50%,#0b180d 100%);
+  box-shadow:inset 0 2px 0 rgba(185,248,111,.34),inset 0 -8px 16px rgba(0,0,0,.34);
+}
+.brand-block{display:flex;flex-direction:column;gap:2px;min-width:0}
+.brand-eyebrow{
+  font:700 10px/1.2 "Arial Narrow","Segoe UI",sans-serif;
+  letter-spacing:.28em;color:#bfd8a4
+}
+.brand-wordmark{
+  display:block;white-space:nowrap;
+  font:1000 52px/.99 Impact,"Arial Black","Segoe UI Black",sans-serif;
+  letter-spacing:.022em;transform:skewX(-3deg);
+  background:linear-gradient(180deg,#f2ffb4 0%,#c7ff63 16%,#84d724 55%,#428e17 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  -webkit-text-stroke:1.7px #132c0b;
+  filter:drop-shadow(2px 4px 0 #061307) drop-shadow(0 0 6px rgba(143,255,58,.2));
+}
+.brand-wordmark span:last-child{letter-spacing:.006em}
+.alert-type{
+  display:flex;flex:none;align-items:center;gap:9px;
+  padding:9px 12px;
+  border:1px solid #659a34;border-radius:7px;
+  background:linear-gradient(160deg,#263f16,#0b190c);
+  box-shadow:inset 0 1px rgba(192,255,105,.17),0 3px 8px #030803;
+  color:#e5ffb7;font:bold 11px/1.2 "Arial Narrow","Segoe UI",sans-serif;
+  letter-spacing:.11em;text-align:right
+}
+.alert-lamp,.bug-dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex:none;
+  background:#b7f859;box-shadow:0 0 9px rgba(163,246,68,.7)}
+/* Static decorative drips: lightweight CSS, no downloaded font, GIF or JS
+   animation layer competing with the video encoder. */
+.goo{position:absolute;z-index:3;pointer-events:none;background:linear-gradient(#a9f83f,#69af1e);
+  box-shadow:1px 2px 0 #193c0d,0 2px 5px rgba(0,0,0,.4)}
+.goo-1{width:17px;height:38px;left:80px;top:7px;border-radius:0 0 10px 10px}
+.goo-2{width:10px;height:24px;left:129px;top:7px;border-radius:0 0 7px 7px}
+.goo-3{width:13px;height:31px;right:94px;top:7px;border-radius:0 0 7px 7px}
+.stage-well{
+  position:relative;overflow:hidden;margin-top:7px;
+  aspect-ratio:16/9;border:3px solid #10190e;border-radius:6px;
+  background:linear-gradient(140deg,#192919,#080d09);
+  box-shadow:0 0 0 2px #618930,inset 0 0 18px #000;
+}
+.stage-well video{
+  position:absolute;inset:0;width:100%;height:100%;display:block;
+  object-fit:contain;background:#0e130e;
+}
+/* Hidden video still receives media so OBS can stay connected. The whole
+   popup is display:none outside a performance; no opaque idle frame leaks. */
+.stage-vignette{
+  position:absolute;inset:0;pointer-events:none;
+  box-shadow:inset 0 0 26px 10px rgba(0,0,0,.36),inset 0 0 0 1px rgba(199,249,124,.22)
+}
+.stage-bug{
+  position:absolute;right:12px;top:12px;
+  display:flex;align-items:center;gap:7px;
+  padding:6px 9px;border-radius:4px;
+  background:rgba(6,17,10,.81);border:1px solid rgba(148,211,74,.49);
+  color:#d6f5b0;font:800 10px/1 Arial,sans-serif;letter-spacing:.12em;
+  text-shadow:0 1px #000
+}
+.donation-plaque{
+  margin-top:9px;display:grid;grid-template-columns:minmax(0,37fr) minmax(0,63fr);
+  gap:8px;min-height:103px
+}
+.donor-plaque,.message-plaque{
+  min-width:0;overflow:hidden;position:relative;padding:10px 14px 12px;
+  border:2px solid #101e0c;border-radius:6px 6px 12px 12px;
+  background:linear-gradient(145deg,#23371c 0%,#101b10 43%,#090f0c 100%);
+  box-shadow:inset 0 2px rgba(150,224,60,.32),inset 0 -2px #070d08;
+}
+.donor-plaque{border-color:#2b5317;background:
+    radial-gradient(ellipse at 0% 20%,rgba(103,188,42,.23),transparent 72%),
+    linear-gradient(155deg,#263d1b,#101c12)}
+.message-plaque{padding-right:18px}
+.plaque-kicker{
+  display:block;margin-bottom:5px;color:#acdd7f;
+  font:800 10px/1.15 "Arial Narrow","Segoe UI",sans-serif;letter-spacing:.2em
+}
+#donor-name{
+  display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font:900 26px/1.09 Impact,"Arial Black",sans-serif;
+  color:#c5fa75;-webkit-text-stroke:.5px #102908;text-shadow:1px 2px #080c09;
+  letter-spacing:.02em
+}
+.donation-amount{
+  display:block;padding-top:4px;color:#f2ffcb;
+  font:800 20px/1.12 "Arial Black","Segoe UI",sans-serif;
+  text-shadow:0 2px #091209
+}
+#donation-message{
+  margin:0;color:#f3f5e9;font:700 17px/1.31 "Segoe UI",Arial,sans-serif;
+  overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;
+  -webkit-line-clamp:3;line-clamp:3;overflow-wrap:anywhere;white-space:pre-line;
+  max-height:4em;text-shadow:0 1px rgba(0,0,0,.7)
+}
+.frame-bottom{height:8px;display:flex;justify-content:space-around;pointer-events:none}
+.frame-bottom span{width:22px;height:9px;border-radius:0 0 13px 13px;background:#385f1a}
+.frame-bottom span:nth-child(2){width:14px;height:5px}
+.frame-bottom span:nth-child(3){height:12px;width:16px}
+/* Hotmic is not a donation. Show ONLY the branded header and performance,
+   leaving the native Unity subtitles unobscured inside the video window. */
+.stank-popup[data-kind="hotmic"] .donation-plaque{display:none}
+.stank-popup[data-kind="hotmic"] .stage-well{margin-bottom:4px}
+/* Early production 1920x1080 Browser Source is authoritative. Retain fit
+   for smaller browser-window QA without changing the internal 16:9 video. */
+@media(max-width:850px){
+  .stank-popup{left:14px;top:14px;width:calc(100vw - 28px)}
+  .brand-wordmark{font-size:clamp(27px,6vw,49px)}
+  .popup-header{min-height:72px;padding:10px}
+  #donor-name{font-size:clamp(16px,3.4vw,26px)}
+  #donation-message{font-size:clamp(12px,2.25vw,17px)}
+  .alert-type{font-size:9px;padding:6px}
+  .goo-1,.goo-2,.goo-3{transform:scale(.75);transform-origin:top}
+}
+@media(prefers-reduced-motion:reduce){.stank-popup{animation:none}}
+@keyframes stank-arrive{
+  from{opacity:0;transform:translateY(-5px) scale(.992)}
+  to{opacity:1;transform:none}
+}
+/* Same speaker/name hierarchy as the show subtitles, composited INSIDE
+   the live 16:9 video frame. No Buff/Whisper transcription is displayed. */
+.actor-caption{
+  position:absolute;bottom:13px;left:4%;width:92%;z-index:4;
+  padding:9px 15px 12px;
+  background:rgba(4,6,8,.88);
+  border:1px solid rgba(235,246,221,.21);border-radius:4px;
+  text-align:center;box-shadow:0 3px 15px rgba(0,0,0,.8);
+  pointer-events:none
+}
+.subtitle-actor{
+  display:block;font:800 15px/1.1 "Segoe UI",Arial,sans-serif;
+  color:#ffd46b;text-shadow:0 1px #000
+}
+.actor-caption[data-actor="REV"] .subtitle-actor{color:#89dafa}
+.subtitle-words{
+  margin:4px 0 0;font:700 21px/1.25 "Segoe UI",Arial,sans-serif;
+  color:#fff;overflow-wrap:anywhere;text-shadow:0 1px #000;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;
+  line-clamp:3;overflow:hidden
+}
+/* Debug controls never render in the public OBS frame. */
+#connection{display:none!important}
