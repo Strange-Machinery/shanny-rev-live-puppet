@@ -20,13 +20,21 @@ import {setTimeout as sleep} from 'node:timers/promises';
 const SOURCES=new Set(['youtube','streamlabs','streamelements']);
 const STATES=new Set(['queued','started']);
 const MAX_ITEMS_ON_DISK=128;
+function validPayment(details){
+  return details&&typeof details==='object'&&!Array.isArray(details)&&
+    ['youtube','streamlabs','streamelements'].includes(details.provider)&&
+    typeof details.donor==='string'&&details.donor.length<=80&&
+    Number.isFinite(details.amount)&&details.amount>0&&details.amount<=1e12&&
+    typeof details.currency==='string'&&/^[A-Z]{3}$/.test(details.currency);
+}
 function validateRecord(record) {
   if(!record||typeof record!=='object'||Array.isArray(record)||
      typeof record.donation_id!=='string'||!record.donation_id||
      record.donation_id.length>128||!SOURCES.has(record.source)||
      typeof record.text!=='string'||!record.text.trim()||record.text.length>1000||
      typeof record.make_it_rain!=='boolean'||!STATES.has(record.state)||
-     !Number.isSafeInteger(record.received_unix_ms)||record.received_unix_ms<0)
+     !Number.isSafeInteger(record.received_unix_ms)||record.received_unix_ms<0||
+     (record.donation!==undefined&&record.donation!==null&&!validPayment(record.donation)))
     throw new Error('Invalid durable donation queue item');
 }
 function saveAtomic(file,state) {
@@ -182,8 +190,13 @@ export class DurableDonationQueue {
       return {status:'busy',donation_id:item.donation_id};
     if(!this.ledger.reserve(item.donation_id))
       return {status:'duplicate',donation_id:item.donation_id};
+    // Preserve only the public donor/amount fields for the future popup;
+    // retain the canonical payment ID solely in the private durable ledger.
+    const donor=typeof item.donor==='string'?item.donor:'';
+    const donation=validPayment({provider:item.source,donor,amount:item.amount,currency:item.currency})?
+      {provider:item.source,donor,amount:item.amount,currency:item.currency}:null;
     const record={donation_id:item.donation_id,source:item.source,text:item.text,
-      make_it_rain,received_unix_ms:this.now(),state:'queued'};
+      donation,make_it_rain,received_unix_ms:this.now(),state:'queued'};
     // If the process crashes after reservation but before this snapshot,
     // this donation can be lost, never replayed. Deliberate at-most-once.
     this.items.push(record);
@@ -236,7 +249,7 @@ export class DurableDonationQueue {
         while(this._current(revision)&&this.silencing)await sleep(this.pollMs);
         if(!this._current(revision))return;
         const result=await this.host({action:'donate',text:row.text,
-          make_it_rain:row.make_it_rain,...this.scope});
+          make_it_rain:row.make_it_rain,...(row.donation?{donation:row.donation}:{}),...this.scope});
         if(!this._current(revision))return;
         if(result?.status!=='accepted')throw new Error('Host did not accept donation');
         if(!await this._waitReady(revision))return;
