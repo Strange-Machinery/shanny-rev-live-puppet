@@ -50,14 +50,24 @@ body{position:relative;font-family:Arial,"Segoe UI",sans-serif}
 }
 .brand-wordmark{
   display:block;white-space:nowrap;
-  font:1000 52px/.99 Impact,"Arial Black","Segoe UI Black",sans-serif;
+  font:1000 48px/.99 Impact,"Arial Black","Segoe UI Black",sans-serif;
   letter-spacing:.022em;transform:skewX(-3deg);
   background:linear-gradient(180deg,#f2ffb4 0%,#c7ff63 16%,#84d724 55%,#428e17 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent;
   -webkit-text-stroke:1.7px #132c0b;
   filter:drop-shadow(2px 4px 0 #061307) drop-shadow(0 0 6px rgba(143,255,58,.2));
 }
-.brand-wordmark span:last-child{letter-spacing:.006em}
+.brand-wordmark span:nth-child(2){letter-spacing:.006em}
+.brand-wordmark .brand-ai{
+  display:inline-block;
+  font-size:.78em;
+  letter-spacing:-.045em;
+  vertical-align:5px;
+  padding-left:3px;
+  background:linear-gradient(165deg,#fcffe0,#c5ff71 35%,#69be28 83%,#366d1b);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-stroke:1.4px #142c0a;
+}
 .alert-type{
   display:flex;flex:none;align-items:center;gap:9px;
   padding:9px 12px;
@@ -69,13 +79,114 @@ body{position:relative;font-family:Arial,"Segoe UI",sans-serif}
 }
 .alert-lamp,.bug-dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex:none;
   background:#b7f859;box-shadow:0 0 9px rgba(163,246,68,.7)}
-/* Static decorative drips: lightweight CSS, no downloaded font, GIF or JS
-   animation layer competing with the video encoder. */
-.goo{position:absolute;z-index:3;pointer-events:none;background:linear-gradient(#a9f83f,#69af1e);
-  box-shadow:1px 2px 0 #193c0d,0 2px 5px rgba(0,0,0,.4)}
-.goo-1{width:17px;height:38px;left:80px;top:7px;border-radius:0 0 10px 10px}
-.goo-2{width:10px;height:24px;left:129px;top:7px;border-radius:0 0 7px 7px}
-.goo-3{width:13px;height:31px;right:94px;top:7px;border-radius:0 0 7px 7px}
+/* Hand-built, translucent MUCUS shell, not CSS rectangles or a fluid shader.
+   Three separate edge rails and one bottom reservoir sit OUTSIDE the hard
+   frame/video. Their gradients and gloss give a physical wet-film illusion.
+   Only five tiny weighted strands and two detached beads animate. */
+.popup-rim{z-index:1}
+.popup-rim::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(circle at 14px 15px,rgba(211,246,144,.65) 0 1.5px,rgba(15,30,12,.95) 2px 3.8px,transparent 5px),
+    radial-gradient(circle at calc(100% - 14px) 15px,rgba(211,246,144,.65) 0 1.5px,rgba(15,30,12,.95) 2px 3.8px,transparent 5px),
+    linear-gradient(110deg,rgba(235,255,171,.07),transparent 28%,rgba(0,0,0,.08) 76%,rgba(236,255,194,.04));
+}
+.mucus-layer{
+  position:absolute;display:block;
+  z-index:4;pointer-events:none;
+  overflow:visible;
+  shape-rendering:geometricPrecision;
+  backface-visibility:hidden;
+}
+.mucus-layer--top{
+  left:-20px;top:-12px;
+  width:calc(100% + 40px);height:42px;
+  z-index:3;
+}
+.mucus-layer--left{
+  left:-22px;bottom:-3px;
+  width:70px;height:230px;
+}
+.mucus-layer--right{
+  right:-22px;bottom:-3px;
+  width:70px;height:230px;
+}
+.mucus-layer--bottom{
+  left:-18px;bottom:-67px;
+  width:calc(100% + 36px);height:116px;
+  z-index:5;
+}
+/* The pooled glaze stays static. Stringy tension (not a cartoon teardrop)
+   grows/recoils independently under gravity and surface adhesion.
+   Fill-box origins are local to each tiny SVG group, no layout reflow. */
+.mucus-strand--hero{
+  transform-box:fill-box;
+  transform-origin:50% 0%;
+  will-change:transform;
+}
+.mucus-strand--a{animation:mucus-strain-a 11.3s cubic-bezier(.45,.07,.53,.95) -2.6s infinite}
+.mucus-strand--b{animation:mucus-strain-b 8.9s cubic-bezier(.41,.09,.58,.9) -5.2s infinite}
+.mucus-strand--c{animation:mucus-strain-c 14.7s cubic-bezier(.44,.06,.57,.95) -8.1s infinite}
+.mucus-strand--d{animation:mucus-strain-a 17.4s cubic-bezier(.48,.08,.5,.94) -11.2s infinite}
+.mucus-strand--side{animation:mucus-strain-b 12.5s cubic-bezier(.43,.08,.59,.94) -7.9s infinite}
+.mucus-tip{
+  transform-box:fill-box;transform-origin:center 70%;
+  animation:mucus-tip-tension 9.6s ease-in-out -3.7s infinite;
+}
+/* A drifting caustic sheen: opacity-only for OBS GPU predictability. */
+.mucus-layer--bottom path[stroke="url(#mucus-bottom-glint)"]{
+  animation:mucus-light-shift 13.7s ease-in-out -5.2s infinite;
+}
+.mucus-droplet{
+  transform-box:fill-box;transform-origin:50% 0%;
+  opacity:0;
+  will-change:transform,opacity;
+}
+.mucus-droplet--a{animation:mucus-release-a 22s linear -9s infinite}
+.mucus-droplet--b{animation:mucus-release-b 29s linear -19s infinite}
+@keyframes mucus-strain-a{
+  0%,13%,100%{transform:scaleX(1) scaleY(.96)}
+  34%{transform:scaleX(.965) scaleY(1.09)}
+  59%{transform:scaleX(.91) scaleY(1.23)}
+  68%{transform:scaleX(.94) scaleY(1.25)}
+  78%{transform:scaleX(.97) scaleY(1.12)}
+  92%{transform:scaleX(1) scaleY(.97)}
+}
+@keyframes mucus-strain-b{
+  0%,20%,100%{transform:scaleX(.98) scaleY(.95)}
+  38%{transform:scaleX(.94) scaleY(1.1)}
+  65%{transform:scaleX(.9) scaleY(1.19)}
+  74%{transform:scaleX(.94) scaleY(1.13)}
+  90%{transform:scaleX(.99) scaleY(.97)}
+}
+@keyframes mucus-strain-c{
+  0%,16%,100%{transform:scaleX(1) scaleY(.99)}
+  36%{transform:scaleX(.97) scaleY(1.07)}
+  58%{transform:scaleX(.93) scaleY(1.16)}
+  76%{transform:scaleX(.92) scaleY(1.21)}
+  85%{transform:scaleX(.97) scaleY(1.06)}
+}
+@keyframes mucus-tip-tension{
+  0%,19%,95%,100%{transform:scale(.96,1)}
+  54%{transform:scale(1.13,1.09)}
+  70%{transform:scale(1.18,1.16)}
+}
+@keyframes mucus-light-shift{
+  0%,100%{opacity:.46}
+  47%{opacity:.94}
+}
+@keyframes mucus-release-a{
+  0%,71%{opacity:0;transform:translateY(-6px) scale(.72)}
+  74%{opacity:.72;transform:translateY(0) scale(.84)}
+  78%{opacity:.7;transform:translateY(15px) scale(.95)}
+  84%,100%{opacity:0;transform:translateY(45px) scale(.7)}
+}
+@keyframes mucus-release-b{
+  0%,79%{opacity:0;transform:translateY(-4px) scale(.7)}
+  82%{opacity:.64;transform:translateY(0) scale(.82)}
+  86%{opacity:.75;transform:translateY(12px) scale(.92)}
+  91%,100%{opacity:0;transform:translateY(38px) scale(.65)}
+}
 .stage-well{
   position:relative;overflow:hidden;margin-top:7px;
   aspect-ratio:16/9;border:3px solid #10190e;border-radius:6px;
@@ -152,9 +263,16 @@ body{position:relative;font-family:Arial,"Segoe UI",sans-serif}
   #donor-name{font-size:clamp(16px,3.4vw,26px)}
   #donation-message{font-size:clamp(12px,2.25vw,17px)}
   .alert-type{font-size:9px;padding:6px}
-  .goo-1,.goo-2,.goo-3{transform:scale(.75);transform-origin:top}
+  .mucus-layer--left,.mucus-layer--right{height:min(230px,36vw)}
+  .mucus-layer--bottom{height:min(116px,15vw);bottom:clamp(-67px,-8vw,-30px)}
 }
-@media(prefers-reduced-motion:reduce){.stank-popup{animation:none}}
+@media(prefers-reduced-motion:reduce){
+  .stank-popup,.mucus-strand--hero,.mucus-tip,
+  .mucus-droplet,.mucus-layer--bottom path[stroke="url(#mucus-bottom-glint)"]{
+    animation:none!important;transition:none!important;will-change:auto
+  }
+  .mucus-droplet{opacity:0!important}
+}
 @keyframes stank-arrive{
   from{opacity:0;transform:translateY(-5px) scale(.992)}
   to{opacity:1;transform:none}
