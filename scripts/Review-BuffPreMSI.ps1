@@ -61,9 +61,11 @@ try {
   Write-Host 'PROVIDER AUTH STILL REQUIRED: user-owned Streamlabs/StreamElements account test.' -ForegroundColor Yellow
   if ($OpenPreview) {
     $env:STANK_PREVIEW_PORT='18785'
-    Write-Host 'Opening painted donation preview on a separate loopback port.' -ForegroundColor Cyan
-    Start-Process 'http://127.0.0.1:18785/donation?backdrop=1&long=1'
-    Write-Host 'CTRL+C stops the preview. No paid event or Unity player is running.'
+    Write-Host 'Starting isolated painted preview on port 18785.' -ForegroundColor Cyan
+    Write-Host 'Wait for LONG_DONATION URL below, then open it in Chrome/Edge on THIS PC.'
+    Write-Host 'http://127.0.0.1:18785/donation?backdrop=1&long=1'
+    Write-Host 'Keep PowerShell open while previewing. CTRL+C stops the server.'
+    Write-Host 'No paid event, account login or Unity player is started.'
     & node scripts/preview-stank-popup.mjs
   }
 } finally {
