@@ -8,8 +8,8 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
   for(const server of iceServers){
     if(!Array.isArray(server.urls)||!server.urls.length||server.urls.length>4||server.urls.some(u=>typeof u!=='string'||u.length>500||!/^turns?:|^stun:/.test(u)))throw new Error('Invalid ICE service');
   }
-  const peers=new Map(),commands=new Map();let controlEpoch=0,closed=false,lastSource=0,sourceState='starting',presentationVisible=false,presentationMode='seated',popup=null,caption=null,presentationNonce=null;
-  const stopAnimations=()=>{controlEpoch++;presentationVisible=false;popup=null;caption=null;presentationNonce=null;for(const c of commands.values())c.finish(new Error('Animation stopped'));commands.clear();};
+  const peers=new Map(),commands=new Map();let controlEpoch=0,closed=false,lastSource=0,sourceState='starting',presentationVisible=false,presentationMode='seated',popup=null,caption=null,presentationNonce=null,rainPlayback=null;
+  const stopAnimations=()=>{controlEpoch++;presentationVisible=false;popup=null;caption=null;presentationNonce=null;rainPlayback=null;for(const c of commands.values())c.finish(new Error('Animation stopped'));commands.clear();};
   const animate=({targets,id,signal})=>new Promise((resolve,reject)=>{
     const presentation=['make_it_rain','seated_response','presentation_end'].includes(id);
     const incensedCameraFlip=id==='flip_camera';
@@ -38,6 +38,7 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
     popup:presentationVisible&&now()-lastSource<5000?popup:null,
     caption:presentationVisible&&now()-lastSource<5000?caption:null,
     presentation_nonce:presentationVisible?presentationNonce:null,
+    rain_audio:presentationVisible&&presentationMode==='rain'?rainPlayback?.state||'pending':null,
     obs_viewers:[...peers.values()].filter(p=>p.role==='obs'&&now()-p.seen<15000).length,
     transport:'WebRTC',relay_configured:iceServers.some(s=>s.urls.some(u=>/^turns?:/.test(u)))});
   function viewer(input){
@@ -53,11 +54,32 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
     const p=peers.get(input.id);if(!p)throw new Error('Stage connection expired; reconnect');
     if(input.action==='media-close'){peers.delete(p.id);return {closed:true};}
     p.seen=now();
-    if(input.action==='media-presented'){
+    if(['media-presented','media-rain-started','media-rain-ended','media-rain-failed'].includes(input.action)){
       if(p.role!=='obs'||!presentationVisible||input.nonce!==presentationNonce)
         throw new Error('Stale or unauthorized OBS presentation receipt');
-      p.presentedNonce=input.nonce;
-      return {accepted:true};
+      if(input.action==='media-presented'){
+        p.presentedNonce=input.nonce;return {accepted:true};
+      }
+      if(presentationMode!=='rain'||!rainPlayback||rainPlayback.nonce!==input.nonce)
+        throw new Error('Rain soundtrack is not active');
+      // Never accept music receipts from a preview or an OBS peer that
+      // never acknowledged the current visible/unmuted presentation.
+      if(p.presentedNonce!==input.nonce)
+        throw new Error('OBS presentation must be visible before rain receipt');
+      if(input.action==='media-rain-started'){
+        if(rainPlayback.state==='pending'){
+          rainPlayback.state='playing';rainPlayback.startedAt=now();
+        }
+      }else if(input.action==='media-rain-ended'){
+        if(rainPlayback.state!=='playing'&&rainPlayback.state!=='ended')
+          throw new Error('Rain cannot finish before audio playback starts');
+        if(rainPlayback.state==='playing'){
+          rainPlayback.state='ended';rainPlayback.endedAt=now();
+        }
+      }else if(rainPlayback.state!=='ended'){
+        rainPlayback.state='failed';
+      }
+      return {accepted:true,state:rainPlayback.state};
     }
     if(input.action==='media-offer'){
       if(p.offer||typeof input.sdp!=='string'||input.sdp.length>48000||!input.sdp.startsWith('v=0')||!/m=video /.test(input.sdp)||!/m=audio /.test(input.sdp))throw new Error('Invalid stage offer');
@@ -85,7 +107,9 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
           if(presentationVisible){
             presentationMode=c.alias==='make_it_rain'?'rain':'seated';
             presentationNonce=randomUUID();
-          }else{popup=null;caption=null;presentationNonce=null;}
+            rainPlayback=presentationMode==='rain'
+              ?{nonce:presentationNonce,state:'pending',startedAt:null,endedAt:null}:null;
+          }else{popup=null;caption=null;presentationNonce=null;rainPlayback=null;}
         }
         c.finish(data.accepted===true?null:new Error('Player could not prepare the requested performance'),{status:'accepted',kind:'M16_FITTED',targets:c.targets,duration_ms:Number.isSafeInteger(data.duration_ms)&&data.duration_ms>=20000&&data.duration_ms<=60000?data.duration_ms:20000});
       }
@@ -103,6 +127,30 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
   server.requestTimeout=10000;server.headersTimeout=5000;server.maxConnections=8;
   await new Promise((r,j)=>{server.once('error',j);server.listen(0,'127.0.0.1',r);});
   return {url:'http://127.0.0.1:'+server.address().port,viewer,info,animate,stopAnimations,
+    /**
+     * Synchronize donor TTS to the real OBS audio ended event rather than
+     * merely estimating the song length from the native stage command.
+     * With no OBS viewer, local fixture mode reports an unverified fallback.
+     * With an OBS viewer, actual completion is required before speech.
+     */
+    async waitForRainEnd({signal,timeoutMs=8000}={}){
+      if(!presentationVisible||presentationMode!=='rain'||!rainPlayback)
+        throw new Error('Rain music gate requires visible native rain');
+      const nonce=presentationNonce;
+      const obs=()=>[...peers.values()].some(p=>p.role==='obs'&&now()-p.seen<15000);
+      if(!obs())return {verified:false,reason:'no-obs-viewer'};
+      const deadline=Date.now()+timeoutMs;
+      while(Date.now()<=deadline){
+        if(signal?.aborted)throw signal.reason||new Error('Rain cancelled');
+        if(!presentationVisible||presentationMode!=='rain'||presentationNonce!==nonce)
+          throw new Error('Rain soundtrack was interrupted');
+        if(!obs())throw new Error('OBS rain audio viewer disconnected');
+        if(rainPlayback.state==='ended')return {verified:true,reason:'OBS-ENDED'};
+        if(rainPlayback.state==='failed')throw new Error('OBS rain audio failed; refusing overlapping TTS');
+        await delay(50,undefined,{signal});
+      }
+      throw new Error('OBS rain music did not finish; refusing overlapping TTS');
+    },
     async waitForViewer({signal,timeoutMs=1700}={}){
       // The browser has to unmute and render the frame before first syllable.
       // No OBS viewer during producer-only tests: modest deterministic preroll.
