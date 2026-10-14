@@ -13,6 +13,7 @@ function previewMarkup(html){
   const script=[
     '<script>',
     "const hotmic=location.pathname==='/hotmic';",
+    "if(new URLSearchParams(location.search).get('backdrop')==='1')document.body.classList.add('preview-backdrop');",
     "const set=(id,value)=>{document.getElementById(id).textContent=value};",
     "const root=document.getElementById('stank-popup');",
     "root.hidden=false;root.dataset.kind=hotmic?'hotmic':'donation';",
@@ -36,6 +37,8 @@ function previewMarkup(html){
   ].join('\n');
   const demoStyle=[
     '<style>',
+    '.preview-backdrop{background:radial-gradient(circle at 80% 35%,#263a2c,#0a1517 59%,#070c10) !important;}',
+    '.preview-backdrop::before{content:"PREVIEW BACKDROP · NOT A LIVE STREAM";position:absolute;right:70px;top:60px;color:#76837c;font:700 14px Arial;letter-spacing:.16em;}',
     '.demo-scene{position:absolute;inset:0;display:grid;place-items:center;',
     ' text-align:center;padding:15px;',
     ' background:radial-gradient(ellipse at 50% 44%,#30442c,#121e17 60%,#070f0a);',
