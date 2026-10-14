@@ -9,8 +9,10 @@ const connection=$('connection'),state=$('state');
 const label=$('alert-label'),donor=$('donor-name'),amount=$('donation-amount'),message=$('donation-message');
 const donorKicker=$('donor-kicker'),messageKicker=$('message-kicker');
 const subtitle=$('actor-caption'),subtitleActor=$('subtitle-actor'),subtitleWords=$('subtitle-words');
+let activePresentationNonce=null;
 
 function hide(){
+  activePresentationNonce=null;
   // Visibility and AUDIO are separate. The page remains connected to WebRTC
   // but never lets hidden idle audio escape to Buff's stream.
   video.muted=true;
@@ -49,7 +51,22 @@ function renderPresentation(visible,status){
   }
   popup.hidden=false;
   video.muted=false;
-  if(video.paused)void video.play().catch(()=>{state.textContent='OBS Browser Source blocked audio autoplay; check OBS source settings.';});
+  // Only a visibly rendering, unmuted OBS viewer acknowledges presentation.
+  // The host can then release the first voice after this brief preroll.
+  const nonce=status?.presentation_nonce;
+  if(nonce&&nonce!==activePresentationNonce){
+    activePresentationNonce=nonce;
+    const playing=video.paused?video.play():Promise.resolve();
+    void Promise.resolve(playing).then(()=>{
+      if(activePresentationNonce!==nonce||popup.hidden||video.muted)return;
+      return player.api({action:'media-presented',id:player.id,nonce});
+    }).catch(()=>{
+      if(activePresentationNonce===nonce)activePresentationNonce=null;
+      state.textContent='OBS Browser Source blocked playback or presentation acknowledgment.';
+    });
+  }else if(video.paused){
+    void video.play().catch(()=>{state.textContent='OBS Browser Source blocked audio autoplay; check OBS settings.';});
+  }
 }
 hide();
 connection.hidden=true;
