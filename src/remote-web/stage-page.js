@@ -45,6 +45,7 @@ function renderPresentation(visible,status){
   if(!visible||!view.visible||!mediaReady){hide();return;}
   popup.dataset.kind=view.kind;
   popup.dataset.art=painted.has(imageForKind(view.kind))?'painted':'fallback';
+  let scrollText=null;
   label.textContent=view.heading;
   strap.hidden=!['hotmic','celebration'].includes(view.kind);
   strap.textContent=view.kind==='celebration'?'MEMBERSHIP BOMB · MONEY RAIN':
@@ -60,7 +61,7 @@ function renderPresentation(visible,status){
     donorKicker.textContent=view.kind==='donation'?'STANK FROM':'LOCAL PREVIEW';
     messageKicker.textContent='THE MESSAGE';
     donor.textContent=view.donor;amount.textContent=view.amount;
-    scroller.show({text:view.message,nonce:status?.presentation_nonce});
+    scrollText=view.message;
   }
   const line=status?.caption;
   if(line&&['SHANNY','REV'].includes(line.actor)&&typeof line.text==='string'&&line.text.trim()&&line.text.length<=1000){
@@ -73,6 +74,9 @@ function renderPresentation(visible,status){
     subtitleActor.textContent='';subtitleWords.textContent='';
   }
   popup.hidden=false;
+  // The element must be laid out and visible BEFORE reading scrollHeight.
+  // Initial/hidden measurements always return 0 and would lose long messages.
+  if(scrollText!==null)scroller.show({text:scrollText,nonce:status?.presentation_nonce});
   video.muted=false;
   // Only a visibly rendering, unmuted OBS viewer acknowledges presentation.
   // The host can then release the first voice after this brief preroll.
