@@ -89,7 +89,13 @@ export async function serveRealHost(config){
     progress('Opening the character stage...');
     if(config.media?.enabled)media=await createStageMedia({token,iceServers:config.media.iceServers||[]});
     session=new ConversationSession({gateway,director,whisper,presentation:media?{
-      begin:({rain,signal})=>media.animate({id:rain?'make_it_rain':'seated_response',targets:['SHANNY','REV'],signal}),
+      begin:async({rain,signal,popup})=>{
+        media.setPopup(popup);
+        try{
+          return await media.animate({id:rain?'make_it_rain':'seated_response',
+            targets:['SHANNY','REV'],signal});
+        }catch(error){media.stopAnimations();throw error;}
+      },
       end:({signal})=>media.animate({id:'presentation_end',targets:['SHANNY','REV'],signal}),stop:()=>media.stopAnimations()
     }:undefined});await session.initialize();
     const player=spawn(config.player,['-force-d3d11','-screen-fullscreen','0','-videoMode',config.videoMode||'COLORBLIND','-logFile',join(root,'player.log')],
