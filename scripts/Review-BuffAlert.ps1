@@ -1,20 +1,28 @@
 # Safe throwaway review. Does NOT reset/stash/merge/commit/push the producer's
 # dirty checkout. No Unity build, account login, paid event or OBS changes.
 # PowerShell 7 + git + Node 22+ required.
-param([switch]$SkipPreview,[switch]$SkipPython)
+param([switch]$SkipPreview,[switch]$SkipPython,[switch]$UseCurrentCleanClone)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 
 $repository='https://github.com/Strange-Machinery/shanny-rev-live-puppet.git'
 $branch='rd/buff-donation-provider-isolation-20261014'
-$review=Join-Path $env:TEMP ('buff-alert-review-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+(Get-Random -Minimum 100 -Maximum 999))
+$review=if($UseCurrentCleanClone){(Resolve-Path (Join-Path $PSScriptRoot '..')).Path}else{
+    Join-Path $env:TEMP ('buff-alert-review-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+(Get-Random -Minimum 100 -Maximum 999))
+}
 foreach($tool in @('git','node','npm')){
     if(-not (Get-Command $tool -ErrorAction SilentlyContinue)){throw "$tool is required."}
 }
 Write-Host 'BUFF — SAFE VARIANT A REVIEW' -ForegroundColor Green
-Write-Host "Cloning the review branch into $review"
-& git clone --depth 1 --single-branch --branch $branch $repository $review
-if($LASTEXITCODE -ne 0){throw 'Clone failed; original checkout remains untouched.'}
+if($UseCurrentCleanClone) {
+    $dirty=& git -C $review status --porcelain
+    if($LASTEXITCODE -ne 0 -or $dirty){throw 'Refusing to use a dirty or non-git checkout.'}
+    Write-Host "Reviewing EXISTING clean clone at $review"
+} else {
+    Write-Host "Cloning the review branch into $review"
+    & git clone --depth 1 --single-branch --branch $branch $repository $review
+    if($LASTEXITCODE -ne 0){throw 'Clone failed; original checkout remains untouched.'}
+}
 $checked=& git -C $review branch --show-current
 if($checked.Trim() -ne $branch){throw "Unexpected branch: $checked"}
 $head=& git -C $review rev-parse --short HEAD
