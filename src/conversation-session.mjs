@@ -146,6 +146,40 @@ export class ConversationSession {
       return {status:'accepted',turn_id:turn.id,transcript:text,transcription_kind:audioPath?'LOCAL_WHISPER':'TEXT_REPLAY',kind:'REAL_CHARACTERS'};
     }catch(error){if(this.turn===turn)this.turn=null;throw error;}
   }
+  /**
+   * Trusted operator-only manual celebration for a membership bomb.
+   * Plays the native paired rain choreography, without Qwen, TTS,
+   * a fake payment, or any change to the automatic donation feed.
+   * This is busy-guarded and fully aborted by STOP/Shut up.
+   */
+  startRainNow(){
+    if(this.mode!=='live'||this.turn||!this.presentation)
+      throw new Error('Characters must be armed and idle before manual money rain');
+    const turn={id:randomUUID(),kind:'celebration',revision:this.revision,
+      abort:new AbortController(),started:this.now(),events:[]};
+    this.turn=turn;
+    turn.task=(async()=>{
+      const performance=await this.presentation.begin({
+        rain:true,popup:{type:'celebration'},signal:turn.abort.signal});
+      this.check(turn);
+      await this.presentation.waitVisible?.({signal:turn.abort.signal});
+      this.check(turn);
+      const duration=Math.max(20000,Math.min(60000,performance?.duration_ms||20000));
+      await delay(duration,undefined,{signal:turn.abort.signal});
+      this.check(turn);
+      await this.presentation.end({signal:turn.abort.signal});
+      this.check(turn);
+    })().catch(async error=>{
+      if(this.current(turn)){
+        this.error='Manual rain could not finish: '+error.message;
+        await this.stop().catch(()=>{});
+      }
+    }).finally(()=>{
+      if(this.turn===turn)this.turn=null;
+    });
+    return {status:'accepted',kind:'MEMBERSHIP_CELEBRATION',paid_donation:false,
+      turn_id:turn.id};
+  }
   async run(turn){
     if(this.presentation)return this.runPresentation(turn);
     let prior;
