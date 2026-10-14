@@ -142,7 +142,7 @@ export class StreamlabsPaidSource {
    this.socket.on('event',payload=>{
      if(!this.running||this.state!=='connected')return;
      // Socket callback is authenticated by the provider-specific socket token.
-     void Promise.resolve(this.onEvent(payload)).catch(()=>this.report('error'));
+     void Promise.resolve().then(()=>this.onEvent(payload)).catch(()=>this.report('error'));
    });
   }catch(error){this.running=false;this.report('error');throw error;}
  }
@@ -204,7 +204,7 @@ export class StreamElementsPaidSource {
     }
     if(packet.type==='message'&&packet.topic==='channel.tips'&&
        this.authorized&&packet.room===(this.canonicalRoom||this.room)){
-      void Promise.resolve(this.onEvent(packet)).catch(()=>this.report('error'));
+      void Promise.resolve().then(()=>this.onEvent(packet)).catch(()=>this.report('error'));
     }
   });
   socket.addEventListener('error',()=>this.running&&socket===this.socket&&this.report('retrying'));
