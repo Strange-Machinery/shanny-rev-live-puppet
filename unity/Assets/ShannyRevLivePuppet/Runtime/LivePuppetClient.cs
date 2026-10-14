@@ -22,7 +22,7 @@ namespace ShannyRev.LivePuppet
             public StageEvent[] events;
         }
         [Serializable] private sealed class StageEvent {
-            public string type, id, actor, delivery, audio_path, session_id;
+            public string type, id, actor, delivery, mood, audio_path, session_id;
             public int epoch;
             public long seq;
             [NonSerialized] public double downloadedAt;
@@ -166,6 +166,10 @@ namespace ShannyRev.LivePuppet
         }
         private IEnumerator Heartbeat() {
             while (isActiveAndEnabled) {
+#if BUFF_M16
+                var fittedStage=GetComponent<LiveM16Stage>();
+                if(fittedStage!=null&&!fittedStage.Ready){yield return new WaitForSecondsRealtime(.25f);continue;}
+#endif
                 if (baselineReady) {
                     var row = new StageHeartbeat { session_id = session, epoch = epoch, instance_id = instanceId,
                         shanny_playing = shanny.IsPlaying, rev_playing = rev.IsPlaying,
@@ -195,7 +199,7 @@ namespace ShannyRev.LivePuppet
                     // Bound receipt metadata independently of the audio queues.
                     if (playing.Count >= 32) { Destroy(clip); continue; }
                     playing[item.id] = item;
-                    if (!actor.Enqueue(clip, false, item.id)) playing.Remove(item.id);
+                    if (!actor.Enqueue(clip, false, item.id,item.mood)) playing.Remove(item.id);
                 }
             }
         }

@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import webbrowser
 import tkinter as tk
 from tkinter import ttk, messagebox
 
@@ -37,6 +38,7 @@ class EasyTesting(ttk.Frame):
         self.real_mode = False
         self.real_profile = Path(os.environ.get('BUFF_REAL_PROFILE', str(Path(repo) / 'producer.local.json')))
         self.last_history = None
+        self.preview_url = None
         self.heading = tk.StringVar(self, 'Getting ready…')
         ttk.Label(self, text='Producer — testing and connection', font=('Segoe UI', 24, 'bold')).pack(anchor='w')
         ttk.Label(self, text='Private practice. No YouTube, OBS, or internet needed.', font=('Segoe UI', 11)).pack(anchor='w', pady=(2, 10))
@@ -46,6 +48,8 @@ class EasyTesting(ttk.Frame):
         self.stop_button.pack(side='left', ipady=6)
         self.restart_button = ttk.Button(controls, text='Restart', command=self.restart)
         self.restart_button.pack(side='right', ipady=6)
+        self.preview_button = ttk.Button(controls, text='Open StankTank preview', command=self.open_preview, state='disabled')
+        self.preview_button.pack(side='right', padx=6, ipady=6)
         self.tabs = ttk.Notebook(self); self.tabs.pack(fill='both', expand=True)
         home = ttk.Frame(self.tabs, padding=16)
         advanced = ttk.Frame(self.tabs)
@@ -82,6 +86,9 @@ class EasyTesting(ttk.Frame):
         self.text = tk.Text(home, height=3, wrap='word', font=('Segoe UI', 11))
         self.text.pack(fill='x', pady=8)
         self.text.insert('1.0', 'Buff, tell Rev to let Shanny finish her sentence.')
+        self.make_it_rain = tk.BooleanVar(self, False)
+        self.engine.make_it_rain = self.make_it_rain
+        ttk.Checkbutton(home, text='Make it rain — Rev showers cash while Shanny twerks', variable=self.make_it_rain).pack(anchor='w', pady=5)
         row = ttk.Frame(home); row.pack(fill='x')
         ttk.Button(row, text='Test donation', command=lambda: self.begin('donate')).pack(side='left', ipady=6)
         ttk.Button(row, text='Test typed response', command=lambda: self.begin('transcript')).pack(side='left', padx=8, ipady=6)
@@ -108,6 +115,10 @@ class EasyTesting(ttk.Frame):
 
     def refresh(self):
         self.engine.refresh_devices()
+
+    def open_preview(self):
+        if self.preview_url:
+            webbrowser.open(self.preview_url)
         self.picker.configure(values=list(self.engine.devices))
 
     def share(self):
@@ -147,7 +158,7 @@ class EasyTesting(ttk.Frame):
             return
         self.busy = True
         self.awaiting_result = True
-        self.pending = (action, self.text.get('1.0', 'end-1c'))
+        self.pending = (action, self.text.get('1.0', 'end-1c'), self.make_it_rain.get())
         self.heading.set('Starting your test…')
         # This button press is the explicit resume; startup/reconnect never resumes.
         self.engine.action('arm')
@@ -176,7 +187,7 @@ class EasyTesting(ttk.Frame):
         if action == 'animations':
             self.animation_catalog(result)
         elif action == 'arm' and self.pending:
-            action, text = self.pending
+            action, text, rain = self.pending
             self.pending = None
             if action == 'microphone':
                 if not self.record_requested:
@@ -186,8 +197,10 @@ class EasyTesting(ttk.Frame):
                 self.engine.record_start()
                 self.heading.set('Speak now. Click Finish recording when done (30 seconds maximum).')
             else:
-                self.engine.action(action, text)
+                self.engine.action(action, text, make_it_rain=rain)
         elif action == 'status':
+            self.preview_url = result.get('preview_url')
+            self.preview_button.configure(state='normal' if self.preview_url else 'disabled')
             if result.get('real_characters'):
                 self.real_mode = True
                 history = result.get('history', [])
@@ -262,6 +275,7 @@ class EasyTesting(ttk.Frame):
 
     def restart(self):
         self.stop(); self.ready = False
+        self.preview_url = None; self.preview_button.configure(state='disabled')
         self.heading.set('Restarting testing…')
         self.engine.start_lab()
 

@@ -1,5 +1,11 @@
 # v0.3 continuation
 
+Current prepared-popup implementation and the YouTube/Streamlabs/StreamElements
+integration slice: [BUFF_POPUP.md](BUFF_POPUP.md). The older priorities below are
+historical. Remote account-connected donations and real Buff OBS acceptance remain
+open; manual popup preparation, paired player commands and full-rig mouth/face
+performance are implemented.
+
 Current real-character status: [REAL_CHARACTERS.md](REAL_CHARACTERS.md). The producer
 now has real offline Whisper -> short Qwen exchange -> saved OmniVoice -> Unity
 playback. Prioritize fast, relevant Blackout writing within the measured 10–15-second

@@ -32,13 +32,24 @@ namespace ShannyRev.LivePuppet
         private float jaw;
         private float wide;
         private float pucker;
+#if BUFF_M16
+        [SerializeField] private ShannyRevDemo.CharacterMouthRouter mouthRouter;
+        public void ConfigureMouth(ShannyRevDemo.CharacterMouthRouter router)
+        {
+            if (router == null) throw new InvalidOperationException("The original character mouth router is required");
+            router.ValidateConfiguration(); mouthRouter = router;
+        }
+#endif
         public event Action<string, string, float, int, float, float> Playback;
         private readonly Queue<string> ids = new Queue<string>();
+        private readonly Queue<string> moods = new Queue<string>();
+        public string Mood {get;private set;}="";
         private string activeId;
         private float peakJaw, maxFrame, elapsed;
         private int maxSample, frames;
         public bool IsPlaying => voice != null && voice.isPlaying;
         public float JawWeight => jaw;
+        public Vector3 MouthWeights => new Vector3(jaw, wide, pucker);
 
         public void Configure(AudioSource source, SkinnedMeshRenderer mesh, string exactJaw)
         {
@@ -60,13 +71,14 @@ namespace ShannyRev.LivePuppet
                 puckerIndex = mesh.GetBlendShapeIndex(puckerBlendshape);
         }
 
-        public bool Enqueue(AudioClip clip, bool interrupt, string id = "")
+        public bool Enqueue(AudioClip clip, bool interrupt, string id = "", string mood = "")
         {
             if (clip == null) return false;
             if (!isActiveAndEnabled || voice == null || (!interrupt && pending.Count >= 8)) { Destroy(clip); return false; }
             if (interrupt) StopAll();
             pending.Enqueue(clip);
             ids.Enqueue(id);
+            moods.Enqueue(mood);
             return true;
         }
 
@@ -83,6 +95,7 @@ namespace ShannyRev.LivePuppet
             while (pending.Count > 0)
                 Destroy(pending.Dequeue());
             ids.Clear();
+            moods.Clear();Mood="";
             jaw = wide = pucker = 0f;
             SetWeights();
         }
@@ -113,6 +126,7 @@ namespace ShannyRev.LivePuppet
                 {
                     activeClip = pending.Dequeue();
                     activeId = ids.Dequeue();
+                    Mood=moods.Dequeue();
                     peakJaw = maxFrame = elapsed = 0; maxSample = frames = 0;
                     voice.clip = activeClip;
                     voice.Play();
@@ -136,7 +150,7 @@ namespace ShannyRev.LivePuppet
                 float open = Mathf.Clamp01((rms - 0.008f) * rmsGain);
                 jawTarget = open * jawMaximum;
 
-                if (wideIndex >= 0 || puckerIndex >= 0)
+                if (HasArticulation)
                 {
                     // Rough spectral articulation only; NOT phoneme-accurate visemes.
                     voice.GetSpectrumData(spectrum, 0, FFTWindow.BlackmanHarris);
@@ -164,10 +178,23 @@ namespace ShannyRev.LivePuppet
 
         private void SetWeights()
         {
+#if BUFF_M16
+            if (mouthRouter != null)
+            {
+                mouthRouter.ApplyCanonicalWeights(new Vector3(jaw, wide, pucker));
+                return;
+            }
+#endif
             if (face == null) return;
             if (jawIndex >= 0) face.SetBlendShapeWeight(jawIndex, jaw);
             if (wideIndex >= 0) face.SetBlendShapeWeight(wideIndex, wide);
             if (puckerIndex >= 0) face.SetBlendShapeWeight(puckerIndex, pucker);
         }
+
+        private bool HasArticulation => wideIndex >= 0 || puckerIndex >= 0
+#if BUFF_M16
+            || mouthRouter != null
+#endif
+            ;
     }
 }

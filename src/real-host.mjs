@@ -104,7 +104,10 @@ export async function serveRealHost(config){
         performanceMode='above-normal';
       } catch { performanceMode='standard (priority unavailable)'; }
     }
-    const animations=new AnimationMenu({catalogPath:config.animationCatalog});
+    const animations=new AnimationMenu({catalogPath:config.animationCatalog,getScope:()=>({enabled:session.mode==='live',session_id:session.scope.session_id,epoch:session.epoch}),
+      adapter:media&&config.media?.m16Validated===true?{accepted:true,
+        canPlay:({id,targets,bindings})=>media.info().available&&/^m16_(conversation|directed_point|objection|open_explanation|quiet_listening|seated_listening)$/.test(id)&&targets.every(a=>bindings[a]===id.replace('directed_point','directed-point').replace('open_explanation','open-explanation').replace('quiet_listening','quiet-listening').replace('seated_listening','seated-listening')+'_'+a),
+        playBatch:request=>media.animate(request),stopNow:()=>media.stopAnimations()}:null});
     let monitorBusy=false;
     monitor=setInterval(async()=>{
       if(closed||monitorBusy||session.mode!=='live')return;monitorBusy=true;
@@ -116,11 +119,8 @@ export async function serveRealHost(config){
         preview_url:preview?'http://127.0.0.1:'+preview.port+'/#key='+preview.token:null};
       if(data.action?.startsWith('media-')){if(!media)throw new Error('Stage feed not configured');return media.viewer(data);}
       if(data.action==='animations')return animations.menu();
+      if(data.action==='animate'){if(session.mode!=='live')await session.arm();return animations.play(data);}
       if(data.action==='stop'){animations.stop();await session.stop();return {stopped:true};}
-      // Operator-only hard interrupt; unlike STOP it leaves the host ready for the next TTS.
-      // Never treat donation text as a voice command.
-      if(data.action==='silence'||(data.action==='transcript'&&!data.audioPath&&
-          typeof data.text==='string'&&/^\s*shut\s+up[.!?]*\s*$/i.test(data.text)))return session.silence();
       if(data.action==='arm'){
         const result=await session.arm();
         await waitUntil(async()=>{const {stage}=await gateway.metrics();return stage&&!stage.muted&&Date.now()-stage.received_unix_ms<2500;},5000);

@@ -105,15 +105,17 @@ test('startup primes the same persona with a fixed check, without generating dia
 });
 
 test('sentence grammar excludes raw quote and backslash tokens that can break generated JSON',async()=>{
-  let pattern;
+  let patterns;
   const director=createConversationDirector({notes:'Private',complete:async request=>{
-    pattern=new RegExp(request.responseSchema.properties.lines.items.properties.text.pattern);
+    patterns=request.responseSchema.properties.lines.items.anyOf.map(branch=>new RegExp(branch.properties.text.pattern));
     return {lines:[{actor:'SHANNY',text:'Wait for me.'},{actor:'SHANNY',text:'I am still speaking.'}],rev_reason:''};
   }});
   await director.generate({kind:'microphone',text:'Wait your turn.'});
-  assert.equal(pattern.test('It is "on," he corrects.'),false);
-  assert.equal(pattern.test('An invalid \\ escape.'),false);
-  assert.equal(pattern.test("It's on."),true);
+  for(const pattern of patterns){
+    assert.equal(pattern.test('It is "on," he corrects.'),false);
+    assert.equal(pattern.test('An invalid \\ escape.'),false);
+    assert.equal(pattern.test("It's on."),true);
+  }
 });
 
 test('Stop while a prefetched line is held prevents its release',async()=>{
