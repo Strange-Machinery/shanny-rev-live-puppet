@@ -68,9 +68,13 @@ export async function startPreview({port=0}={}){
     close:()=>new Promise(ok=>server.close(ok))};
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
-  const preview=await startPreview({port:18781});
+  const selectedPort=Number(process.env.STANK_PREVIEW_PORT||18781);
+  if(!Number.isInteger(selectedPort)||selectedPort<1024||selectedPort>65535)
+    throw new Error('STANK_PREVIEW_PORT must be a local TCP port from 1024 to 65535');
+  const preview=await startPreview({port:selectedPort});
   process.stdout.write('VARIANT_A_PREVIEW '+preview.url+'/donation\n');
   process.stdout.write('HOTMIC_PREVIEW '+preview.url+'/hotmic\n');
+  process.stdout.write('STREAM_BACKDROP_PREVIEW '+preview.url+'/donation?backdrop=1\n');
   process.stdout.write('Visual sample only: no Unity, payment account, OBS or audio.\n');
   process.on('SIGINT',()=>void preview.close());
   process.on('SIGTERM',()=>void preview.close());
