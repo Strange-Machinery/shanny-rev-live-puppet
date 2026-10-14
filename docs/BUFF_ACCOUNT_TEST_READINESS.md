@@ -38,6 +38,25 @@ Official references:
 - https://docs.streamelements.com/websockets/topics/channel-tips
 - https://github.com/StreamElements/standalone_emulator
 
+## Verified provider wire-format notes
+
+As of this review, Streamlabs' published Socket API uses the
+`sockets.streamlabs.com` Socket.IO endpoint, authenticated by a producer's
+private socket token, with live `event` packets for native `donation`.
+Only the event adapter's real socket connection is evidence of paid-event
+delivery; a dashboard Test Alert alone is not. StreamElements' current
+Astro documentation requires `channel.tips`, scope `tips:read`, a
+`subscribe` request including `data.token` and `data.token_type`, and
+a successful subscription response. The response's canonical `data.room`
+may differ from the requested channel value; the adapter binds events to
+that authenticated canonical room. A tip counts only when the event says
+`status=success` and `approved=allowed`, with an immutable tip ID.
+
+The synthetic socket/Astro tests intentionally exercise those **documented
+message shapes**. They still cannot prove that a particular user's
+account/permissions or provider dashboard mock sends actual traffic.
+Do not request, paste or export real tokens into the assistant or GitHub.
+
 ## Credentials stay PRIVATE to the producer
 
 Never paste passwords, OAuth access tokens, socket tokens, JWTs,
