@@ -43,8 +43,14 @@ function expandSpeakerSlots(p,topicContext){
   if(keys!=='first,hinge,rev_reason,second'&&keys!=='first,hinge,rev_reason,second,third')
     throw Error('Invalid causal Microdirector plan');
   const actors=assignedSpeakers(topicContext);
-  const slots=[{actor:actors.first,...p.first},{actor:actors.second,...p.second}];
-  if(p.third!==undefined&&p.third!==null)slots.push({actor:actors.first,...p.third});
+  const slotData=[p.first,p.second,...(p.third===undefined||p.third===null?[]:[p.third])];
+  for(const slot of slotData){
+    if(!slot||typeof slot!=='object'||Array.isArray(slot)||
+       !['mood,text','delivery,mood,text'].includes(Object.keys(slot).sort().join(',')))
+      throw Error('Invalid Microdirector speaker slot: the model supplies no actor or recipient');
+  }
+  const slots=[{...p.first,actor:actors.first},{...p.second,actor:actors.second}];
+  if(p.third!==undefined&&p.third!==null)slots.push({...p.third,actor:actors.first});
   return {hinge:p.hinge,lines:slots,rev_reason:p.rev_reason};
 }
 export function validateMicroPlan(raw,kind,codes={},topicContext=null){
@@ -96,8 +102,12 @@ export function firstMicroLine(raw,codes={},topicContext=null){
   if(end<0||!/^\s*[,\]}]/.test(raw.slice(end)))return null;
   try{
     const parsed=JSON.parse(raw.slice(prefix[0].length,end));
+    if(prefix[1]==='first'&&
+       (!parsed||typeof parsed!=='object'||Array.isArray(parsed)||
+        !['mood,text','delivery,mood,text'].includes(Object.keys(parsed).sort().join(','))))
+      return null;
     const row=prefix[1]==='first'
-      ?{actor:assignedSpeakers(topicContext).first,...parsed}:parsed;
+      ?{...parsed,actor:assignedSpeakers(topicContext).first}:parsed;
     const candidate=line(row,availableEpisodeCodes(codes));
     const target=topicContext?.audience_address?.target;
     if(['SHANNY','REV'].includes(target)&&candidate.actor!==target)return null;
