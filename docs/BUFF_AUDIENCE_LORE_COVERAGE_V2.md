@@ -7,7 +7,7 @@ voice training corpus, or license to introduce off-topic jokes.
 
 ## Corpus coverage
 
-- **119 distinct keyed callback families, 627 exact/variant aliases** after
+- **119 distinct keyed callback families, 629 exact/variant aliases** after
   deduplication review (23 previously recovered + 96 additional families).
 - `src/live-lore-catalog.v2.mjs` loads the existing v1 card library and three
   curated source-labelled extension files, all without I/O, a model or network.
