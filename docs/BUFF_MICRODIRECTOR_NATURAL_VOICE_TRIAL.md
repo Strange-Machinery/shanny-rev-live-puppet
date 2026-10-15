@@ -150,3 +150,28 @@ and do not claim the 15-second first-reply target is met until measured on MSI.
 inspect real generated turns for self/partner identity, more substantial
 rebuttals, topicality, timeouts, and end-of-playback. No paid provider or
 production activation is implied.
+
+
+### October 15 — restored V620 27B-primary private trial
+
+The historical V620 path (MSI → Tailscale → LM Studio 100.79.20.28:1234)
+is now the preferred writer **only in the isolated trial launcher**.
+The producer's current GET /api/v1/models inventory confirms the loaded
+model ID qwen3.8-27b (27B / Q4_K_XL). Local MSI Qwen3.5-2B remains started
+and warm for automatic one-shot failover, or can be forced via
+Start-BuffMicrodirectorTrial.ps1 -QwenBackend msi. Default experimental
+-QwenBackend v620 uses the pre-existing V620 instance, never re-loads it.
+
+LM Studio has a different OpenAI-compatible JSON schema contract from
+the local llama.cpp server. V620 is asked for full, nonstreaming structured
+JSON and validated under the exact same topic, actor, mood and voice
+guards before any speculative speech is prepared; an unreachable,
+unloaded, timed-out or rejected V620 turn falls back once to local MSI.
+No speculative V620 audio is released. STOP never triggers failover.
+The producer panel exposes last actual writer and failover count.
+V620 time/token cap: 30s / 512; local backup: 24s / 384.
+Source tests and *actual* LM Studio JSON-schema/latency audition are
+different acceptance gates; no production merge or paid intake enabled.
+
+See docs/BUFF_V620_QWEN_FAILOVER_20261015.md for full configuration,
+rollback and step-by-step real-hardware acceptance checks.
