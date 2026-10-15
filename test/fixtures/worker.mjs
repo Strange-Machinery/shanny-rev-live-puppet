@@ -17,5 +17,5 @@ for await (const line of readline.createInterface({input:process.stdin})) {
  const file=path.join(root,req.relative_path);await fs.mkdir(path.dirname(file),{recursive:true});
  await fs.writeFile(file,mockSpeechWav(req.text));
  emit({type:'RESULT',id:req.id,status:'SUCCEEDED',relative_path:req.relative_path,generation_ms:1,
-   delivery:req.delivery||null,reference_id:req.delivery?'qualified-fixture-'+req.delivery:null});
+   voice_code:req.voice_code||null,reference_id:req.voice_code?'qualified-fixture-'+req.voice_code:null});
 }
