@@ -6,7 +6,7 @@ import {createBlackoutMicrodirector,validateMicroPlan,firstMicroLine} from '../s
 const codes={SHANNY:['S07','S08','S09'],REV:['R11','R12']};
 const plan={hinge:'Shanny resents the command while Rev notices her double standard.',
  lines:[
-  {actor:'SHANNY',text:'You do not get to order me around just because you donated!',mood:'irritated',delivery:'S07'},
+  {actor:'SHANNY',text:'You do not get to order me around just because you donated!',mood:'anger',delivery:'S07'},
   {actor:'REV',text:'You were fine with it when you thought the money was yours!',mood:'irritated',delivery:'R11'}
  ],rev_reason:'Rev calls out the money contradiction'};
 function fixed(more={}){return {...plan,...more};}
