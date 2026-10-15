@@ -102,7 +102,7 @@ export function makeMicroInput({text,kind,history=[],hinges=[]}) {
  const recent=related?played.filter(x=>x&&x.input===previousInput&&
     ['SHANNY','REV'].includes(x.actor)&&
     isGroundedOldLine(x.text,previousInput,text))
-   .slice(-2).map(x=>({actor:x.actor,text:String(x.text).slice(0,160)})):[];
+   .slice(-2).map(x=>({actor:x.actor,text:String(x.text).slice(0,320)})):[];
  const prior=related&&Array.isArray(hinges)?hinges
    .filter(x=>x&&typeof x==='object'&&x.input===previousInput&&
       typeof x.text==='string'&&isGroundedOldLine(x.text,previousInput,text))
