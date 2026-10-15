@@ -70,9 +70,9 @@ export function audienceReplyContract(address,kind='donation',reader=null){
  const read=kind==='donation'&&['SHANNY','REV'].includes(reader)
   ?'The stage reader is '+reader+'; READING the viewer message does not mean the viewer addressed that character. ':'';
  if(target==='SHANNY')return read+
-  'The viewer speaks TO SHANNY, not Rev. Viewer "you" means SHANNY. SHANNY must answer first. REV responds to SHANNY or defends himself against something Shanny actually says about him; REV must NOT speak as if the viewer directly accused or commanded him.';
+  'The viewer speaks TO SHANNY, not Rev. Viewer "you" means SHANNY. First spoken reply: SHANNY speaks TO VIEWER. Second spoken reply: REV speaks TO SHANNY about her actual answer, not directly as another viewer target. An optional third line lets SHANNY answer REV. REV responds to SHANNY or defends himself against something Shanny actually says about him; REV must NOT speak as if the viewer directly accused or commanded him.';
  if(target==='REV')return read+
-  'The viewer speaks TO REV, not Shanny. Viewer "you" means REV. REV must answer first. SHANNY responds to REV or challenges his reaction; SHANNY must NOT speak as if the viewer directly accused or commanded her.';
+  'The viewer speaks TO REV, not Shanny. Viewer "you" means REV. First spoken reply: REV speaks TO VIEWER. Second spoken reply: SHANNY speaks TO REV about his actual answer, not directly as another viewer target. An optional third line lets REV answer SHANNY. SHANNY responds to REV or challenges his reaction; SHANNY must NOT speak as if the viewer directly accused or commanded her.';
  if(target==='BOTH')return read+
   'The viewer speaks TO BOTH SHANNY and REV. Each may answer the viewer, but then react to what the other character actually said.';
  if(target==='BUFF')return read+
