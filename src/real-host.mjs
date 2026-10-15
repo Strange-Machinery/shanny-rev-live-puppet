@@ -11,6 +11,7 @@ import {createLiveServer} from './live-server.mjs';
 import {createLocalPuppetGateway} from './donations/gateway-client.mjs';
 import {OmniVoiceProvider} from './providers/omnivoice.mjs';
 import {createQwenCompletion} from './providers/qwen.mjs';
+import {createQwenFailover,createV620ModelProbe} from './providers/qwen-failover.mjs';
 import {PersistentWhisper} from './providers/whisper.mjs';
 import {createConversationDirector} from './conversation-director.mjs';
 import {createBlackoutMicrodirector} from './blackout-microdirector-director.mjs';
@@ -71,13 +72,29 @@ export async function serveRealHost(config){
     await waitUntil(async()=>{if(model.exitCode!==null)throw new Error('Local Qwen exited; inspect producer diagnostics');try{return (await fetch('http://127.0.0.1:'+port+'/health',{signal:AbortSignal.timeout(1500)})).ok;}catch{return false;}},120000);
     const notes=await readFile(config.characterNotes,'utf8');
     const examples=config.approvedExamples?JSON.parse(await readFile(config.approvedExamples,'utf8')):[];
-    const complete=createQwenCompletion({endpoint:'http://127.0.0.1:'+port+'/v1/chat/completions',model:modelName,apiKey:qwenKey,placement:'cpu',
-      // Longer character dialogue needs output tokens and CPU wall time.
-      // Experimental Microdirector only; the original producer path is untouched.
-      // A single bounded call, no automatic retries or provider spending.
+    const localComplete=createQwenCompletion({endpoint:'http://127.0.0.1:'+port+'/v1/chat/completions',model:modelName,apiKey:qwenKey,placement:'cpu',
+      // Preserve the exact warm local CPU Qwen fallback and legacy behavior.
       timeoutMs:microdirectorEnabled?24000:12000,
       maxTokens:microdirectorEnabled?384:240,
       ...(microdirectorEnabled?{temperature:0.7,topP:0.9}:{})});
+    // V620 routing is opt-in, in the isolated Microdirector profile only.
+    // No provider credentials, native Unity, or approved OmniVoice settings
+    // are changed. The original local CPU writer remains a warm failover.
+    const preferV620=microdirectorEnabled&&config.microdirector?.qwenPriority==='v620-preferred';
+    let complete=localComplete;
+    const v620Model=preferV620?(config.microdirector?.v620?.model||'qwen3.8-27b'):null;
+    if(preferV620){
+      const v620Host=config.microdirector?.v620?.host;
+      const remote=createQwenCompletion({
+        endpoint:'http://'+v620Host+':1234/v1/chat/completions',
+        model:v620Model,placement:'off-device',responseFormat:'lmstudio',
+        trustedTailnetHost:v620Host,
+        timeoutMs:30000,maxTokens:512,temperature:0.7,topP:0.9
+      });
+      const probe=createV620ModelProbe({host:v620Host,model:v620Model,timeoutMs:1500});
+      complete=createQwenFailover({primary:remote,fallback:localComplete,probe,cooldownMs:10000});
+      progress('V620 27B preferred, warm MSI CPU Qwen ready as fallback...');
+    }
     // Voice prompts are qualified at worker startup. Qwen sees only those
     // categories actually available, not a guessed global voice inventory.
     const director=microdirectorEnabled?
@@ -163,9 +180,15 @@ export async function serveRealHost(config){
     },1000);
     let manualRainArming=false;
     const action=async data=>{
-      if(data.action==='status')return {...session.status(),qwen:modelName+' (local CPU)',performance_mode:performanceMode,
+      if(data.action==='status')return {...session.status(),
+        qwen:preferV620?v620Model+' (V620 primary; MSI CPU backup)':modelName+' (local CPU)',
+        qwen_backend:preferV620?complete.status():{preferred:'msi',last_route:'msi',last_reason:'none'},
+        performance_mode:performanceMode,
         microdirector:microdirectorEnabled?{enabled:true,
-          qwen_budget:{max_tokens:384,timeout_ms:24000,model_calls_per_turn:1},
+          qwen_budget:preferV620?{max_tokens:512,timeout_ms:30000,
+            fallback_max_tokens:384,fallback_timeout_ms:24000,
+            accepted_passes_per_turn:1,max_attempts_on_failure:2}:
+            {max_tokens:384,timeout_ms:24000,model_calls_per_turn:1},
           dialogue_length:{preferred_words_min:16,preferred_words_max:32,
             max_chars_per_line:320,max_sentences_per_line:2},
           response_schema:'named-character-slots-v2',
