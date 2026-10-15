@@ -67,3 +67,43 @@ test('Qwen forwards bounded dialogue schema to constrain the single live writing
   await complete({messages,responseSchema:schema});
   assert.deepEqual(body.response_format,{type:'json_object',schema});
 });
+
+test('LM Studio 27B uses OpenAI JSON schema, nonstreaming completion and private Tailscale endpoint',async()=>{
+ const remote={endpoint:'http://100.79.20.28:1234/v1/chat/completions',
+  model:'qwen3.8-27b',placement:'off-device',
+  responseFormat:'lmstudio',trustedTailnetHost:'100.79.20.28'};
+ const schema={type:'object',additionalProperties:false,properties:{
+  first_SHANNY:{type:'object',properties:{text:{type:'string'}}}},
+  required:['first_SHANNY']};
+ let observed=null,played=[];
+ const complete=createQwenCompletion({...remote,timeoutMs:1000,maxTokens:512,
+  request:async(url,args)=>{assert.equal(played.length,0,
+    'remote must not leak partial audio during the HTTP call');
+   observed={url,args};return response({content:'{"first_SHANNY":{"text":"I am Shanny."}}'});}
+ });
+ assert.equal(await complete({messages,responseSchema:schema,onText:line=>played.push(line)}),
+  '{"first_SHANNY":{"text":"I am Shanny."}}');
+ assert.deepEqual(played,['{"first_SHANNY":{"text":"I am Shanny."}}']);
+ assert.equal(observed.url,remote.endpoint);
+ assert.equal(observed.args.redirect,'error');
+ const payload=JSON.parse(observed.args.body);
+ assert.equal(payload.stream,false,'never start speculative remote TTS on streaming fragments');
+ assert.equal(payload.max_tokens,512);
+ assert.equal(payload.model,'qwen3.8-27b');
+ assert.deepEqual(payload.response_format,{type:'json_schema',
+  json_schema:{name:'buff_character_exchange',schema}});
+ assert.equal(payload.chat_template_kwargs.enable_thinking,false);
+});
+test('remote HTTP requires a pinned CGNAT/Tailscale peer and exact LM Studio port and route',()=>{
+ const base={endpoint:'http://100.79.20.28:1234/v1/chat/completions',
+  model:'qwen3.8-27b',placement:'off-device',responseFormat:'lmstudio'};
+ assert.throws(()=>createQwenCompletion(base),/Tailscale/);
+ for(const bad of [
+  {trustedTailnetHost:'100.79.21.28'},
+  {trustedTailnetHost:'100.79.20.28',endpoint:'http://100.79.20.28:4321/v1/chat/completions'},
+  {trustedTailnetHost:'100.79.20.28',endpoint:'http://100.79.20.28:1234/admin'},
+  {trustedTailnetHost:'100.79.20.28',endpoint:'http://public.example:1234/v1/chat/completions'},
+  {trustedTailnetHost:'100.79.20.28',endpoint:'http://token@100.79.20.28:1234/v1/chat/completions'},
+  {trustedTailnetHost:'100.79.20.28',placement:'cpu'}
+ ])assert.throws(()=>createQwenCompletion({...base,...bad}),/Tailscale|off-device|HTTPS|Invalid/);
+});
