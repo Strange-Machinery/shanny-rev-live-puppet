@@ -160,7 +160,10 @@ export async function serveRealHost(config){
     let manualRainArming=false;
     const action=async data=>{
       if(data.action==='status')return {...session.status(),qwen:modelName+' (local CPU)',performance_mode:performanceMode,
-        microdirector:microdirectorEnabled?{enabled:true,topic_focus:'superchat-only-v1',
+        microdirector:microdirectorEnabled?{enabled:true,
+          shanny_blackout:{version:'producer-blackout-v1',overt_pressure_target:0.65,
+            lanes:['direct_attack','disgust_contempt','wounded_victim','insular_crying','contained_blackout']},
+          audience_roles:'viewer-address-v1',topic_focus:'superchat-only-v1',
           background_notes_in_qwen_prompt:false,offtopic_voice_prefetch_blocked:true,
           lore_index:liveLoreStats(),
           available_delivery_codes:voice.availableEpisodeCodes,
