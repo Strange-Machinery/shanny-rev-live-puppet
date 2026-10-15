@@ -109,3 +109,16 @@ test('Rev-first compact Qwen JSON carries actor-qualified episode voice codes',a
  assert.deepEqual(request.responseSchema.properties.second_SHANNY.properties.delivery.enum.includes('S07'),true);
  assert.equal('to' in answer.lines[0],false);
 });
+
+test('same-topic followup keeps the complete long delivered line and true speaker identity',()=>{
+ const originalInput='Shanny, explain the bucket.';
+ const spoken='I told that donor exactly why the bucket upset me, and I am the one who keeps being blamed for everyone else leaving the room filthy. Rev interrupted me while I was trying to finish explaining why his latest excuse was so insulting!';
+ assert.ok(spoken.length>160&&spoken.length<=320);
+ const input=makeMicroInput({kind:'donation',
+  text:'Shanny, explain the bucket again.',
+  history:[{actor:'SHANNY',text:spoken,input:originalInput}]});
+ assert.deepEqual(input.recent_played_lines,[{actor:'SHANNY',text:spoken}]);
+ const unrelated=makeMicroInput({kind:'donation',text:'Explain this graphics card.',
+  history:[{actor:'SHANNY',text:spoken,input:originalInput}]});
+ assert.deepEqual(unrelated.recent_played_lines,[]);
+});
