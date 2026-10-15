@@ -222,15 +222,15 @@ test('SMOKELAB YouTube page replay after failed durable admission retains cursor
 
 test('SMOKELAB blocked OBS viewer prevents speech; 32 pending maximum, overflow fail closed, STOP retains backlog',async t=>{
   const directory=mkdtempSync(join(tmpdir(),'buff-smokelab-backlog-'));
-  let armed=false,viewers=0;
+  let armed=false,viewers=0,busy=false;
   const delivered=[];
   const host=async row=>{
     if(row.action==='arm'){armed=true;return {session_id:'local-viewer',mode_epoch:0};}
-    if(row.action==='stop'){armed=false;return {};}
+    if(row.action==='stop'){armed=false;busy=false;return {};}
     if(row.action==='status')return {mode:armed?'live':'muted',
-      conversation_busy:false,turn_busy:false,presentation_visible:false,
+      conversation_busy:busy,turn_busy:busy,presentation_visible:busy,
       media:{available:true,obs_viewers:viewers},error:''};
-    if(row.action==='donate'){delivered.push(row);return {status:'accepted'};}
+    if(row.action==='donate'){delivered.push(row);busy=true;return {status:'accepted'};}
     throw new Error('Unexpected host action '+row.action);
   };
   const manager=new LiveDonations({directory,host,config:{streamlabs:{socketToken:'SYNTHETIC_ONLY'}},
