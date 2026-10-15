@@ -45,7 +45,10 @@ test('one-pass causal prompt, verified voice codes, and no stale few-shot source
  assert.equal(returned.hinge,plan.hinge);
  assert.equal(returned.lines[0].delivery,'S07');
  assert.equal(observed.messages.length,2,'old episode examples must NOT contaminate live writing');
- assert.equal(observed.responseSchema.properties.lines.items.anyOf[0].properties.delivery.enum.includes('S07'),true);
+ assert.equal(observed.responseSchema.properties.first.properties.delivery.enum.includes('S07'),true);
+ assert.equal(observed.responseSchema.properties.second.properties.delivery.enum.includes('R11'),true);
+ assert.equal('actor' in observed.responseSchema.properties.first.properties,false);
+ assert.equal('to' in observed.responseSchema.properties.first.properties,false);
  assert.match(observed.messages[0].content,/one Qwen completion|ONE Qwen completion/i);
  const payload=JSON.parse(observed.messages[1].content);
  assert.deepEqual(payload.contextual_grievance_hooks,[]);
