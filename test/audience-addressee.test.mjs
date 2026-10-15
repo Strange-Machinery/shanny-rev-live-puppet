@@ -101,25 +101,76 @@ test('wrong first speaker fails both speculative prefetch and final validation',
  assert.throws(()=>validateMicroPlan(shannyFirst,'donation',{},{
   input:'Rev, why?',hooks:[],audience_address:{target:'REV'}}),/addressed-actor mismatch/);
 });
-test('Qwen must identify who each spoken line is directed toward',()=>{
- const contaminated={
+test('the runtime owns recipient routing; a wrong legacy to field cannot kill a turn',()=>{
+ const wrongDestinations={
   ...shannyFirst,
-  lines:[shannyFirst.lines[0],{...shannyFirst.lines[1],to:'VIEWER'}]
+  lines:[{...shannyFirst.lines[0],to:'REV'},
+    {...shannyFirst.lines[1],to:'VIEWER'}]
  };
- assert.throws(()=>validateMicroPlan(contaminated,'donation',{},{
+ const accepted=validateMicroPlan(wrongDestinations,'donation',{},{
   input:'Shanny, stop blaming Rev.',hooks:[],audience_address:{target:'SHANNY'}
- }),/recipient mismatch: partner must address SHANNY/);
- const wrongFirstDestination={
-  ...revFirst,lines:[{...revFirst.lines[0],to:'SHANNY'},revFirst.lines[1]]
- };
- assert.throws(()=>validateMicroPlan(wrongFirstDestination,'donation',{},{
-  input:'Rev, answer me.',hooks:[],audience_address:{target:'REV'}
- }),/recipient mismatch: first reply must address viewer/);
- const accepted=validateMicroPlan(shannyFirst,'donation',{},{
-  input:'Shanny, stop that.',hooks:[],audience_address:{target:'SHANNY'}
  });
  assert.equal(accepted.lines[0].actor,'SHANNY');
- assert.equal('to' in accepted.lines[0],false,'private routing metadata must not leak to speech gateway');
+ assert.equal(accepted.lines[1].actor,'REV');
+ for(const line of accepted.lines)
+  assert.equal('to' in line,false,'routing metadata never reaches the speech gateway');
+});
+
+const roleSlots={
+ hinge:'Rev is asked to explain his behavior and Shanny takes issue with that explanation.',
+ first:{text:'I already explained why I decided to do that!',mood:'irritated'},
+ second:{text:'Rev, your explanation changes every time you tell the story!',mood:'anger'},
+ rev_reason:'Rev challenges the viewer accusation.'
+};
+test('real model slots assign Rev as first speaker without actor or to labels',async()=>{
+ let captured,prepared=[];
+ const director=createBlackoutMicrodirector({
+  notes:'Private Blackout character reference',
+  complete:async request=>{
+   captured=request;
+   request.onText?.(JSON.stringify(roleSlots));
+   return roleSlots;
+  }
+ });
+ const response=await director.generate({kind:'donation',text:'Rev, why did you choose that?',
+  readBy:'REV',onFirstLine:line=>prepared.push(line)});
+ assert.equal(response.lines[0].actor,'REV');
+ assert.equal(response.lines[1].actor,'SHANNY');
+ assert.equal(response.lines[0].mood,'irritated');
+ assert.equal(response.lines[1].mood,'anger');
+ assert.equal(prepared.length,1);
+ assert.equal(prepared[0].actor,'REV');
+ assert.equal('to' in response.lines[0],false);
+ const schema=captured.responseSchema;
+ assert.deepEqual(schema.required,['hinge','first','second','rev_reason']);
+ assert.equal('actor' in schema.properties.first.properties,false);
+ assert.equal('to' in schema.properties.first.properties,false);
+ assert.deepEqual(schema.properties.first.properties.mood.enum,
+  ['pacifying','irritated','rage','skeptical','surprised']);
+ assert.deepEqual(schema.properties.second.properties.mood.enum,
+  ['anger','rage','crying','smug','surprised']);
+ assert.equal(captured.messages.length,2,'old script examples do not leak');
+});
+test('Shanny-addressed model slots route Shanny then Rev, even if Rev read it',async()=>{
+ const slots={...roleSlots,
+  first:{text:'You are not putting the blame for that bucket on me!',mood:'anger'},
+  second:{text:'Shanny, you keep refusing to hear my explanation!',mood:'irritated'},
+  rev_reason:'Rev defends his account of the chore.'};
+ const director=createBlackoutMicrodirector({notes:'Private Blackout treatment',
+  complete:async()=>slots});
+ const result=await director.generate({kind:'donation',
+  text:'Shanny, why are you blaming Rev for the bucket?',readBy:'REV'});
+ assert.deepEqual(result.lines.map(row=>row.actor),['SHANNY','REV']);
+});
+test('one slot cannot spoof its assigned character or recipient',async()=>{
+ const polluted={...roleSlots,
+  first:{...roleSlots.first,actor:'SHANNY',to:'REV'}};
+ const director=createBlackoutMicrodirector({notes:'Private Blackout treatment',
+  complete:async()=>polluted});
+ await assert.rejects(director.generate({kind:'donation',text:'Rev, explain that.'}),
+  /speaker slot/);
+ assert.equal(firstMicroLine(JSON.stringify(polluted),{},{
+  input:'Rev, explain that.',hooks:[],audience_address:{target:'REV'}}),null);
 });
 test('both-addressed viewer and unspecified audience do not force an incorrect individual',async()=>{
  const director=createBlackoutMicrodirector({notes:'Private direction',
