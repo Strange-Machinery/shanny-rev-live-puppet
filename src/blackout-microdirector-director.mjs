@@ -1,6 +1,6 @@
 import {actorMoods,liveMood} from './live-moods.mjs';
 import {availableEpisodeCodes,shortlistEpisodeCodes,guideForEpisodeCodes} from './approved-delivery.mjs';
-import {makeMicroInput,echoFlags} from './blackout-microdirector.mjs';
+import {makeMicroInput,echoFlags} from './blackout-lore-router.mjs';
 
 /** One existing Qwen call. A short causal hinge precedes performed dialogue. */
 const sentences=text=>[...new Intl.Segmenter('en',{granularity:'sentence'}).segment(text)].filter(v=>v.segment.trim()).length;
