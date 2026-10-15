@@ -37,7 +37,7 @@ In the Microdirector path ONLY (legacy director unchanged):
    first-line voice synthesis when it is already clearly off-topic.
    This gate is NOT a global food ban: cooking questions and specifically
    matched food-lore hooks remain fully permitted.
-6. Keep one Qwen call, the same 12-second model timeout, the same encoded
+6. Keep one Qwen call, the same encoded
    voice-reference set, the same OBS and provider integration, and the
    existing `temperature:0.7, topP:0.9` for Microdirector only.
    There is no second semantic model, no external search, and no new GPU worker.
@@ -133,8 +133,9 @@ unchanged; no new Unity/OmniVoice persona is invented.
 `src/audience-addressee.mjs` separately supplies viewer addressee, stage
 reader, and intended reply target. The first line must be spoken by the
 named recipient TO VIEWER; the second actor responds TO the named first
-speaker. The `to` field is required by the Qwen schema, validated before
-speech, then removed before the voice gateway; it is NOT a TTS instruction.
+speaker. As of the reader/recipient repair, Qwen NO LONGER emits an `actor` or
+`to` field. The runtime binds each authored line to a fixed speaker and
+listener; those fields cannot cause a Qwen-plan rejection.
 
 A reproducible internal SHA-256 distribution check across 1,000 plain
 synthetic prompts yielded **663 HIGH_PRESSURE choices**, of which 251 were
@@ -161,3 +162,32 @@ combined <30 ms p99 deterministic benchmark on the latest source SHA.
 mouth edits. Rejecting a malformed or off-topic model plan still stops a turn
 without an autonomous retry. Test the safe synthetic paths before enabling
 any authenticated paid provider.
+
+## Reader/recipient and CPU timeout correction — October 15
+
+The reader defaults to the DIRECTLY ADDRESSED speaker in a donation. Thus
+`Rev, what happened?` is read by Rev and then prompts a Rev-first reply followed
+by Shanny's counter. `Shanny, explain that` is read by Shanny. Unnamed, joint
+and Buff-addressed donations retain the established Shanny reader. A standalone
+`(REV)` or `(SHANNY)` prefix remains a deliberate local reading-voice override,
+not a new target for the question. The rule applies to both normal and OBS rain
+paths; the viewer's actual addressee is always computed independently.
+
+**Root cause of recipient-mismatch:** the previous one-pass Qwen plan demanded
+both `actor` and `to` on each spoken line and rejected the entire response if
+`to` did not match deterministic audience routing. Qwen3.5-2B can write the
+characters' replies but is an unreliable arbiter of these stage bookkeeping
+labels. The live model schema is now `{hinge, first, second, optional third,
+rev_reason}`; each slot contains only text, mood and an approved delivery code
+when available. The engine assigns speaker identity and listener by address.
+Legacy output is accepted for existing test fixtures, but never requested in
+the live Qwen schema. The original speech gateway, OmniVoice reference selection,
+Unity rig, OBS hold and music receipts remain unchanged.
+
+A shorter system prompt, no old-format few-shots, smaller model output budget
+(256 tokens), and 16-second bounded CPU Qwen timeout (up from 12 seconds) aim
+to reduce intermittent generation timeouts. A timeout is explicitly identified
+as Qwen CPU, not blamed on the voice worker. The safety behavior still rejects
+genuinely invalid text or off-topic generations and will not forge a paid donor
+reply. Actual reliability/latency must be measured with the MSI live audition;
+no test-only mock result proves Qwen's spoken content quality.
