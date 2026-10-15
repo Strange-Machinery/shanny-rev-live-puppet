@@ -37,22 +37,76 @@ export function selectGrievanceHooks(text,{limit=1}={}){
    id:row.id,label:row.label,grievance:row.grievance
  }));
 }
-export function echoFlags(notes='',examples=[],history=[]){
- // Only coarse flags leave the private producer process. No notes or raw
- // examples are written to logs or emitted to OBS.
- const samples=[String(notes),...examples.map(x=>JSON.stringify(x)),...history.map(x=>String(x.text||''))];
+const FOOD_THEME=/\b(?:bread|crust|sandwich(?:es)?|ingredients?|recipes?|flour|dough|toast|baking)\b/i;
+const REFUSAL_SLOGAN=/\bno\s+means\s+no\b/i;
+
+// Only the AUDIENCE'S subject authorizes a carryover. Old Qwen wording is
+// never permitted to select its own next topic.
+const UNINFORMATIVE_WORDS=new Set([
+ 'about','again','already','also','another','are','because','been','before',
+ 'being','both','buff','chat','could','did','does','donation','donate','donated',
+ 'each','either','even','every','from','have','here','how','into','just','keep',
+ 'last','like','make','made','mean','money','more','much','must','need','never',
+ 'only','other','over','people','please','really','rev','said','say','says',
+ 'shanny','should','show','some','someone','still','stank','stream','tell',
+ 'than','that','them','then','there','these','they','thing','things','this',
+ 'those','time','today','very','want','what','when','where','which','while',
+ 'who','why','will','with','would','you','your','youre','yours'
+]);
+function subjectTerms(text) {
+ if(typeof text!=='string')return new Set();
+ return new Set((text.toLowerCase().match(/[a-z][a-z0-9'-]{3,}/g)||[])
+   .map(x=>x.replace(/'/g,''))
+   .filter(x=>!UNINFORMATIVE_WORDS.has(x)));
+}
+export function isSameLiveSubject(current,previous) {
+ const now=subjectTerms(current),old=subjectTerms(previous);
+ return [...now].some(x=>old.has(x));
+}
+const EXPLICIT_FOLLOW_UP=/\b(?:you\s+just\s+said|you\s+said\s+earlier|that\s+last\s+(?:comment|donation)|earlier\s+(?:comment|donation)|continue\s+(?:that|this)|go\s+on\s+about\s+that|back\s+to\s+what\s+you\s+said)\b/i;
+const CONSENT_TOPIC=/\b(?:consent|permission|refus(?:e|al|ed)|boundar(?:y|ies)|touch|respect)\b/i;
+function isGroundedOldLine(line,oldInput,newInput) {
+ const spoken=String(line||'');
+ if(FOOD_THEME.test(spoken)&&!FOOD_THEME.test(oldInput)&&!FOOD_THEME.test(newInput))
+   return false;
+ if(REFUSAL_SLOGAN.test(spoken)&&!CONSENT_TOPIC.test(oldInput)&&
+    !CONSENT_TOPIC.test(newInput)&&!REFUSAL_SLOGAN.test(newInput))
+   return false;
+ return true;
+}
+export function echoFlags(notes='',examples=[],history=[]) {
+ // Report only coarse category flags, never the actual private notes or
+ // examples, credentials, saved prompt names or spoken text.
+ const inputNotes=String(notes);
+ const inputExamples=Array.isArray(examples)?examples.map(x=>JSON.stringify(x)).join('\n'):'';
+ const recent=Array.isArray(history)?history.slice(-4).map(x=>String(x?.text||'')).join('\n'):'';
  return {
-   old_notes_contain_no_means_no:samples.slice(0,1).some(v=>/\bno\s+means\s+no\b/i.test(v)),
-   old_notes_contain_bread:samples.slice(0,1).some(v=>/\b(?:moldy\s+)?bread\b/i.test(v)),
-   legacy_examples_contain_bread_or_refusal:samples.slice(1,-history.length||undefined).some(v=>/\b(?:moldy\s+)?bread\b|\bno\s+means\s+no\b/i.test(v)),
-   recent_spoken_echo:history.slice(-4).some(v=>/\b(?:moldy\s+)?bread\b|\bno\s+means\s+no\b/i.test(String(v.text||'')))
+   old_notes_contain_no_means_no:REFUSAL_SLOGAN.test(inputNotes),
+   old_notes_contain_bread:/\b(?:moldy\s+)?bread\b/i.test(inputNotes),
+   legacy_examples_contain_bread_or_refusal:FOOD_THEME.test(inputExamples)||REFUSAL_SLOGAN.test(inputExamples),
+   recent_spoken_echo:FOOD_THEME.test(recent)||REFUSAL_SLOGAN.test(recent),
+   old_notes_contain_food_theme:FOOD_THEME.test(inputNotes),
+   legacy_examples_contain_food_theme:FOOD_THEME.test(inputExamples),
+   recent_spoken_food_echo:FOOD_THEME.test(recent)
  };
 }
-export function makeMicroInput({text,kind,history=[],hinges=[]}){
+export function makeMicroInput({text,kind,history=[],hinges=[]}) {
  const hooks=selectGrievanceHooks(text);
- const recent=history.slice(-4).map(row=>({actor:row.actor,text:String(row.text||'').slice(0,160)}));
- const prior=Array.isArray(hinges)?hinges.slice(-2).filter(v=>typeof v==='string').map(v=>v.slice(0,160)):[];
+ const played=Array.isArray(history)?history:[];
+ const previous=played.at(-1);
+ const previousInput=typeof previous?.input==='string'?previous.input:'';
+ // A new donation is an independent interaction unless its speaker actually
+ // returns to the last SUBJECT. Never infer topic from Qwen's prior output.
+ const related=previousInput.length>0&&
+   (isSameLiveSubject(text,previousInput)||EXPLICIT_FOLLOW_UP.test(text));
+ const recent=related?played.filter(x=>x&&x.input===previousInput&&
+    ['SHANNY','REV'].includes(x.actor)&&
+    isGroundedOldLine(x.text,previousInput,text))
+   .slice(-2).map(x=>({actor:x.actor,text:String(x.text).slice(0,160)})):[];
+ const prior=related&&Array.isArray(hinges)?hinges
+   .filter(x=>x&&typeof x==='object'&&x.input===previousInput&&
+      typeof x.text==='string'&&isGroundedOldLine(x.text,previousInput,text))
+   .slice(-1).map(x=>x.text.slice(0,160)):[];
  return {kind,input:text,contextual_grievance_hooks:hooks,
-   recent_played_lines:recent,
-   recent_causes:prior};
+   recent_played_lines:recent,recent_causes:prior};
 }
