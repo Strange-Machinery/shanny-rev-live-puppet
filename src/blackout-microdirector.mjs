@@ -10,17 +10,17 @@
 const HOOKS=Object.freeze([
  Object.freeze({
    id:'bucket',label:'the bucket',
-   trigger:/\bbucket\b|\bshitbucket\b|\b(?:toilet|bathroom)\b.{0,40}\b(?:broken|walk|clean|empty|fix|years)\b|\b(?:walk|clean|empty)\b.{0,40}\b(?:toilet|bathroom)\b/i,
+   trigger:/\bbucket\b|\bshitbucket\b|\b(?:toilet|bathroom)\b.{0,48}\b(?:broken|walk\w*|clean\w*|empty|fix\w*|years)\b|\b(?:broken|walk\w*|clean\w*|empty|fix\w*)\b.{0,48}\b(?:toilet|bathroom)\b/i,
    grievance:'Rev resents repeatedly emptying the bucket after the hotel toilet broke; he sees avoidable labor, while Shanny disputes his blame about walking. These are their arguments, not verified adjudications.'
  }),
  Object.freeze({
    id:'ezzie',label:'Ezzie',
-   trigger:/\bezzie\b|\bsext(?:ed|ing|s)?\b|\b(?:secret|hidden)\s+(?:text|message|flirt)/i,
+   trigger:/\b(?:ezzie|ezzy)\b/i,
    grievance:'Shanny is hurt by the allegation of Rev messaging Ezzie beside her and then minimizing it. Rev becomes guarded and defensive. Preserve Ezzie spelling and attribute disputed events as character claims.'
  }),
  Object.freeze({
    id:'baby-carrot',label:'baby carrot',
-   trigger:/\bbaby[ -]?carrot\b|\bcarrot\b/i,
+   trigger:/\bbaby[ -]?carrot\b|\bcarrot\b.{0,24}\b(?:nickname|name|tease|mock|size)\b/i,
    grievance:'Baby Carrot is an embarrassing nickname aimed at Rev. He resents being publicly mocked; Shanny may bring it up as leverage. The nickname\'s exact origin is not established.'
  }),
  Object.freeze({
