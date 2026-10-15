@@ -103,7 +103,8 @@ try{
  $cfg.omnivoice.outputRoot=Join-Path $dir 'voice-output'
  $cfg.omnivoice.workerScript=Join-Path $checkout 'python\buff_omnivoice_worker.py'
  $cfg.omnivoice | Add-Member -MemberType NoteProperty -Name approvedDelivery -Value $true -Force
- $remoteConfig=[pscustomobject]@{enabled=$true;qwenPriority=if($QwenBackend -eq 'v620'){'v620-preferred'}else{'msi-only'}}
+ $selectedPriority=if($QwenBackend -eq 'v620'){'v620-preferred'}else{'msi-only'}
+ $remoteConfig=[pscustomobject]@{enabled=$true;qwenPriority=$selectedPriority}
  if($QwenBackend -eq 'v620'){
   $remoteConfig | Add-Member -MemberType NoteProperty -Name v620 -Value ([pscustomobject]@{host=$V620Host;model=$V620Model}) -Force
  }
