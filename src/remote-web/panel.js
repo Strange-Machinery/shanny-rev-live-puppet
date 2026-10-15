@@ -94,6 +94,7 @@ let polling=false;async function status(){if(polling)return;polling=true;try{con
         'Shanny/Rev identity-locked slots · 2-sentence capacity · ':
         micro.response_schema==='fixed-speaker-slots-v1'?
         'fixed speaker slots / named reader · ':'legacy reply schema · ')+
+      (micro.spoken_line_validator==='natural-punctuation-v2'?'natural speech gate v2 · ':'')+
       (micro.qwen_budget?.timeout_ms?'Qwen budget '+(micro.qwen_budget.timeout_ms/1000)+'s · ':'')+
       (Number.isFinite(s.latency?.model_ms)?'Last Qwen '+Math.round(s.latency.model_ms)+' ms · ':'')+
       'Blackout Shanny '+
