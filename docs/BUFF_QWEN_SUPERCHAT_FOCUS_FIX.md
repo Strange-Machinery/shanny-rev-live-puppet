@@ -87,3 +87,77 @@ so a real paid message is not silently consumed without a response.
 Record the exact injected lore ID, Qwen-generated text, warning state and
 first-response latency locally. Do not upload producer credentials, audience
 identities, raw private character notes or saved speaker prompts to GitHub.
+
+
+## BLACKOUT_SHANNY producer behavior update — October 15
+
+This is the `(blackout_shanny)` **writing treatment**, translated from
+`Strange-Machinery/shanny-rev-engine` producer performance branch
+`rd/performance-release-v01-20261008:outputs/app/producer_performance.py`,
+rather than a generic pitch/volume filter.
+
+### Content and ratio
+
+- **Artistic target:** approximately 65% of ordinary eligible superchats draw
+  a HIGH_PRESSURE Blackout moment; a direct insult or coercive demand may
+  override the probabilistic baseline, while genuinely tender input may soften
+  it. This is not a quota of swear words, a rule to scream 65% of the time, or
+  a measurement of the original humans.
+- **HIGH_PRESSURE emotional lanes:** direct pointed anger (39% of heated
+  moments), disgust/contempt (22%), wounded self-victimization (21%), and
+  insular withdrawn crying/sadness (18%). The remaining nonheated turns are
+  bitter, sulky, resigned, wary, or momentarily sincere when earned.
+- **Self-victimization matters:** Shanny can cast the *actual* comment,
+  correction or missed consideration as proof that she is being treated
+  unfairly; her tears can keep accusing Rev or chat rather than signaling
+  reconciliation. Do not invent traumatic backstories to fill the gap.
+- Swearing and personal counterattacks can be intense when earned, including
+  an occasional explicit "fuck you," but they must address the active
+  provocation rather than appear as a catchphrase counter.
+- This is **not** a replacement for Rev's agency or the audience-address
+  controller. A Shanny hot beat is valid only on Shanny's own spoken turn;
+  it must NOT make Rev pretend Shanny was the person the viewer addressed.
+
+### Implementation and performance
+
+`src/blackout-shanny-heat.mjs` makes one bounded deterministic SHA-256-based
+high-pressure/lane choice from the latest audience text, current addressee,
+and at most two matched lore IDs. All cues are computed locally before
+the same single Qwen call; no extra model or GPU work, no cached transcript
+retrieval. It supplies a short `shanny_blackout` acting-objective object to
+the user turn. Voice hints are based on the **already approved** category
+codes: e.g. S11 disgust, S01/S03/S04/S05/S14 hurt/crying, S06 extreme
+rage only for appropriately severe affronts. Existing face moods are
+unchanged; no new Unity/OmniVoice persona is invented.
+
+`src/audience-addressee.mjs` separately supplies viewer addressee, stage
+reader, and intended reply target. The first line must be spoken by the
+named recipient TO VIEWER; the second actor responds TO the named first
+speaker. The `to` field is required by the Qwen schema, validated before
+speech, then removed before the voice gateway; it is NOT a TTS instruction.
+
+A reproducible internal SHA-256 distribution check across 1,000 plain
+synthetic prompts yielded **663 HIGH_PRESSURE choices**, of which 251 were
+anger, 155 disgust, 132 wounded victim and 125 insular crying; this is
+deterministic selection evidence, **not generated Qwen quality evidence**.
+The Windows MSI gate must still run the real Node assertion suite and the
+combined <30 ms p99 deterministic benchmark on the latest source SHA.
+
+### Listen to specific cases before enabling paid providers
+
+- "Shanny, you're lying again." → Shanny answers, potentially a hard
+  accusation and direct profanity when earned; Rev challenges her claim,
+  not the donor's identity.
+- "Shanny, why are you always the victim?" → anger, hurt or
+  self-victimization from this accusation; crying is allowed, no fabricated past.
+- "Rev, what did you do with KittyDoomz?" → **Rev** answers first; Shanny
+  only joins in reaction to his response.
+- "Shanny, thank you for helping me." → genuine warmth is permissible; not
+  a compulsory humiliation or profanity.
+- "What do you think about my new graphics card?" → no random food or
+  historical grievance; couple retain their personality on that subject.
+
+**Deployment hold:** Default OFF, PR remains draft; no production/voice or
+mouth edits. Rejecting a malformed or off-topic model plan still stops a turn
+without an autonomous retry. Test the safe synthetic paths before enabling
+any authenticated paid provider.
