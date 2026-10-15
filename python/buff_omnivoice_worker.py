@@ -216,11 +216,11 @@ def main():
                 mood = message.get("mood")
                 if mood is not None and mood not in allowed_moods[actor]:
                     raise ValueError("invalid expression mood")
-                delivery = message.get('delivery')
-                if delivery is not None:
-                    if not isinstance(delivery, str) or delivery not in episode_routes.get(actor, {}):
+                voice_code = message.get('voice_code')
+                if voice_code is not None:
+                    if not isinstance(voice_code, str) or voice_code not in episode_routes.get(actor, {}):
                         raise ValueError('Episode delivery code is not approved for actor')
-                    reference_id = episode_routes[actor][delivery]
+                    reference_id = episode_routes[actor][voice_code]
                 else:
                     reference_id = mood_references.get(actor, {}).get(mood, selected[actor])
                 item = prompts[(actor, reference_id)]
@@ -273,7 +273,7 @@ def main():
                     "status": "SUCCEEDED",
                     "actor": actor,
                     "mood": mood,
-                    "delivery": delivery,
+                    "voice_code": voice_code,
                     "reference_id": reference_id,
                     "relative_path": relative_path,
                     "generation_ms": round(generation_ms, 3),
