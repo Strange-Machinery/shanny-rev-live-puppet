@@ -169,6 +169,7 @@ export async function serveRealHost(config){
           dialogue_length:{preferred_words_min:16,preferred_words_max:32,
             max_chars_per_line:320,max_sentences_per_line:2},
           response_schema:'named-character-slots-v2',
+          spoken_line_validator:'natural-punctuation-v2',
           shanny_blackout:{version:'producer-blackout-v1',overt_pressure_target:0.65,
             lanes:['direct_attack','disgust_contempt','wounded_victim','insular_crying','contained_blackout']},
           audience_roles:'viewer-address-v1',topic_focus:'superchat-only-v1',
