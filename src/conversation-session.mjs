@@ -239,7 +239,7 @@ export class ConversationSession {
         if(index+1<plan.lines.length)nextId=await this.queuePrepared(turn,plan.lines[index+1]);
       });prior=id;
     }
-    if(plan.hinge){this.hinges.push(plan.hinge);this.hinges=this.hinges.slice(-2);}
+    if(plan.hinge){this.hinges.push({text:plan.hinge,input:turn.text,kind:turn.kind});this.hinges=this.hinges.slice(-2);}
   }
   async preparePresentationRows(turn){
     // The exact same voice/plan verification is shared by both paths.
@@ -341,7 +341,7 @@ export class ConversationSession {
     // Once speech finishes, hide immediately. Only genuine rain uses the
     // long musical prelude; it never continues behind speech.
     await this.presentation.end({signal:turn.abort.signal});this.check(turn);
-    if(turn.causalHinge){this.hinges.push(turn.causalHinge);this.hinges=this.hinges.slice(-2);}
+    if(turn.causalHinge){this.hinges.push({text:turn.causalHinge,input:turn.text,kind:turn.kind});this.hinges=this.hinges.slice(-2);}
     turn.timing.presentation_ms=this.now()-visibleAt;
   }
   status(){return {mode:this.mode,session_id:this.scope?.session_id,mode_epoch:this.epoch,gateway_epoch:this.scope?.epoch,
