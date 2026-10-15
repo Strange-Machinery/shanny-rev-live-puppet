@@ -402,7 +402,10 @@ export const LIVE_LORE_EXTRAS_A = [
       "took jasons cloak",
       "shanny wizard now",
       "im the wizard now",
-      "i am the wizard now"
+      "i am the wizard now",
+      "shanny took the wizard cloak",
+      "took the wizard cloak",
+      "shanny took his cloak"
     ],
     "cue": "Shanny's self-rebrand included asserting she had taken Rev's cloak and the wizard role. Rev can challenge her right to inherit the title.",
     "evidence": "captioned-rebrand",
