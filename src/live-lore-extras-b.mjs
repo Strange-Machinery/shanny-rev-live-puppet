@@ -63,6 +63,8 @@ export const LIVE_LORE_EXTRAS_B = [
     "name": "Norway DMs",
     "terms": [
       "norway dm",
+      "norway dms",
+      "norway direct messages",
       "norway message",
       "norwegian girl",
       "norway nudes",
