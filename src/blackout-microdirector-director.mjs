@@ -1,5 +1,5 @@
 import {actorMoods,liveMood} from './live-moods.mjs';
-import {availableEpisodeCodes,guideForEpisodeCodes} from './approved-delivery.mjs';
+import {availableEpisodeCodes,shortlistEpisodeCodes,guideForEpisodeCodes} from './approved-delivery.mjs';
 import {makeMicroInput,echoFlags} from './blackout-microdirector.mjs';
 
 /** One existing Qwen call. A short causal hinge precedes performed dialogue. */
@@ -79,7 +79,7 @@ export function createBlackoutMicrodirector({complete,notes,examples=[],getDeliv
     async generate({text,kind,history=[],hinges=[],signal,warmup=false,onFirstLine}={}){
       if(typeof text!=='string'||!text.trim()||text.length>1000||
          !['donation','microphone'].includes(kind))throw Error('Invalid Microdirector input');
-      const codes=availableEpisodeCodes(getDeliveryCodes());
+      const codes=shortlistEpisodeCodes(availableEpisodeCodes(getDeliveryCodes()),text);
       const system=[
         'Write the live fictional adult Blackout SHANNY and REV cartoon. Buff is the host. This is ONE Qwen completion, not a multi-stage writing engine.',
         'First decide in "hinge": precisely what the incoming remark threatens, embarrasses, or contradicts, and why the second character reacts. Then write 2-3 grounded lines; do not imitate generic rage.',
