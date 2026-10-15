@@ -35,15 +35,53 @@ test('longer, two-sentence, over-160-character utterances pass and retain actor-
    assert.deepEqual(answer.lines.map(row=>row.text),target==='REV'? [REV_TALK,SHANNY_TALK] : [SHANNY_TALK,REV_TALK]);
  }
 });
-test('max spoken limit is 320 characters, at most 70 words and two sentences',()=>{
+test('max spoken limit is 320 characters and 70 words, but punctuation and short interruptions are free',()=>{
  const check=text=>validateMicroPlan({...shannyFirst,first_SHANNY:{...shannyFirst.first_SHANNY,text}},
   'donation',codes,context('SHANNY','Shanny, tell me about the bucket.'));
  assert.equal(check('W'.repeat(319)+'!').lines[0].text.length,320);
- assert.throws(()=>check('W'.repeat(320)+'!'),/Invalid Microdirector spoken line/);
- assert.throws(()=>check('First sentence. Second sentence. Third sentence.'),/Invalid Microdirector spoken line/);
- assert.throws(()=>check(Array(71).fill('word').join(' ')+'!'),/Invalid Microdirector spoken line/);
+ assert.throws(()=>check('W'.repeat(320)+'!'),/exceeds 320 characters \(321\)/);
+ assert.equal(check('First sentence. Second sentence. Third sentence.').lines[0].text,
+  'First sentence. Second sentence. Third sentence.');
+ assert.throws(()=>check(Array(71).fill('word').join(' ')+'!'),/exceeds 70 words \(71\)/);
  assert.equal(check('Absolutely not!').lines[0].text,'Absolutely not!',
   'a short intense interruption must remain allowed');
+});
+test('natural Rev dialogue with short sentences, direct quotation and sound punctuation does not fail',()=>{
+ const examples=[
+  'Shanny, I said no! Why is that so hard? You asked me to explain. I explained!',
+  'I told Shanny, "That was not what I said!" and she interrupted me again.',
+  'Wait... what? No! That is not how I remember it.',
+  'I am NOT going to sit here all day pretending this made sense!!!',
+  'I told you I was tired.\nI still have a point to make.'
+ ];
+ for(const input of examples){
+  const raw=input.replace('\\n','\n');
+  const parsed=validateMicroPlan({...revFirst,
+   first_REV:{...revFirst.first_REV,text:raw}},
+   'donation',codes,context('REV','Rev, explain that bucket.'));
+  assert.equal(parsed.lines[0].actor,'REV');
+  assert.ok(parsed.lines[0].text.length<=320);
+  assert.equal(/[\r\n\t]/.test(parsed.lines[0].text),false);
+ }
+});
+test('invalid speech failures are actionable but do not reveal audience or generated text',()=>{
+ const secret='Private generated dialogue and sensitive donor name';
+ const bads=[
+  {text:secret+'!'.repeat(350),reason:/line 1 exceeds 320 characters/},
+  {text:'\u0001'+secret,reason:/line 1 contains non-spoken control characters/},
+  {text:'<think>'+secret+'</think>',reason:/line 1 contains forbidden model-thinking tags/},
+  {text:'    ',reason:/line 1 is empty/}
+ ];
+ for(const {text,reason} of bads){
+  assert.throws(()=>validateMicroPlan({...shannyFirst,
+    first_SHANNY:{...shannyFirst.first_SHANNY,text}},'donation',codes,
+    context('SHANNY','Shanny, explain the bucket.')),error=>{
+    assert.match(error.message,/Invalid Microdirector spoken line/);
+    assert.match(error.message,reason);
+    assert.doesNotMatch(error.message,/Private generated|sensitive donor/);
+    return true;
+  });
+ }
 });
 test('Qwen receives true identity locks and fixed actor-named fields, not anonymous first/second',async()=>{
  for(const [input,expectedFirst,expectedSecond,raw] of [
@@ -63,8 +101,9 @@ test('Qwen receives true identity locks and fixed actor-named fields, not anonym
   const schema=request.responseSchema;
   assert.deepEqual(schema.required,['hinge',first,second,'rev_reason']);
   assert.equal(schema.properties[first].properties.text.maxLength,320);
-  assert.ok(new RegExp(schema.properties[first].properties.text.pattern).test(SHANNY_TALK));
-  assert.ok(!new RegExp(schema.properties[first].properties.text.pattern).test('Bad\nspeech.'));
+  assert.equal(schema.properties[first].properties.text.minLength,1);
+  assert.equal(schema.properties[first].properties.text.pattern,undefined,
+   'natural quoted dialogue must not be forbidden by constrained JSON regex');
   assert.equal(Object.hasOwn(schema.properties[first].properties,'actor'),false);
   assert.equal(Object.hasOwn(schema.properties[first].properties,'to'),false);
   assert.match(request.messages[0].content,new RegExp('SHANNY IS SHANNY'));
