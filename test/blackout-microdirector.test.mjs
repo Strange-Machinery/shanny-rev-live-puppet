@@ -87,3 +87,25 @@ test('private note/audition contamination audit returns booleans, never the sour
  assert.equal(flags.recent_spoken_echo,true);
  assert.doesNotMatch(JSON.stringify(flags),/old exact|another project|moldy bread/i);
 });
+
+test('Rev-first compact Qwen JSON carries actor-qualified episode voice codes',async()=>{
+ const schemaPlan={
+  hinge:'Rev is asked about his choice; Shanny challenges his defense.',
+  first:{text:'I made my choice and I will explain the reason!',mood:'irritated',delivery:'R11'},
+  second:{text:'Rev, your reason keeps changing when someone asks you!',mood:'anger',delivery:'S07'},
+  rev_reason:'Rev disputes the accusation.'
+ };
+ let request,early;
+ const director=createBlackoutMicrodirector({notes:'Short acting notes',
+  getDeliveryCodes:()=>codes,
+  complete:async args=>{request=args;args.onText?.(JSON.stringify(schemaPlan));return schemaPlan;}});
+ const answer=await director.generate({kind:'donation',text:'Rev, explain your choice.',
+  readBy:'REV',onFirstLine:row=>early=row});
+ assert.deepEqual(answer.lines.map(line=>line.actor),['REV','SHANNY']);
+ assert.deepEqual(answer.lines.map(line=>line.delivery),['R11','S07']);
+ assert.equal(early.actor,'REV');
+ assert.equal(early.delivery,'R11');
+ assert.deepEqual(request.responseSchema.properties.first.properties.delivery.enum.includes('R11'),true);
+ assert.deepEqual(request.responseSchema.properties.second.properties.delivery.enum.includes('S07'),true);
+ assert.equal('to' in answer.lines[0],false);
+});
