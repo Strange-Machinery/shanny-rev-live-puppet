@@ -165,14 +165,14 @@ export class OmniVoiceProvider {
     try { child?.kill(); } catch {}
   }
 
-  async generate({ actor, text, mood, delivery }) {
+  async generate({ actor, text, mood, voiceCode }) {
     if (!['SHANNY', 'REV'].includes(actor)) throw new Error('Unknown actor');
     if(mood!==undefined)liveMood(actor,mood);
-    if(delivery!==undefined&&(!this.config.approvedDelivery||!this.availableEpisodeCodes[actor]?.includes(delivery)))
+    if(voiceCode!==undefined&&(!this.config.approvedDelivery||!this.availableEpisodeCodes[actor]?.includes(voiceCode)))
       throw new Error('Unqualified episode voice delivery');
     if (this.busy) throw new Error('OmniVoice worker is busy');
     this.busy = true;
-    try { return await this.#generate(actor, text, mood, delivery); }
+    try { return await this.#generate(actor, text, mood, voiceCode); }
     finally { this.busy = false; }
   }
 
@@ -183,7 +183,7 @@ export class OmniVoiceProvider {
     finally { this.busy = false; }
   }
 
-  async #generate(actor, text, mood, delivery) {
+  async #generate(actor, text, mood, voiceCode) {
     const cold = !this.ready;
     await this.#ensureWorker();
     if (!this.child) throw new Error('Worker not running');
@@ -197,7 +197,7 @@ export class OmniVoiceProvider {
       this.pending.set(id, { resolve, reject, timer, path: relative });
       this.child.stdin.write(JSON.stringify({
         type: 'GENERATE', id, actor, text, ...(mood?{mood}:{}),
-        ...(delivery?{delivery}:{}),relative_path: relative
+        ...(voiceCode?{voice_code:voiceCode}:{}),relative_path: relative
       }) + '\n', error => {
         if (error) this.#fail(error);
       });
@@ -214,7 +214,7 @@ export class OmniVoiceProvider {
       if (!stat.isFile() || stat.size > 24 * 1024 * 1024) throw new Error('Worker WAV exceeds bounded file size');
       const wav = await fs.readFile(real);
       return { wav, timings: { worker_cold_startup_ms: cold ? this.startupMs : null,
-        mood:result.mood??mood??null,delivery:result.delivery??delivery??null,
+        mood:result.mood??mood??null,voice_code:result.voice_code??voiceCode??null,
         reference_id:result.reference_id??null,
         generation_ms: result.generation_ms ?? null,
         request_to_complete_wav_ms: performance.now() - started } };
