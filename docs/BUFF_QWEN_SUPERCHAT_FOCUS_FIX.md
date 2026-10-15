@@ -185,9 +185,37 @@ the live Qwen schema. The original speech gateway, OmniVoice reference selection
 Unity rig, OBS hold and music receipts remain unchanged.
 
 A shorter system prompt, no old-format few-shots, smaller model output budget
-(256 tokens), and 16-second bounded CPU Qwen timeout (up from 12 seconds) aim
+(384 tokens), and 24-second bounded CPU Qwen timeout (up from 12 seconds) aim
 to reduce intermittent generation timeouts. A timeout is explicitly identified
 as Qwen CPU, not blamed on the voice worker. The safety behavior still rejects
 genuinely invalid text or off-topic generations and will not forge a paid donor
 reply. Actual reliability/latency must be measured with the MSI live audition;
 no test-only mock result proves Qwen's spoken content quality.
+
+## First-person identity and 2× response capacity — October 15
+
+The producer reports a distinct Qwen issue after speaker routing was fixed:
+SHANNY sometimes talks about "Shanny" as someone else despite Unity giving
+her lines to the SHANNY voice. Correct speaker routing does not guarantee
+correct **first-person point of view** in model-authored dialogue.
+
+The experimental writer now exposes model-facing schema fields with the runtime
+speaker included: `first_SHANNY`, `second_REV`, optional `third_SHANNY`
+(or the mirror `first_REV`, `second_SHANNY`, `third_REV`). The model is
+explicitly instructed that its current "I/me/my" is the person whose name
+labels that field. The other character is a different person. The viewer's
+name mention indicates the addressed person, not a narrator subject. The
+actual generated actor and selected OmniVoice reference remain entirely
+server-owned. Wrong named fields still fail before any voice can be released.
+Legacy anonymous slots remain accepted only as compatibility fixtures;
+no such fields are requested from Qwen in the experimental live schema.
+
+To enable a real dispute rather than fast one-liners, each spoken turn can now
+contain **up to 320 characters, 70 words and two sentences**, with an artistic
+target of **16–32 words** (previously 8–16). A short angry interruption is
+still valid. The one-pass Qwen budget increases only in experimental mode
+from 256 to **384 tokens**, and its deadline from 16 to **24 seconds**. A
+slower completion is therefore possible. We need an MSI listening/timeout
+trial; offline deterministic validations do NOT certify that the 2B writer
+will follow this identity cue or meet first-response timing. No Unity,
+voice-audio, automatic donor, or producer-hotfix modifications were made.
