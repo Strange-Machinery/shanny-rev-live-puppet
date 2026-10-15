@@ -43,9 +43,13 @@ for(let i=0;i<sampleCount;i++){
  focusTerms(input.input);
  detectTopicDrift({input:input.input,hooks:input.contextual_grievance_hooks,plan:competing});
  const firstActor=audience.target==='REV'?'REV':'SHANNY';
- const rolePlan={...competing,
-  first:{...competing.first,mood:firstActor==='REV'?'irritated':'anger'},
-  second:{...competing.second,mood:firstActor==='REV'?'anger':'irritated'}};
+ const secondActor=firstActor==='REV'?'SHANNY':'REV';
+ const rolePlan={
+  hinge:competing.hinge,
+  ['first_'+firstActor]:{...competing.first,mood:firstActor==='REV'?'irritated':'anger'},
+  ['second_'+secondActor]:{...competing.second,mood:firstActor==='REV'?'anger':'irritated'},
+  rev_reason:competing.rev_reason
+ };
  validateMicroPlan(rolePlan,'donation',{}, {input:input.input,
   hooks:input.contextual_grievance_hooks,audience_address:audience});
  focusDurations.push(performance.now()-focusStart);
