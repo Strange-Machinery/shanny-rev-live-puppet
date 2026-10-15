@@ -24,10 +24,10 @@ const inputs=[
 ];
 const sampleCount=20000;
 const history=[{actor:'REV',text:'You always talk about sandwiches.',input:'What ingredients are in your sandwich?'}];
-const competing={hinge:'Rev objects to the superchat while Shanny disputes the reason.',
- lines:[{actor:'SHANNY',text:'That was a pointed question about who is responsible.',mood:'anger'},
- {actor:'REV',text:'I can answer that question without another interruption.',mood:'irritated'}],
- rev_reason:'Rev objects to being blamed.'};
+const competing={hinge:'The first character answers the comment and their partner disputes it.',
+ first:{text:'I can answer that question about responsibility.',mood:'anger'},
+ second:{text:'Your answer ignores what I was trying to say.',mood:'irritated'},
+ rev_reason:'Rev offers a competing perspective.'};
 const focusDurations=[];
 for(let i=0;i<2000;i++)lookupLiveLore(inputs[i%inputs.length]);
 const durations=[];
@@ -42,7 +42,8 @@ for(let i=0;i<sampleCount;i++){
  chooseBlackoutShanny({text:input.input,address:audience,hooks:input.contextual_grievance_hooks,kind:'donation'});
  focusTerms(input.input);
  detectTopicDrift({input:input.input,hooks:input.contextual_grievance_hooks,plan:competing});
- validateMicroPlan(competing,'donation',{}, {input:input.input,hooks:input.contextual_grievance_hooks});
+ validateMicroPlan(competing,'donation',{}, {input:input.input,
+  hooks:input.contextual_grievance_hooks,audience_address:audience});
  focusDurations.push(performance.now()-focusStart);
 }
 durations.sort((a,b)=>a-b);
