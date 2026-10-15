@@ -7,6 +7,7 @@ import {identifyAudienceAddressee,audienceReplyContract} from './audience-addres
 
 /** One existing Qwen call. A short causal hinge precedes performed dialogue. */
 const sentences=text=>[...new Intl.Segmenter('en',{granularity:'sentence'}).segment(text)].filter(v=>v.segment.trim()).length;
+const ALLOWED_TO=new Set(['VIEWER','SHANNY','REV','BUFF']);
 function line(row,codes){
   const actor=row?.actor;
   if(!actorMoods[actor]||typeof row.text!=='string'||!row.text.trim()||
@@ -17,8 +18,12 @@ function line(row,codes){
   liveMood(actor,row.mood);
   const available=codes[actor]||[];
   const keys=Object.keys(row).sort().join(',');
-  if(keys!==(available.length?'actor,delivery,mood,text':'actor,mood,text'))
+  const requiredKeys=available.length?'actor,delivery,mood,text,to':'actor,mood,text,to';
+  const legacyKeys=available.length?'actor,delivery,mood,text':'actor,mood,text';
+  if(keys!==requiredKeys&&keys!==legacyKeys)
     throw Error('Microdirector voice fields mismatch');
+  if(row.to!==undefined&&(!ALLOWED_TO.has(row.to)||row.to===actor))
+    throw Error('Microdirector reply destination invalid');
   if(available.length&&!available.includes(row.delivery))throw Error('Unqualified reference category');
   return {actor,text:row.text.trim(),mood:row.mood,
     ...(available.length?{delivery:row.delivery}:{})};
@@ -40,8 +45,17 @@ export function validateMicroPlan(raw,kind,codes={},topicContext=null){
   // A directly addressed viewer has an authoritative first speaker; never
   // swap voices or synthesize a line from the wrong actor as the addressee.
   const target=topicContext?.audience_address?.target;
-  if(['SHANNY','REV'].includes(target)&&lines[0].actor!==target)
-    throw Error('Microdirector addressed-actor mismatch: expected '+target+' first');
+  if(['SHANNY','REV'].includes(target)){
+    if(lines[0].actor!==target)
+      throw Error('Microdirector addressed-actor mismatch: expected '+target+' first');
+    if(p.lines[0].to!=='VIEWER')
+      throw Error('Microdirector recipient mismatch: first reply must address viewer');
+    // A secondary actor is reacting TO the named addressee, not pretending
+    // to receive the viewer's second-person challenge personally.
+    const partner=target==='SHANNY'?'REV':'SHANNY';
+    if(p.lines.some((row,i)=>i>0&&row.actor===partner&&row.to!==target))
+      throw Error('Microdirector recipient mismatch: partner must address '+target);
+  }
   if(topicContext){
     const reason=detectTopicDrift({input:topicContext.input,hooks:topicContext.hooks,plan:valid});
     if(reason)throw Error('Qwen topic drift blocked: '+reason);
@@ -63,9 +77,11 @@ export function firstMicroLine(raw,codes={},topicContext=null){
   }
   if(end<0||!/^\s*[,\]]/.test(raw.slice(end)))return null;
   try{
-    const candidate=line(JSON.parse(raw.slice(start[0].length,end)),availableEpisodeCodes(codes));
+    const parsed=JSON.parse(raw.slice(start[0].length,end));
+    const candidate=line(parsed,availableEpisodeCodes(codes));
     const target=topicContext?.audience_address?.target;
-    if(['SHANNY','REV'].includes(target)&&candidate.actor!==target)return null;
+    if(['SHANNY','REV'].includes(target)&&
+       (candidate.actor!==target||parsed.to!=='VIEWER'))return null;
     if(topicContext&&detectTopicDrift({input:topicContext.input,hooks:topicContext.hooks,
        plan:{lines:[candidate]}}))return null;
     return candidate;
@@ -79,10 +95,11 @@ function exchangeSchema(codes){
         items:{anyOf:Object.entries(actorMoods).map(([actor,moods])=>{
           const allowed=codes[actor]||[];
           return {type:'object',additionalProperties:false,
-            required:allowed.length?['actor','text','mood','delivery']:['actor','text','mood'],
+            required:allowed.length?['actor','text','mood','delivery','to']:['actor','text','mood','to'],
             properties:{actor:{type:'string',enum:[actor]},
               text:{type:'string',pattern:/^[^.!?"\\\r\n]{1,159}[.!?]$/.source},
               mood:{type:'string',enum:moods},
+              to:{type:'string',enum:actor==='SHANNY'?['VIEWER','REV','BUFF']:['VIEWER','SHANNY','BUFF']},
               ...(allowed.length?{delivery:{type:'string',enum:allowed}}:{})}};
         })}},
       rev_reason:{type:'string',maxLength:80}
@@ -117,7 +134,7 @@ export function createBlackoutMicrodirector({complete,notes,examples=[],getDeliv
         'Shanny turns a narrow demand into a dispute about treatment, priority, control or credit; she can press, twist a concession, soften or abruptly return to the original practical issue. Rev challenges the exact disputed wording or responsibility, can fail to finish a thought, become offended, or temporarily support her. Both must respond to the present provocation.',
         'Use short imperfect spoken responses, a clear interpersonal cause, and the actual viewer remark. No mandatory hostility level, recurrent slogan, or stock punchline. An ordinary compliment or practical question can receive a sincere or mildly annoyed response.',
         'Select an episode-approved delivery code only from each actor available list. Calm contempt differs from shouting; severe rage must follow severe provocation. Do not pitch-shift, force squealing or automatically shout. Delivery selects a preapproved NATURAL cloned-voice reference.',
-        'Return JSON keys in exact order: hinge, lines, rev_reason. Keep hinge at 12-160 characters; each line one spoken sentence, 8-16 words preferred, with actor, text, mood and delivery if available. Mood is for face and baseline affect, not a command to manipulate pitch. Give both characters agency for a donation; Rev must contribute an identifiable rebuttal or agreement, not boilerplate.',
+        'Return JSON keys in exact order: hinge, lines, rev_reason. Keep hinge at 12-160 characters; each line one spoken sentence, 8-16 words preferred, with actor, text, mood, to, and delivery if available. Field actor=WHO SPEAKS; field to=WHO THAT LINE IS ADDRESSED TO (VIEWER, the other actor, or BUFF), not who reads the donation. For a singly named addressee, the first line is from them TO VIEWER; the other actor responds TO THE ADDRESSEE (not the viewer). Mood is for face and baseline affect, never pitch manipulation. Give both characters agency for a donation; Rev needs a real point, not boilerplate.',
         'AVAILABLE DELIVERY CODES:\n'+(guideForEpisodeCodes(codes)||'none; use actor, text and mood only'),
         'Production character background is kept producer-private for audit and offline refinement. Do not reconstruct old conversation topics from unsupplied scenes.'
       ].join('\n');
