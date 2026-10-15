@@ -142,7 +142,7 @@ export function createLiveServer({ provider, token, host = '127.0.0.1', port = 8
     void (async () => {
       try {
         const generated = await provider.generate({
-          id: job.id, actor: job.actor, text: job.text, mood:job.mood, delivery:job.delivery,
+          id: job.id, actor: job.actor, text: job.text, mood:job.mood, voiceCode:job.voice_code,
           prepareOnly: job.prepareOnly
         });
         const wav = Buffer.from(generated.wav ?? generated);
@@ -158,14 +158,14 @@ export function createLiveServer({ provider, token, host = '127.0.0.1', port = 8
         counters.ready++;
         if (job.prepareOnly) {
           prepared.set(job.id, {
-            state: 'prepared', actor: job.actor, mood:job.mood, delivery:job.delivery||null, epoch: job.epoch,
+            state: 'prepared', actor: job.actor, mood:job.mood, voice_code:job.voice_code||null, epoch: job.epoch,
             expires: now() + PREPARED_TTL_MS,
             duration_ms: meta.duration_ms
           });
         }
         job.delivered = !job.prepareOnly;
         emit(job.prepareOnly ? 'speech.prepared' : 'speech.ready', {
-          id: job.id, actor: job.actor, mood:job.mood, delivery:job.delivery||null,
+          id: job.id, actor: job.actor, mood:job.mood, voice_code:job.voice_code||null,
           provider_timings: generated.timings ?? null,
           delivery: job.delivery,
           audio_path: job.prepareOnly ? null : '/v1/audio/' + job.id,
@@ -304,7 +304,7 @@ export function createLiveServer({ provider, token, host = '127.0.0.1', port = 8
         throw new HttpError(400, 'actor must be SHANNY or REV');
       }
       let mood;try{mood=liveMood(body.actor,body.mood);}catch{throw new HttpError(400,'Invalid actor expression mood');}
-      if(body.delivery!==undefined&&!verifyEpisodeCode(body.actor,body.delivery))
+      if(body.voice_code!==undefined&&!verifyEpisodeCode(body.actor,body.voice_code))
         throw new HttpError(400,'Unapproved episode voice delivery');
       if (typeof body.text !== 'string' || !body.text.trim() ||
           body.text.length > 1000) {
@@ -325,7 +325,7 @@ export function createLiveServer({ provider, token, host = '127.0.0.1', port = 8
       const id = randomUUID();
       if (body.delivery === 'interrupt') invalidate('interrupt');
       const job = { id, actor: body.actor, text: body.text.trim(), mood,
-        ...(body.delivery?{delivery:body.delivery}:{}),
+        ...(body.voice_code?{voice_code:body.voice_code}:{}),
         delivery: body.delivery || 'queue', prepareOnly: body.prepare_only === true,
         cancelled: false, epoch, submittedAt: performance.now() };
       queue.push(job);
@@ -365,7 +365,7 @@ export function createLiveServer({ provider, token, host = '127.0.0.1', port = 8
       }
       entry.state = 'released';
       jobs.get(body.id).delivered = true;
-      emit('speech.ready', { id: body.id, actor: entry.actor, mood:entry.mood, delivery:entry.delivery,
+      emit('speech.ready', { id: body.id, actor: entry.actor, mood:entry.mood, voice_code:entry.voice_code||null,
         delivery: 'queue', audio_path: '/v1/audio/' + body.id,
         duration_ms: entry.duration_ms, prepared_release: true });
       json(res, 200, { status: 'released' }); return;
