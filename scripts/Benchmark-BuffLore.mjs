@@ -4,6 +4,7 @@ import {makeMicroInput} from '../src/blackout-lore-router.mjs';
 import {focusTerms,detectTopicDrift} from '../src/live-topic-focus.mjs';
 import {validateMicroPlan} from '../src/blackout-microdirector-director.mjs';
 import {identifyAudienceAddressee,audienceReplyContract} from '../src/audience-addressee.mjs';
+import {chooseBlackoutShanny} from '../src/blackout-shanny-heat.mjs';
 const inputs=[
   'Rev, go dump Shanny\'s bucket again.',
   'Wait, what happened when Will got dropkicked?',
@@ -38,6 +39,7 @@ for(let i=0;i<sampleCount;i++){
  const input=makeMicroInput({text:inputs[i%inputs.length],kind:'donation',history});
  const audience=identifyAudienceAddressee(input.input);
  audienceReplyContract(audience,'donation','SHANNY');
+ chooseBlackoutShanny({text:input.input,address:audience,hooks:input.contextual_grievance_hooks,kind:'donation'});
  focusTerms(input.input);
  detectTopicDrift({input:input.input,hooks:input.contextual_grievance_hooks,plan:competing});
  validateMicroPlan(competing,'donation',{}, {input:input.input,hooks:input.contextual_grievance_hooks});
