@@ -7,17 +7,27 @@ import {identifyAudienceAddressee,audienceReplyContract} from './audience-addres
 import {chooseBlackoutShanny} from './blackout-shanny-heat.mjs';
 
 /** One existing Qwen call. A short causal hinge precedes performed dialogue. */
-const sentences=text=>[...new Intl.Segmenter('en',{granularity:'sentence'}).segment(text)].filter(v=>v.segment.trim()).length;
-// Double the previous 160-char/one-sentence Microdirector restriction.
-// Short objections remain legal; longer arguments have room to breathe.
-const SPOKEN_MAX_CHARS=320, SPOKEN_MAX_WORDS=70, SPOKEN_MAX_SENTENCES=2;
+// One utterance has a hard byte-sized character/word envelope for the voice
+// gateway. Sentence-count is an ACTING preference, not a semantic safety gate:
+// punctuation, abbreviations and interrupted arguments can produce 3+ segments.
+const SPOKEN_MAX_CHARS=320, SPOKEN_MAX_WORDS=70;
 const ALLOWED_TO=new Set(['VIEWER','SHANNY','REV','BUFF']);
-function line(row,codes){
+function line(row,codes,index=1){
+  // Never include generated dialogue in error messages, server status or logs.
+  const fail=(reason)=>{throw Error('Invalid Microdirector spoken line: line '+index+' '+reason);};
   const actor=row?.actor;
-  if(!actorMoods[actor]||typeof row.text!=='string'||!row.text.trim()||
-     row.text.length>SPOKEN_MAX_CHARS||row.text.trim().split(/\s+/).length>SPOKEN_MAX_WORDS||
-     sentences(row.text)<1||sentences(row.text)>SPOKEN_MAX_SENTENCES||/[\u0000-\u001f]|<\/?think>/i.test(row.text))
-    throw Error('Invalid Microdirector spoken line');
+  if(!actorMoods[actor])fail('has invalid actor');
+  if(typeof row.text!=='string')fail('text is not a string');
+  // Plain formatting line breaks/tabs are irrelevant to TTS, and do not
+  // justify rejecting an otherwise valid voiced line. No words are rewritten.
+  const text=row.text.trim().replace(/[\r\n\t\u2028\u2029]+/g,' ').replace(/ {2,}/g,' ');
+  if(!text)fail('is empty');
+  if(text.length>SPOKEN_MAX_CHARS)fail('exceeds 320 characters ('+text.length+')');
+  const words=text.split(/\s+/).length;
+  if(words>SPOKEN_MAX_WORDS)fail('exceeds 70 words ('+words+')');
+  if(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(text))
+    fail('contains non-spoken control characters');
+  if(/<\/?think>/i.test(text))fail('contains forbidden model-thinking tags');
   if(typeof row.mood!=='string')throw Error('Microdirector mood missing');
   liveMood(actor,row.mood);
   const available=codes[actor]||[];
@@ -29,7 +39,7 @@ function line(row,codes){
   if(row.to!==undefined&&(!ALLOWED_TO.has(row.to)||row.to===actor))
     throw Error('Microdirector reply destination invalid');
   if(available.length&&!available.includes(row.delivery))throw Error('Unqualified reference category');
-  return {actor,text:row.text.trim(),mood:row.mood,
+  return {actor,text,mood:row.mood,
     ...(available.length?{delivery:row.delivery}:{})};
 }
 function assignedSpeakers(topicContext){
@@ -79,7 +89,7 @@ export function validateMicroPlan(raw,kind,codes={},topicContext=null){
      !Array.isArray(p.lines)||p.lines.length<2||p.lines.length>3||
      !['donation','microphone'].includes(kind))throw Error('Invalid causal Microdirector plan');
   const usable=availableEpisodeCodes(codes);
-  const lines=p.lines.map(row=>line(row,usable));
+  const lines=p.lines.map((row,i)=>line(row,usable,i+1));
   if(kind==='donation'&&(!lines.some(v=>v.actor==='SHANNY')||!lines.some(v=>v.actor==='REV')))
     throw Error('Donation requires both characters');
   if(kind==='microphone'&&!lines.some(v=>v.actor==='SHANNY'))throw Error('Shanny must respond');
@@ -128,7 +138,7 @@ export function firstMicroLine(raw,codes={},topicContext=null){
         !['mood,text','delivery,mood,text'].includes(Object.keys(parsed).sort().join(','))))
       return null;
     const row=(named||legacy)?{...parsed,actor:speaker}:parsed;
-    const candidate=line(row,availableEpisodeCodes(codes));
+    const candidate=line(row,availableEpisodeCodes(codes),1);
     const target=topicContext?.audience_address?.target;
     if(['SHANNY','REV'].includes(target)&&candidate.actor!==target)return null;
     if(topicContext&&detectTopicDrift({input:topicContext.input,hooks:topicContext.hooks,
@@ -145,10 +155,10 @@ function exchangeSchema(codes,primaryActor='SHANNY'){
     return {type:'object',additionalProperties:false,
       required:available.length?['text','mood','delivery']:['text','mood'],
       properties:{
-        // Allow two spoken sentences or a longer single sentence. The
-        // actual validator separately enforces <=2 sentences and <=70 words.
-        text:{type:'string',maxLength:SPOKEN_MAX_CHARS,
-          pattern:/^[^"\\\r\n]{1,319}[.!?]$/.source},
+        // Constrain length structurally. A regex banning ordinary quotation
+        // marks or demanding a final punctuation mark made the small CPU
+        // model brittle; the local validator rejects unsafe control tags.
+        text:{type:'string',minLength:1,maxLength:SPOKEN_MAX_CHARS},
         mood:{type:'string',enum:actorMoods[actor]},
         ...(available.length?{delivery:{type:'string',enum:available}}:{})
       }};
@@ -197,7 +207,7 @@ export function createBlackoutMicrodirector({complete,notes,examples=[],getDeliv
         'Write each line in character, not as if both characters received the question. SHANNY presses personal dignity, priority and control; she can be angry, disgusting in her contempt, or insularly tearful and self-victimizing without forgiving. Her BLACKOUT SHANNY range is ANGER, DISGUST, SELF-VICTIMIZING HURT and INSULAR CRYING; a fuck you is earned, not quota. REV resents unfair blame, explains or needles, and can disagree, agree or support her.',
         'Use the supplied shanny_blackout acting objective for SHANNY only. Earned changes in tone follow what the other character says; do not force the selected emotion into REV.',
         'Voice-reference clips and private notes are BACKGROUND acting material, not subjects or dialogue examples. Use only qualified natural delivery codes and appropriate actor face moods. No pitch effects.',
-        'Output only JSON: hinge, '+names.first+', '+names.second+', optional '+names.third+', rev_reason. Each named character slot contains text, mood and a qualified delivery if available, never actor or to. For EACH spoken line aim for 16–32 natural words, in one or two sentences. Longer explanations and frustrated interruptions are welcome when motivated, but do not pad or ramble off-topic. '+actors.first+' addresses the viewer, '+actors.second+' reacts to '+actors.first+'.',
+        'Output only JSON: hinge, '+names.first+', '+names.second+', optional '+names.third+', rev_reason. Each named character slot contains text, mood and a qualified delivery if available, never actor or to. For EACH spoken line aim for 16–32 natural words, usually one or two sentences; keep the text below 280 characters for headroom. Realistic quick interruptions, questions and quoted speech are fine. Do not pad, invent props, or drift off-topic. '+actors.first+' addresses the viewer, '+actors.second+' reacts to '+actors.first+'.',
         'VOICE OPTIONS:\n'+(guideForEpisodeCodes(codes)||'none; omit delivery fields')
       ].join('\n');
       // Do not pass old actor-labelled few-shot examples to the new slot
