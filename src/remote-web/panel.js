@@ -90,7 +90,9 @@ let polling=false;async function status(){if(polling)return;polling=true;try{con
       ' verified episode samples · '+(micro.lore_index?.hooks||0)+' lore families · '+
       (micro.lore_index?.aliases||0)+' keyword aliases · '+
       (micro.topic_focus==='superchat-only-v1'?'Superchat focus ON (no legacy topic notes) · ':'Legacy topic prompt · ')+
-      'one Qwen pass · '+(micro.response_schema==='fixed-speaker-slots-v1'?
+      'one Qwen pass · '+(micro.response_schema==='named-character-slots-v2'?
+        'Shanny/Rev identity-locked slots · 2-sentence capacity · ':
+        micro.response_schema==='fixed-speaker-slots-v1'?
         'fixed speaker slots / named reader · ':'legacy reply schema · ')+
       (micro.qwen_budget?.timeout_ms?'Qwen budget '+(micro.qwen_budget.timeout_ms/1000)+'s · ':'')+
       (Number.isFinite(s.latency?.model_ms)?'Last Qwen '+Math.round(s.latency.model_ms)+' ms · ':'')+
