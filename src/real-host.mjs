@@ -71,8 +71,11 @@ export async function serveRealHost(config){
     await waitUntil(async()=>{if(model.exitCode!==null)throw new Error('Local Qwen exited; inspect producer diagnostics');try{return (await fetch('http://127.0.0.1:'+port+'/health',{signal:AbortSignal.timeout(1500)})).ok;}catch{return false;}},120000);
     const notes=await readFile(config.characterNotes,'utf8');
     const examples=config.approvedExamples?JSON.parse(await readFile(config.approvedExamples,'utf8')):[];
-    const complete=createQwenCompletion({endpoint:'http://127.0.0.1:'+port+'/v1/chat/completions',model:modelName,apiKey:qwenKey,placement:'cpu',timeoutMs:12000,
-      maxTokens:microdirectorEnabled?320:240,
+    const complete=createQwenCompletion({endpoint:'http://127.0.0.1:'+port+'/v1/chat/completions',model:modelName,apiKey:qwenKey,placement:'cpu',
+      // Slot-only JSON is smaller; a modest bounded timeout extension absorbs
+      // occasional CPU stalls without a second model pass or a retry storm.
+      timeoutMs:microdirectorEnabled?16000:12000,
+      maxTokens:microdirectorEnabled?256:240,
       ...(microdirectorEnabled?{temperature:0.7,topP:0.9}:{})});
     // Voice prompts are qualified at worker startup. Qwen sees only those
     // categories actually available, not a guessed global voice inventory.
@@ -161,6 +164,8 @@ export async function serveRealHost(config){
     const action=async data=>{
       if(data.action==='status')return {...session.status(),qwen:modelName+' (local CPU)',performance_mode:performanceMode,
         microdirector:microdirectorEnabled?{enabled:true,
+          qwen_budget:{max_tokens:256,timeout_ms:16000,model_calls_per_turn:1},
+          response_schema:'fixed-speaker-slots-v1',
           shanny_blackout:{version:'producer-blackout-v1',overt_pressure_target:0.65,
             lanes:['direct_attack','disgust_contempt','wounded_victim','insular_crying','contained_blackout']},
           audience_roles:'viewer-address-v1',topic_focus:'superchat-only-v1',
