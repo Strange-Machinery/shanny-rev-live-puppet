@@ -64,7 +64,7 @@ export function createQwenCompletion({ endpoint, model, apiKey = '', timeoutMs =
         combined.reason?.name==='TimeoutError';
       if(localTimeout){
         onTiming({model,completion_ms:performance.now()-start,status:'timeout'});
-        throw new Error('Qwen CPU generation timed out after '+timeoutMs+' ms');
+        throw new Error('Qwen CPU timeout after '+timeoutMs+' ms');
       }
       throw error;
     } finally { busy = false; }
