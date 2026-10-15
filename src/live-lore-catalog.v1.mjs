@@ -61,7 +61,7 @@ export const LIVE_LORE_V1=Object.freeze([
  {id:'shanny-edge',name:'Keep pushing / already at the edge',terms:['keep pushing','already at the edge','pushing me','shanny at the edge','shanny keeps pushing','im already at the edge'],
   cue:'Shanny reframes continued disagreement as intentional provocation, and can broaden an ordinary grievance into “I’m already at the edge.” The escalation must follow something the partner actually did or said.',
   evidence:'approved-conditional-signature',weight:71},
- {id:'shanny-boundary',name:'Shanny button and consent',terms:['press my button','press the button shanny','i do not consent','shanny consent button'],
+ {id:'shanny-boundary',name:'Shanny button and consent',terms:['press my button','press the button shanny','i do not consent','shanny consent button',"shanny pressed button","press her button","shanny presses her button","shanny press the button"],
   cue:'When a request is heard as coercion, Shanny defends her agency with boundary/legalistic language or her button. Do not insert refusal slogans unless the donor is specifically challenging her agency.',
   evidence:'approved-conditional-signature',weight:67},
  {id:'mook',name:'Mook',terms:['mook','youre a mook','you are a mook'],
