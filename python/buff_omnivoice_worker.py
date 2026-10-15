@@ -17,6 +17,7 @@ import re
 import sys
 import time
 import traceback
+from live_episode_delivery import approved_routes, select_reference
 
 PREFIX = "LIVE_WORKER "
 
@@ -44,6 +45,7 @@ def main():
     parser.add_argument("--rev-reference", required=True)
     parser.add_argument("--seed", type=int, default=73001)
     parser.add_argument("--mood-references", default="{}")
+    parser.add_argument("--approved-delivery-codes", default="{}")
     args = parser.parse_args()
 
     app_root = args.app_root.resolve(strict=True)
@@ -83,6 +85,18 @@ def main():
                 if not isinstance(reference_id, str):
                     raise RuntimeError("Invalid mood reference")
                 prompt_choices.add((actor, reference_id))
+        requested_delivery = json.loads(args.approved_delivery_codes)
+        episode_routes = {}
+        if requested_delivery:
+            # The episode catalog verifies every saved prompt and source receipt.
+            from expanded_voices import load_library
+            episode_routes = approved_routes(load_library(), references, requested_delivery)
+            if not episode_routes.get('SHANNY') or not episode_routes.get('REV'):
+                raise RuntimeError('Both characters need real, approved episode delivery references')
+            for actor, codes in episode_routes.items():
+                for variants in codes.values():
+                    for candidate in variants:
+                        prompt_choices.add((actor, candidate['reference_id']))
         for actor, reference_id in prompt_choices:
             if reference_id not in references or references[reference_id]["speaker"].upper() != actor:
                 raise RuntimeError(f"{actor} reference is missing or belongs to another actor: {reference_id}")
@@ -164,9 +178,13 @@ def main():
             "model_load_ms": round((time.perf_counter() - load_started) * 1000.0, 3),
             "sample_rate_hz": model.sampling_rate,
             "references": selected,
+            "delivery_codes": {actor: sorted(codes) for actor, codes in episode_routes.items()},
+            "delivery_sample_counts": {actor: {code: len(variants) for code, variants in codes.items()}
+                                       for actor, codes in episode_routes.items()},
             "pid": os.getpid(),
         })
 
+        last_reference = {}
         for raw in sys.stdin:
             raw = raw.strip()
             if not raw:
@@ -202,7 +220,22 @@ def main():
                 mood = message.get("mood")
                 if mood is not None and mood not in allowed_moods[actor]:
                     raise ValueError("invalid expression mood")
-                reference_id = mood_references.get(actor, {}).get(mood, selected[actor])
+                voice_code = message.get('voice_code')
+                if voice_code is not None:
+                    if not isinstance(voice_code, str) or voice_code not in episode_routes.get(actor, {}):
+                        raise ValueError('Episode delivery code is not approved for actor')
+                    # The approved episode S06 category has distinct
+                    # medium and full intensity source variants. Qwen's
+                    # existing face-affect choice disambiguates them without
+                    # adding another token field or pitch modification.
+                    intensity = ('full' if mood == 'rage' else 'medium') if (
+                        actor == 'SHANNY' and voice_code == 'S06') else None
+                    reference_id, next_selection = select_reference(
+                        episode_routes, actor, voice_code, request_id, args.seed,
+                        last_reference.get(actor), intensity=intensity)
+                else:
+                    reference_id = mood_references.get(actor, {}).get(mood, selected[actor])
+                    next_selection = None
                 item = prompts[(actor, reference_id)]
                 prompt = item["prompt"]
                 prompt_path = item["prompt_path"]
@@ -247,12 +280,15 @@ def main():
                 temporary = output.with_suffix(output.suffix + ".tmp")
                 temporary.write_bytes(wav_bytes)
                 os.replace(temporary, output)
+                if next_selection is not None:
+                    last_reference[actor] = next_selection
                 emit({
                     "type": "RESULT",
                     "id": request_id,
                     "status": "SUCCEEDED",
                     "actor": actor,
                     "mood": mood,
+                    "voice_code": voice_code,
                     "reference_id": reference_id,
                     "relative_path": relative_path,
                     "generation_ms": round(generation_ms, 3),

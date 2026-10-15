@@ -79,7 +79,48 @@ window.addEventListener('pagehide',()=>{stopCapture();
    headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},
    body:JSON.stringify({action:'stop'}),keepalive:true}).catch(()=>{});
 });
-let polling=false;async function status(){if(polling)return;polling=true;try{const s=await api('status');online=true;stageBusy=Boolean(s.busy);stageAvailable=Boolean(s.media?.available);showDonations(s.donations);$('status').textContent='Connected to producer · '+(s.real_characters?'Real characters · Blackout Shanny':'Testing fixtures')+' · '+(s.whisper?'Whisper ready':'Whisper unavailable');if(s.real_characters){$('service-note').textContent='Real Qwen, character voices and Unity run on the producer computer. No YouTube livestream is needed. Use Connect preview to watch and hear the stage.';$('dialogue').textContent=s.error||s.history.map(row=>row.actor+': '+row.text).join('\n\n');}}catch(error){if(online&&!donationsEnabled)stop();online=false;$('status').textContent='Producer unavailable. Ask them to start sharing, then reopen your launcher.';}finally{polling=false;for(const id of ['donate','replay','mic'])$(id).disabled=!online;$('rain-now').disabled=!online||stageBusy||!stageAvailable||Boolean(donationsEnabled&&lastQueueDepth>0);}}
+let polling=false;async function status(){if(polling)return;polling=true;try{const s=await api('status');online=true;stageBusy=Boolean(s.busy);stageAvailable=Boolean(s.media?.available);showDonations(s.donations);$('status').textContent='Connected to producer · '+(s.real_characters?'Real characters · Blackout Shanny':'Testing fixtures')+' · '+(s.whisper?'Whisper ready':'Whisper unavailable');if(s.real_characters){
+  const micro=s.microdirector;
+  if(micro?.enabled){
+    const counts=Object.fromEntries(['SHANNY','REV'].map(actor=>[actor,(micro.available_delivery_codes?.[actor]||[]).length]));
+    const voiceSamples=Object.values(micro.qualified_samples_by_code||{}).reduce((total,actor)=>
+      total+Object.values(actor).reduce((subtotal,count)=>subtotal+(Number(count)||0),0),0);
+    const flags=micro.source_echo_flags||{};
+    const backend=s.qwen_backend||{};
+    const route=backend.preferred==='v620'?
+      'V620 27B preferred · last writer '+(backend.last_route||'none')+
+      ' · V620 '+(backend.remote_state||'unverified')+
+      ' · MSI fallbacks '+(backend.fallback_count||0)+
+      (backend.last_reason&&backend.last_reason!=='none'?' ('+backend.last_reason+')':'')+' · ':
+      'MSI CPU Qwen local · ';
+    $('service-note').textContent='Microdirector ACTIVE · '+route+counts.SHANNY+'/20 Shanny categories, '+counts.REV+'/23 Rev categories · '+voiceSamples+
+      ' verified episode samples · '+(micro.lore_index?.hooks||0)+' lore families · '+
+      (micro.lore_index?.aliases||0)+' keyword aliases · '+
+      (micro.topic_focus==='superchat-only-v1'?'Superchat focus ON (no legacy topic notes) · ':'Legacy topic prompt · ')+
+      (backend.preferred==='v620'?'one approved dialogue (V620→MSI failover) · ':'one Qwen pass · ')+(micro.response_schema==='named-character-slots-v2'?
+        'Shanny/Rev identity-locked slots · natural dialogue · ':
+        micro.response_schema==='fixed-speaker-slots-v1'?
+        'fixed speaker slots / named reader · ':'legacy reply schema · ')+
+      (micro.spoken_line_validator==='natural-punctuation-v2'?'natural speech gate v2 · ':'')+
+      (micro.qwen_budget?.timeout_ms?'Qwen budget '+(micro.qwen_budget.timeout_ms/1000)+'s · ':'')+
+      (Number.isFinite(s.latency?.model_ms)?'Last Qwen '+Math.round(s.latency.model_ms)+' ms · ':'')+
+      'Blackout Shanny '+
+      Math.round(100*(micro.shanny_blackout?.overt_pressure_target||0.65))+'% hot target (anger / disgust / self-victim tears). '+
+      (s.last_audience_address?
+       'Last input: '+s.last_audience_address.target+' addressed'+
+       (s.last_audience_address.read_by?' · read aloud by '+s.last_audience_address.read_by:'')+' · ':'')+
+      (flags.old_notes_contain_food_theme||flags.legacy_examples_contain_food_theme||flags.recent_spoken_food_echo||
+      flags.old_notes_contain_no_means_no||flags.legacy_examples_contain_bread_or_refusal?
+      'Historical repetition cues detected in private inputs; review those sources if off-topic dialogue recurs.':'No known stale refusal/bread phrases detected in private inputs.');
+  } else $('service-note').textContent='Real Qwen, character voices and Unity run on the producer computer. No YouTube livestream is needed. Use Connect preview to watch and hear the stage.';
+  if(s.media?.presentation_visible&&s.media?.presentation_mode==='rain'){
+    const listeners=Number(s.media.obs_viewers)||0;
+    const state=s.media.rain_audio||'pending';
+    $('rain-now-status').textContent=listeners
+      ?'Rain audio in OBS: '+state+' · use OBS Browser Source sound, not the producer preview.'
+      :'No OBS Browser Source connected: the Unity dance is visible but the rain soundtrack only plays inside the approved OBS HUD.';
+  }
+$('dialogue').textContent=s.error||s.history.map(row=>row.actor+': '+row.text).join('\n\n');}}catch(error){if(online&&!donationsEnabled)stop();online=false;$('status').textContent='Producer unavailable. Ask them to start sharing, then reopen your launcher.';}finally{polling=false;for(const id of ['donate','replay','mic'])$(id).disabled=!online;$('rain-now').disabled=!online||stageBusy||!stageAvailable||Boolean(donationsEnabled&&lastQueueDepth>0);}}
 void status();setInterval(()=>void status(),3000);
 let catalog={revision:'',items:[]};
 function options(id,values){$(id).replaceChildren(...values.map(value=>new Option(value.label||value,value.value||value)));}

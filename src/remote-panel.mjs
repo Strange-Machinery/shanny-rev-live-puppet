@@ -78,7 +78,8 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
         if(lease)lease=Date.now()+15000;
         return send(200,{mode:s.mode,whisper:s.whisper_available,qwen:s.qwen,speech:s.speech,
           busy:s.turn_busy||s.conversation_busy||s.active_audio>0,kind:'REMOTE_TESTING',production_ready:false,
-            real_characters:Boolean(s.real_characters),history:s.history||[],error:s.error||'',latency:s.latency||null,media:s.media||null,donations:s.donations||null});
+            real_characters:Boolean(s.real_characters),history:s.history||[],error:s.error||'',latency:s.latency||null,
+              microdirector:s.microdirector||null,media:s.media||null,donations:s.donations||null});
       }
       if(req.method!=='POST'||req.url!=='/api/action')return send(404,{error:'Unavailable.'});
       if(!String(req.headers['content-type']).startsWith('application/json'))return send(415,{error:'JSON required.'});

@@ -11,8 +11,11 @@ import {createLiveServer} from './live-server.mjs';
 import {createLocalPuppetGateway} from './donations/gateway-client.mjs';
 import {OmniVoiceProvider} from './providers/omnivoice.mjs';
 import {createQwenCompletion} from './providers/qwen.mjs';
+import {createQwenFailover,createV620ModelProbe} from './providers/qwen-failover.mjs';
 import {PersistentWhisper} from './providers/whisper.mjs';
 import {createConversationDirector} from './conversation-director.mjs';
+import {createBlackoutMicrodirector} from './blackout-microdirector-director.mjs';
+import {liveLoreStats} from './live-lore-index.mjs';
 import {ConversationSession} from './conversation-session.mjs';
 import {AnimationMenu} from './animation-menu.mjs';
 import {waitForVoiceMemory} from './gpu-readiness.mjs';
@@ -30,6 +33,9 @@ export async function serveRealHost(config){
   let phase='Starting character services';
   const progress=message=>{phase=message;process.stderr.write('BUFF_STARTUP '+message+'\n');};
   if(config.resourceHeadroomVerified!==true)throw new Error('Character voice resource check is required');
+  const microdirectorEnabled=config.microdirector?.enabled===true;
+  if(microdirectorEnabled&&config.omnivoice?.approvedDelivery!==true)
+    throw new Error('Microdirector needs explicitly approved natural episode voice routing');
   const root=resolve(config.scratch),token=randomBytes(32).toString('hex'),qwenKey=randomBytes(32).toString('hex');
   await mkdir(root,{recursive:true});
   const lockPath=join(root,'host.lock');let lock;
@@ -66,8 +72,35 @@ export async function serveRealHost(config){
     await waitUntil(async()=>{if(model.exitCode!==null)throw new Error('Local Qwen exited; inspect producer diagnostics');try{return (await fetch('http://127.0.0.1:'+port+'/health',{signal:AbortSignal.timeout(1500)})).ok;}catch{return false;}},120000);
     const notes=await readFile(config.characterNotes,'utf8');
     const examples=config.approvedExamples?JSON.parse(await readFile(config.approvedExamples,'utf8')):[];
-    const complete=createQwenCompletion({endpoint:'http://127.0.0.1:'+port+'/v1/chat/completions',model:modelName,apiKey:qwenKey,placement:'cpu',timeoutMs:12000,maxTokens:240});
-    const director=createConversationDirector({complete,notes,examples});
+    const localComplete=createQwenCompletion({endpoint:'http://127.0.0.1:'+port+'/v1/chat/completions',model:modelName,apiKey:qwenKey,placement:'cpu',
+      // Preserve the exact warm local CPU Qwen fallback and legacy behavior.
+      timeoutMs:microdirectorEnabled?24000:12000,
+      maxTokens:microdirectorEnabled?384:240,
+      ...(microdirectorEnabled?{temperature:0.7,topP:0.9}:{})});
+    // V620 routing is opt-in, in the isolated Microdirector profile only.
+    // No provider credentials, native Unity, or approved OmniVoice settings
+    // are changed. The original local CPU writer remains a warm failover.
+    const preferV620=microdirectorEnabled&&config.microdirector?.qwenPriority==='v620-preferred';
+    let complete=localComplete;
+    const v620Model=preferV620?(config.microdirector?.v620?.model||'qwen3.8-27b'):null;
+    if(preferV620){
+      const v620Host=config.microdirector?.v620?.host;
+      const remote=createQwenCompletion({
+        endpoint:'http://'+v620Host+':1234/v1/chat/completions',
+        model:v620Model,placement:'off-device',responseFormat:'lmstudio',
+        trustedTailnetHost:v620Host,
+        timeoutMs:30000,maxTokens:512,temperature:0.7,topP:0.9
+      });
+      const probe=createV620ModelProbe({host:v620Host,model:v620Model,timeoutMs:1500});
+      complete=createQwenFailover({primary:remote,fallback:localComplete,probe,cooldownMs:10000});
+      progress('V620 27B preferred, warm MSI CPU Qwen ready as fallback...');
+    }
+    // Voice prompts are qualified at worker startup. Qwen sees only those
+    // categories actually available, not a guessed global voice inventory.
+    const director=microdirectorEnabled?
+      createBlackoutMicrodirector({complete,notes,examples,
+        getDeliveryCodes:()=>voice?.availableEpisodeCodes||{}}):
+      createConversationDirector({complete,notes,examples});
     progress('Checking room for the character voices...');
     await waitForVoiceMemory({progress,readFreeMiB:async()=>{
       const gpu=await promisify(execFile)('nvidia-smi',['--query-gpu=memory.free','--format=csv,noheader,nounits'],{windowsHide:true,timeout:5000});
@@ -147,7 +180,28 @@ export async function serveRealHost(config){
     },1000);
     let manualRainArming=false;
     const action=async data=>{
-      if(data.action==='status')return {...session.status(),qwen:modelName+' (local CPU)',performance_mode:performanceMode,media:media?.info()||null,
+      if(data.action==='status')return {...session.status(),
+        qwen:preferV620?v620Model+' (V620 primary; MSI CPU backup)':modelName+' (local CPU)',
+        qwen_backend:preferV620?complete.status():{preferred:'msi',last_route:'msi',last_reason:'none'},
+        performance_mode:performanceMode,
+        microdirector:microdirectorEnabled?{enabled:true,
+          qwen_budget:preferV620?{max_tokens:512,timeout_ms:30000,
+            fallback_max_tokens:384,fallback_timeout_ms:24000,
+            accepted_passes_per_turn:1,max_attempts_on_failure:2}:
+            {max_tokens:384,timeout_ms:24000,model_calls_per_turn:1},
+          dialogue_length:{preferred_words_min:16,preferred_words_max:32,
+            max_chars_per_line:320,max_sentences_per_line:2},
+          response_schema:'named-character-slots-v2',
+          spoken_line_validator:'natural-punctuation-v2',
+          shanny_blackout:{version:'producer-blackout-v1',overt_pressure_target:0.65,
+            lanes:['direct_attack','disgust_contempt','wounded_victim','insular_crying','contained_blackout']},
+          audience_roles:'viewer-address-v1',topic_focus:'superchat-only-v1',
+          background_notes_in_qwen_prompt:false,offtopic_voice_prefetch_blocked:true,
+          lore_index:liveLoreStats(),
+          available_delivery_codes:voice.availableEpisodeCodes,
+          qualified_samples_by_code:voice.availableEpisodeCounts,
+          source_echo_flags:director.audit({history:session.history})}:{enabled:false},
+        media:media?.info()||null,
         presentation_visible:media?.info().presentation_visible||false,donations:donations?.status()||null,
         preview_url:preview?'http://127.0.0.1:'+preview.port+'/#key='+preview.token:null};
       if(data.action?.startsWith('media-')){if(!media)throw new Error('Stage feed not configured');return media.viewer(data);}

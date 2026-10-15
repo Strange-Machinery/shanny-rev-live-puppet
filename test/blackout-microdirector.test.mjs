@@ -1,0 +1,124 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {selectGrievanceHooks,echoFlags,makeMicroInput} from '../src/blackout-microdirector.mjs';
+import {createBlackoutMicrodirector,validateMicroPlan,firstMicroLine} from '../src/blackout-microdirector-director.mjs';
+
+const codes={SHANNY:['S07','S08','S09'],REV:['R11','R12']};
+const plan={hinge:'Shanny resents the command while Rev notices her double standard.',
+ lines:[
+  {actor:'SHANNY',text:'You do not get to order me around just because you donated!',mood:'anger',delivery:'S07',to:'VIEWER'},
+  {actor:'REV',text:'You were fine with it when you thought the money was yours!',mood:'irritated',delivery:'R11',to:'SHANNY'}
+ ],rev_reason:'Rev calls out the money contradiction'};
+function fixed(more={}){return {...plan,...more};}
+
+test('microdirector uses evidence-gated optional lore, never gratuitously invokes legends',()=>{
+ assert.deepEqual(selectGrievanceHooks('Can you two argue over my $5 donation?'),[]);
+ assert.equal(selectGrievanceHooks('How many years was Rev stuck emptying the bucket?')[0].id,'bucket');
+ assert.equal(selectGrievanceHooks('Ezzie was texting again')[0].id,'ezzie');
+ assert.equal(selectGrievanceHooks('Why did you call him Baby Carrot?')[0].id,'baby-carrot');
+ const congealed=selectGrievanceHooks('That story is congealed.')[0];
+ assert.equal(congealed.id,'congealed');
+ assert.match(congealed.grievance,/no verified|NO verified/i);
+ assert.deepEqual(selectGrievanceHooks('I cooked bread today.'),[]);
+ assert.equal(selectGrievanceHooks('Rev, the broken toilet means walking to the bathroom.')[0].id,'bucket');
+ assert.deepEqual(selectGrievanceHooks('Rev says he wants to learn to walk more.'),[]);
+});
+test('context includes only relevant current hook and bounded played history',()=>{
+ const earlier='Why did Rev empty the bucket?';
+ const input=makeMicroInput({text:'Rev, explain the bucket.',kind:'donation',
+  history:[{actor:'SHANNY',text:'I was in the room.',input:earlier},
+           {actor:'REV',text:'You keep changing topics.',input:earlier}],
+  hinges:[{text:'Rev resents emptying the bucket.',input:earlier}]});
+ assert.equal(input.contextual_grievance_hooks.length,1);
+ assert.equal(input.contextual_grievance_hooks[0].id,'bucket');
+ assert.equal(input.recent_played_lines.length,2);
+ assert.equal(input.recent_causes.length,1);
+ assert.equal(input.kind,'donation');
+});
+test('one-pass causal prompt, verified voice codes, and no stale few-shot source quotes',async()=>{
+ let observed;const director=createBlackoutMicrodirector({notes:'Historical example: stale refusal quote and old bakery sketch.',
+  examples:[{kind:'donation',input:'Pizza',response:{lines:[],rev_reason:''}}],
+  getDeliveryCodes:()=>codes,
+  complete:async req=>{observed=req;return fixed();}});
+ const returned=await director.generate({kind:'donation',text:'Why are you jealous about my five dollars?',
+  history:[{actor:'REV',text:'I wanted to answer.'}]});
+ assert.equal(returned.hinge,plan.hinge);
+ assert.equal(returned.lines[0].delivery,'S07');
+ assert.equal(observed.messages.length,2,'old episode examples must NOT contaminate live writing');
+ assert.equal(observed.responseSchema.properties.first_SHANNY.properties.delivery.enum.includes('S07'),true);
+ assert.equal(observed.responseSchema.properties.second_REV.properties.delivery.enum.includes('R11'),true);
+ assert.equal('actor' in observed.responseSchema.properties.first_SHANNY.properties,false);
+ assert.equal('to' in observed.responseSchema.properties.first_SHANNY.properties,false);
+ assert.match(observed.messages[0].content,/one Qwen completion|ONE Qwen completion/i);
+ const payload=JSON.parse(observed.messages[1].content);
+ assert.deepEqual(payload.contextual_grievance_hooks,[]);
+ assert.match(observed.messages[0].content,/voice-reference clips.*BACKGROUND/i);
+});
+test('early line can be held without waiting for final Qwen JSON, but final validation gates playback',async()=>{
+ let prep=null;
+ const director=createBlackoutMicrodirector({notes:'Private stage rules',getDeliveryCodes:()=>codes,
+  complete:async({onText})=>{
+    const stream=JSON.stringify(plan);
+    const at=stream.indexOf('},{')+1;
+    onText?.(stream.slice(0,at+2));
+    onText?.(stream);
+    return stream;
+  }});
+ const answer=await director.generate({kind:'donation',text:'Do not tell me what to do.',
+  onFirstLine:row=>prep=row});
+ assert.equal(answer.lines.length,2);
+ assert.equal(prep.actor,'SHANNY');
+ assert.equal(prep.delivery,'S07');
+ assert.deepEqual(firstMicroLine('{"lines":[{"actor":"SHANNY"}]},',codes),null);
+});
+test('invalid or invented voice categories and missing causes fail closed',()=>{
+ assert.equal(validateMicroPlan(plan,'donation',codes).lines.length,2);
+ assert.throws(()=>validateMicroPlan(fixed({hinge:'lame'}),'donation',codes),/causal/);
+ assert.throws(()=>validateMicroPlan(fixed({lines:[{...plan.lines[0],delivery:'S06'},plan.lines[1]]}),'donation',codes),/Unqualified/);
+ assert.throws(()=>validateMicroPlan(fixed({lines:[plan.lines[0],plan.lines[0]]}),'donation',codes),/both/);
+ assert.throws(()=>validateMicroPlan({...plan,additional:'stage-command'},'donation',codes),/causal/);
+});
+test('private note/audition contamination audit returns booleans, never the source note text',()=>{
+ const privateNotes='old exact refusal slogan: no means no; old bread clip from another project';
+ const flags=echoFlags(privateNotes,[{text:'moldy bread'}],[{actor:'REV',text:'No means no!'}]);
+ assert.equal(flags.old_notes_contain_no_means_no,true);
+ assert.equal(flags.old_notes_contain_bread,true);
+ assert.equal(flags.legacy_examples_contain_bread_or_refusal,true);
+ assert.equal(flags.recent_spoken_echo,true);
+ assert.doesNotMatch(JSON.stringify(flags),/old exact|another project|moldy bread/i);
+});
+
+test('Rev-first compact Qwen JSON carries actor-qualified episode voice codes',async()=>{
+ const schemaPlan={
+  hinge:'Rev is asked about his choice; Shanny challenges his defense.',
+  first:{text:'I made my choice and I will explain the reason!',mood:'irritated',delivery:'R11'},
+  second:{text:'Rev, your reason keeps changing when someone asks you!',mood:'anger',delivery:'S07'},
+  rev_reason:'Rev disputes the accusation.'
+ };
+ let request,early;
+ const director=createBlackoutMicrodirector({notes:'Short acting notes',
+  getDeliveryCodes:()=>codes,
+  complete:async args=>{request=args;args.onText?.(JSON.stringify(schemaPlan));return schemaPlan;}});
+ const answer=await director.generate({kind:'donation',text:'Rev, explain your choice.',
+  readBy:'REV',onFirstLine:row=>early=row});
+ assert.deepEqual(answer.lines.map(line=>line.actor),['REV','SHANNY']);
+ assert.deepEqual(answer.lines.map(line=>line.delivery),['R11','S07']);
+ assert.equal(early.actor,'REV');
+ assert.equal(early.delivery,'R11');
+ assert.deepEqual(request.responseSchema.properties.first_REV.properties.delivery.enum.includes('R11'),true);
+ assert.deepEqual(request.responseSchema.properties.second_SHANNY.properties.delivery.enum.includes('S07'),true);
+ assert.equal('to' in answer.lines[0],false);
+});
+
+test('same-topic followup keeps the complete long delivered line and true speaker identity',()=>{
+ const originalInput='Shanny, explain the bucket.';
+ const spoken='I told that donor exactly why the bucket upset me, and I am the one who keeps being blamed for everyone else leaving the room filthy. Rev interrupted me while I was trying to finish explaining why his latest excuse was so insulting!';
+ assert.ok(spoken.length>160&&spoken.length<=320);
+ const input=makeMicroInput({kind:'donation',
+  text:'Shanny, explain the bucket again.',
+  history:[{actor:'SHANNY',text:spoken,input:originalInput}]});
+ assert.deepEqual(input.recent_played_lines,[{actor:'SHANNY',text:spoken}]);
+ const unrelated=makeMicroInput({kind:'donation',text:'Explain this graphics card.',
+  history:[{actor:'SHANNY',text:spoken,input:originalInput}]});
+ assert.deepEqual(unrelated.recent_played_lines,[]);
+});
