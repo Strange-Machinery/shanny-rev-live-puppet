@@ -19,7 +19,7 @@ and `expanded/catalog.json` remain the qualification authority.
 - ONE Qwen3.5-2B completion: a short non-spoken `hinge` for what caused the
   offense, then 2–3 short spoken lines with a per-line `delivery` code
   and existing `mood` face label.
-- The existing Qwen call retains its **12-second deadline**. Token ceiling
+- The experimental Qwen call now has a **16-second bounded deadline** after the fixed speaker-slot schema change (legacy remains 12 seconds). Token ceiling
   becomes 320 in opt-in Microdirector mode; actual latency and schema
   acceptance on local Qwen must be measured, not assumed. No second LLM
   request, no training and no episodic LoreGraph runtime.
@@ -107,3 +107,14 @@ slower, the library or JSON schema fails, or the spoken dialogue still
 sounds unnatural, stay on the original real-character profile while
 tuning the isolated branch. The first launch is qualification, not a
 production replacement.
+
+### October 15 reader / response-role correction
+
+A superchat starting `Rev, ...` is read aloud by Rev (unless an explicit
+standalone `(SHANNY)` local reader override precedes the message). Shanny reads
+her own addressed superchats and general donations. Qwen no longer authors
+per-line actor/recipient labels: the fixed first/second response slots are
+mapped deterministically according to the viewer addressee, preserving actor
+voice references and stopping the `recipient mismatch: first reply must address
+viewer` failure. The Microdirector's 16-second CPU timeout and compact JSON
+output require new Windows tests and real-Qwen listening review.
