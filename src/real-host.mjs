@@ -159,6 +159,7 @@ export async function serveRealHost(config){
     const action=async data=>{
       if(data.action==='status')return {...session.status(),qwen:modelName+' (local CPU)',performance_mode:performanceMode,
         microdirector:microdirectorEnabled?{enabled:true,available_delivery_codes:voice.availableEpisodeCodes,
+          qualified_samples_by_code:voice.availableEpisodeCounts,
           source_echo_flags:director.audit({history:session.history})}:{enabled:false},
         media:media?.info()||null,
         presentation_visible:media?.info().presentation_visible||false,donations:donations?.status()||null,
