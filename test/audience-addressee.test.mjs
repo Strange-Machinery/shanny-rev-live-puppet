@@ -52,14 +52,14 @@ test('identity and addressee are distinct for reader, partner and donor',()=>{
 const revFirst={
  hinge:'Rev is asked to justify a decision and Shanny challenges his answer.',
  lines:[
-  {actor:'REV',text:'I made that decision because I thought it was reasonable!',mood:'irritated'},
-  {actor:'SHANNY',text:'Your idea of reasonable gets us into trouble every time!',mood:'anger'}
+  {actor:'REV',text:'I made that decision because I thought it was reasonable!',mood:'irritated',to:'VIEWER'},
+  {actor:'SHANNY',text:'Your idea of reasonable gets us into trouble every time!',mood:'anger',to:'REV'}
  ],rev_reason:'Rev defends his own decision.'};
 const shannyFirst={
  hinge:'Shanny is challenged about the bucket and Rev disputes the duty it creates.',
  lines:[
-  {actor:'SHANNY',text:'I never said that bucket was your personal entertainment!',mood:'anger'},
-  {actor:'REV',text:'You are the one who keeps making this everybody’s business!',mood:'irritated'}
+  {actor:'SHANNY',text:'I never said that bucket was your personal entertainment!',mood:'anger',to:'VIEWER'},
+  {actor:'REV',text:'You are the one who keeps making this everybody’s business!',mood:'irritated',to:'SHANNY'}
  ],rev_reason:'Rev objects to Shanny’s framing.'};
 
 test('Shanny-addressed donation read aloud by Rev still makes Shanny primary',async()=>{
@@ -100,6 +100,26 @@ test('wrong first speaker fails both speculative prefetch and final validation',
   input:'Shanny, tell me.',hooks:[],audience_address:{target:'SHANNY'}}),null);
  assert.throws(()=>validateMicroPlan(shannyFirst,'donation',{},{
   input:'Rev, why?',hooks:[],audience_address:{target:'REV'}}),/addressed-actor mismatch/);
+});
+test('Qwen must identify who each spoken line is directed toward',()=>{
+ const contaminated={
+  ...shannyFirst,
+  lines:[shannyFirst.lines[0],{...shannyFirst.lines[1],to:'VIEWER'}]
+ };
+ assert.throws(()=>validateMicroPlan(contaminated,'donation',{},{
+  input:'Shanny, stop blaming Rev.',hooks:[],audience_address:{target:'SHANNY'}
+ }),/recipient mismatch: partner must address SHANNY/);
+ const wrongFirstDestination={
+  ...revFirst,lines:[{...revFirst.lines[0],to:'SHANNY'},revFirst.lines[1]]
+ };
+ assert.throws(()=>validateMicroPlan(wrongFirstDestination,'donation',{},{
+  input:'Rev, answer me.',hooks:[],audience_address:{target:'REV'}
+ }),/recipient mismatch: first reply must address viewer/);
+ const accepted=validateMicroPlan(shannyFirst,'donation',{},{
+  input:'Shanny, stop that.',hooks:[],audience_address:{target:'SHANNY'}
+ });
+ assert.equal(accepted.lines[0].actor,'SHANNY');
+ assert.equal('to' in accepted.lines[0],false,'private routing metadata must not leak to speech gateway');
 });
 test('both-addressed viewer and unspecified audience do not force an incorrect individual',async()=>{
  const director=createBlackoutMicrodirector({notes:'Private direction',
