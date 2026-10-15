@@ -44,11 +44,13 @@ const REFUSAL_SLOGAN=/\bno\s+means\s+no\b/i;
 // never permitted to select its own next topic.
 const UNINFORMATIVE_WORDS=new Set([
  'about','again','already','also','another','are','because','been','before',
- 'being','both','buff','chat','could','did','does','donation','donate','donated',
- 'each','either','even','every','from','have','here','how','into','just','keep',
- 'last','like','make','made','mean','money','more','much','must','need','never',
- 'only','other','over','people','please','really','rev','said','say','says',
- 'shanny','should','show','some','someone','still','stank','stream','tell',
+ 'being','both','buff','chat','compare','could','describe','did','discuss',
+ 'does','donation','donate','donated','each','either','even','every','explain',
+ 'explanation','from','have','here','how','into','just','keep','last','like',
+ 'make','made','mean','money','more','much','must','need','never',
+ 'only','opinion','other','over','people','please','question','really','rev',
+ 'said','say','says','shanny','should','show','some','someone','still','stank',
+ 'stream','tell',
  'than','that','them','then','there','these','they','thing','things','this',
  'those','time','today','very','want','what','when','where','which','while',
  'who','why','will','with','would','you','your','youre','yours'
