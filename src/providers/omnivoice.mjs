@@ -33,6 +33,7 @@ export class OmniVoiceProvider {
     }
     if(config.approvedDelivery!==undefined&&typeof config.approvedDelivery!=='boolean')throw new Error('approvedDelivery must be a boolean');
     this.availableEpisodeCodes={};
+    this.availableEpisodeCounts={};
     this.config = { ...config, startupMs: config.startupMs || 180_000,
       requestMs: config.requestMs || 120_000 };
     if(config.moodReferences!==undefined){
@@ -117,6 +118,12 @@ export class OmniVoiceProvider {
         return;
       }
       this.availableEpisodeCodes=codes;
+      this.availableEpisodeCounts=Object.fromEntries(Object.entries(codes).map(([actor,list])=>[
+        actor,Object.fromEntries(list.map(code=>[
+          code,Number.isInteger(message.delivery_sample_counts?.[actor]?.[code])?
+            message.delivery_sample_counts[actor][code]:0
+        ]))
+      ]));
       this.startupMs = performance.now() - this.startedAt;
       if (this.startTimer) clearTimeout(this.startTimer);
       this.startTimer = null;
