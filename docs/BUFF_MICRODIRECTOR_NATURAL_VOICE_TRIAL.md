@@ -17,10 +17,10 @@ and `expanded/catalog.json` remain the qualification authority.
 ## Execution contract
 
 - ONE Qwen3.5-2B completion: a short non-spoken `hinge` for what caused the
-  offense, then 2–3 short spoken lines with a per-line `delivery` code
+  offense, then 2–3 character-owned spoken lines with a per-line `delivery` code
   and existing `mood` face label.
-- The experimental Qwen call now has a **16-second bounded deadline** after the fixed speaker-slot schema change (legacy remains 12 seconds). Token ceiling
-  becomes 320 in opt-in Microdirector mode; actual latency and schema
+- The experimental Qwen call now has a **24-second bounded deadline** after the fixed speaker-slot schema change (legacy remains 12 seconds). Token ceiling
+  becomes 384 in opt-in Microdirector mode; actual latency and schema
   acceptance on local Qwen must be measured, not assumed. No second LLM
   request, no training and no episodic LoreGraph runtime.
 - The resident OmniVoice worker loads its approved samples at **startup**,
@@ -116,5 +116,37 @@ her own addressed superchats and general donations. Qwen no longer authors
 per-line actor/recipient labels: the fixed first/second response slots are
 mapped deterministically according to the viewer addressee, preserving actor
 voice references and stopping the `recipient mismatch: first reply must address
-viewer` failure. The Microdirector's 16-second CPU timeout and compact JSON
+viewer` failure. The Microdirector's 24-second CPU timeout and compact JSON
 output require new Windows tests and real-Qwen listening review.
+
+### October 15 — SHANNY/REV self-identity and dialogue length
+
+Direct producer listening found that even when Unity's correct voice read the
+line, Qwen could describe SHANNY as a third person rather than write *as*
+Shanny. Anonymous `first` and `second` output fields were not sufficient
+identity anchors. The trial now sends runtime-determined role keys:
+`first_SHANNY` and `second_REV` when the viewer addresses Shanny, or
+`first_REV` and `second_SHANNY` for Rev. An optional `third_SHANNY`
+or `third_REV` is possible. Qwen NEVER chooses these field names or
+writes an `actor` / `to` field. The gateway, voice references and visual
+stage still use validated server-owned actor identity.
+
+The one-pass prompt explicitly defines each speaking slot's first-person
+perspective: I/me/my means *the current character*, the other character is
+another person, and no narrator/Buff/viewer impersonation should occur.
+This guidance is stronger than the earlier address-only rule but does not
+constitute actual creative acceptance; real-Qwen dialogue must be auditioned.
+
+**Per-line capacity doubles:** 160→320 characters; 35→70 maximum words;
+1→2 permitted sentences. Qwen is asked to aim for **16–32 meaningful words**
+per reply, up from 8–16, while a brief sharp interruption remains legal.
+Approved reference IDs and Unity lip controls remain byte-unchanged.
+The longer output gets 384 output tokens and a bounded **24-second CPU deadline**
+(legacy mode stays 240 tokens/12s). This is a deliberate latency/verbosity
+tradeoff. Do not describe p99 microcontroller timing as Qwen generation time,
+and do not claim the 15-second first-reply target is met until measured on MSI.
+
+**Qualification:** isolate code in this draft branch, run the full gate and
+inspect real generated turns for self/partner identity, more substantial
+rebuttals, topicality, timeouts, and end-of-playback. No paid provider or
+production activation is implied.
