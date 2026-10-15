@@ -90,7 +90,9 @@ let polling=false;async function status(){if(polling)return;polling=true;try{con
       ' verified episode samples · '+(micro.lore_index?.hooks||0)+' lore families · '+
       (micro.lore_index?.aliases||0)+' keyword aliases · '+
       (micro.topic_focus==='superchat-only-v1'?'Superchat focus ON (no legacy topic notes) · ':'Legacy topic prompt · ')+
-      'one Qwen pass. '+(s.last_audience_address?
+      'one Qwen pass · Blackout Shanny '+
+      Math.round(100*(micro.shanny_blackout?.overt_pressure_target||0.65))+'% hot target (anger / disgust / self-victim tears). '+
+      (s.last_audience_address?
        'Last input: '+s.last_audience_address.target+' addressed'+
        (s.last_audience_address.read_by?' · read aloud by '+s.last_audience_address.read_by:'')+' · ':'')+
       (flags.old_notes_contain_food_theme||flags.legacy_examples_contain_food_theme||flags.recent_spoken_food_echo||
