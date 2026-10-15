@@ -4,6 +4,7 @@ import {makeMicroInput,echoFlags} from './blackout-lore-router.mjs';
 import {isSameLiveSubject} from './blackout-microdirector.mjs';
 import {focusTerms,detectTopicDrift} from './live-topic-focus.mjs';
 import {identifyAudienceAddressee,audienceReplyContract} from './audience-addressee.mjs';
+import {chooseBlackoutShanny} from './blackout-shanny-heat.mjs';
 
 /** One existing Qwen call. A short causal hinge precedes performed dialogue. */
 const sentences=text=>[...new Intl.Segmenter('en',{granularity:'sentence'}).segment(text)].filter(v=>v.segment.trim()).length;
@@ -121,7 +122,10 @@ export function createBlackoutMicrodirector({complete,notes,examples=[],getDeliv
       const stageReader=kind==='donation'&&['SHANNY','REV'].includes(readBy)?readBy:
         kind==='donation'?'SHANNY':null;
       const speakerContract=audienceReplyContract(address,kind,stageReader);
-      const deliveryContext=[text,...microInput.contextual_grievance_hooks.map(row=>row.grievance)].join(' ');
+      // The producer's episode BLACKOUT treatment is translated into one tiny
+      // per-message acting decision, not a second model call or voice effect.
+      const blackout=chooseBlackoutShanny({text,address,hooks:microInput.contextual_grievance_hooks,kind});
+      const deliveryContext=[blackout.voice_hint,text,...microInput.contextual_grievance_hooks.map(row=>row.grievance)].join(' ');
       const codes=shortlistEpisodeCodes(availableEpisodeCodes(getDeliveryCodes()),deliveryContext);
       const system=[
         'Write the live fictional adult Blackout SHANNY and REV cartoon. Buff is the host. This is ONE Qwen completion, not a multi-stage writing engine.',
@@ -132,6 +136,8 @@ export function createBlackoutMicrodirector({complete,notes,examples=[],getDeliv
         'Only use a historical callback when the current JSON input contains a matching contextual_grievance_hook. If the list is empty, stay on the current audience subject; do not import remembered incident names or props. A hook may be a disputed COMMUNITY CLAIM or a fan inside joke: the fictional characters may DENY, reinterpret, mock, boast, concede or counterattack it. Never refuse to respond merely because a story is disputed; never present a disputed claim as adjudicated history.',
         'Voice-reference clips and prior examples are BACKGROUND, not topics. The input owns the subject; use its specific issue, names and relevant history only. Never introduce a prop or object merely because another episode mentioned it.',
         'Shanny turns a narrow demand into a dispute about treatment, priority, control or credit; she can press, twist a concession, soften or abruptly return to the original practical issue. Rev challenges the exact disputed wording or responsibility, can fail to finish a thought, become offended, or temporarily support her. Both must respond to the present provocation.',
+        'BLACKOUT SHANNY is dominated by ANGER, DISGUST, SELF-VICTIMIZING HURT and INSULAR CRYING/SADNESS. Approximately 65 percent of eligible moments favor overt hostility or acute hurt, not uniform screaming; sharp anger may become bitter contempt, or a claim nobody considers her suffering. Crying can preserve an accusation and is not automatic forgiveness. The shanny_blackout object provides her current acting intention, but the actual viewer topic and partner reply determine whether it is earned.',
+        'Write the attitude into SHANNY\'S actual words before selecting the voice category. An earned blunt fuck you or harsh personal counterattack is valid for a serious provocation; it is neither mandatory nor a standalone rage cue. Self-pity is her interpretation of what the viewer or Rev ACTUALLY said, not permission to invent trauma. Let REV push back, be resentful or protect her when the current exchange supports it.',
         'Use short imperfect spoken responses, a clear interpersonal cause, and the actual viewer remark. No mandatory hostility level, recurrent slogan, or stock punchline. An ordinary compliment or practical question can receive a sincere or mildly annoyed response.',
         'Select an episode-approved delivery code only from each actor available list. Calm contempt differs from shouting; severe rage must follow severe provocation. Do not pitch-shift, force squealing or automatically shout. Delivery selects a preapproved NATURAL cloned-voice reference.',
         'Return JSON keys in exact order: hinge, lines, rev_reason. Keep hinge at 12-160 characters; each line one spoken sentence, 8-16 words preferred, with actor, text, mood, to, and delivery if available. Field actor=WHO SPEAKS; field to=WHO THAT LINE IS ADDRESSED TO (VIEWER, the other actor, or BUFF), not who reads the donation. For a singly named addressee, the first line is from them TO VIEWER; the other actor responds TO THE ADDRESSEE (not the viewer). Mood is for face and baseline affect, never pitch manipulation. Give both characters agency for a donation; Rev needs a real point, not boilerplate.',
@@ -151,6 +157,7 @@ export function createBlackoutMicrodirector({complete,notes,examples=[],getDeliv
         audience_address:address,
         donation_reader:stageReader,
         dialogue_route:speakerContract,
+        shanny_blackout:blackout,
         focus_terms:focusTerms(text),
         direction:'One concrete cause, two character reactions. Keep original comment central. Explain any callback by its relevance, not by inventing biography.'
       })});
