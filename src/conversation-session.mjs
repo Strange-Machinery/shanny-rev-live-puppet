@@ -143,11 +143,18 @@ export class ConversationSession {
       this.check(turn);
       if(kind==='donation'){
         const parsed=parseDonationText(text);
-        turn.readActor=parsed.actor;text=parsed.text;
+        text=parsed.text;
+        turn.audienceAddress=identifyAudienceAddressee(text);
+        // A direct viewer address chooses its reader, unless the producer
+        // deliberately supplied a standalone (REV)/(SHANNY) read override.
+        // Reader selection NEVER changes the addressee or the response actor.
+        turn.readActor=parsed.override?parsed.actor:
+          ['SHANNY','REV'].includes(turn.audienceAddress.target)?
+            turn.audienceAddress.target:parsed.actor;
+      }else{
+        turn.audienceAddress=identifyAudienceAddressee(text);
       }
       turn.text=text;
-      // Who reads a superchat is not necessarily its named recipient.
-      turn.audienceAddress=identifyAudienceAddressee(text);
       this.lastAudienceAddress={target:turn.audienceAddress.target,
         basis:turn.audienceAddress.basis,
         read_by:kind==='donation'?turn.readActor:null};
