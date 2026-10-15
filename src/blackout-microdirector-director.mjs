@@ -79,7 +79,9 @@ export function createBlackoutMicrodirector({complete,notes,examples=[],getDeliv
     async generate({text,kind,history=[],hinges=[],signal,warmup=false,onFirstLine}={}){
       if(typeof text!=='string'||!text.trim()||text.length>1000||
          !['donation','microphone'].includes(kind))throw Error('Invalid Microdirector input');
-      const codes=shortlistEpisodeCodes(availableEpisodeCodes(getDeliveryCodes()),text);
+      const microInput=makeMicroInput({text,kind,history,hinges});
+      const deliveryContext=[text,...microInput.contextual_grievance_hooks.map(row=>row.grievance)].join(' ');
+      const codes=shortlistEpisodeCodes(availableEpisodeCodes(getDeliveryCodes()),deliveryContext);
       const system=[
         'Write the live fictional adult Blackout SHANNY and REV cartoon. Buff is the host. This is ONE Qwen completion, not a multi-stage writing engine.',
         'First decide in "hinge": precisely what the incoming remark threatens, embarrasses, or contradicts, and why the second character reacts. Then write 2-3 grounded lines; do not imitate generic rage.',
@@ -100,7 +102,7 @@ export function createBlackoutMicrodirector({complete,notes,examples=[],getDeliv
           {role:'assistant',content:JSON.stringify(p)});
       }
       messages.push({role:'user',content:JSON.stringify({
-        ...makeMicroInput({text,kind,history,hinges}),
+        ...microInput,
         direction:'One concrete cause, two character reactions. Keep original comment central. Explain any callback by its relevance, not by inventing biography.'
       })});
       let responseSchema=exchangeSchema(codes);
