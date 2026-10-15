@@ -86,11 +86,18 @@ let polling=false;async function status(){if(polling)return;polling=true;try{con
     const voiceSamples=Object.values(micro.qualified_samples_by_code||{}).reduce((total,actor)=>
       total+Object.values(actor).reduce((subtotal,count)=>subtotal+(Number(count)||0),0),0);
     const flags=micro.source_echo_flags||{};
-    $('service-note').textContent='Microdirector ACTIVE · '+counts.SHANNY+'/20 Shanny categories, '+counts.REV+'/23 Rev categories · '+voiceSamples+
+    const backend=s.qwen_backend||{};
+    const route=backend.preferred==='v620'?
+      'V620 27B preferred · last writer '+(backend.last_route||'none')+
+      ' · V620 '+(backend.remote_state||'unverified')+
+      ' · MSI fallbacks '+(backend.fallback_count||0)+
+      (backend.last_reason&&backend.last_reason!=='none'?' ('+backend.last_reason+')':'')+' · ':
+      'MSI CPU Qwen local · ';
+    $('service-note').textContent='Microdirector ACTIVE · '+route+counts.SHANNY+'/20 Shanny categories, '+counts.REV+'/23 Rev categories · '+voiceSamples+
       ' verified episode samples · '+(micro.lore_index?.hooks||0)+' lore families · '+
       (micro.lore_index?.aliases||0)+' keyword aliases · '+
       (micro.topic_focus==='superchat-only-v1'?'Superchat focus ON (no legacy topic notes) · ':'Legacy topic prompt · ')+
-      'one Qwen pass · '+(micro.response_schema==='named-character-slots-v2'?
+      (backend.preferred==='v620'?'one approved dialogue (V620→MSI failover) · ':'one Qwen pass · ')+(micro.response_schema==='named-character-slots-v2'?
         'Shanny/Rev identity-locked slots · 2-sentence capacity · ':
         micro.response_schema==='fixed-speaker-slots-v1'?
         'fixed speaker slots / named reader · ':'legacy reply schema · ')+
