@@ -89,7 +89,10 @@ export class ConversationSession {
   }
   async queuePrepared(turn,line){
     this.check(turn);
-    const job=await this.gateway.speak({...line,delivery:'queue',prepare_only:true,session_id:this.scope.session_id,epoch:this.scope.epoch});
+    // Qwen's episode reference category is not the gateway's queue/interrupt delivery mode.
+    const {delivery:voice_code,...spoken}=line;
+    const job=await this.gateway.speak({...spoken,...(voice_code?{voice_code}:{}),delivery:'queue',prepare_only:true,
+      session_id:this.scope.session_id,epoch:this.scope.epoch});
     this.check(turn);return job.request_id;
   }
   async play(turn,line,id,after,onStarted){
