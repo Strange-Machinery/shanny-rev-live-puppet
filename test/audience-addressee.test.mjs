@@ -142,12 +142,12 @@ test('real model slots assign Rev as first speaker without actor or to labels',a
  assert.equal(prepared[0].actor,'REV');
  assert.equal('to' in response.lines[0],false);
  const schema=captured.responseSchema;
- assert.deepEqual(schema.required,['hinge','first','second','rev_reason']);
- assert.equal('actor' in schema.properties.first.properties,false);
- assert.equal('to' in schema.properties.first.properties,false);
- assert.deepEqual(schema.properties.first.properties.mood.enum,
+ assert.deepEqual(schema.required,['hinge','first_REV','second_SHANNY','rev_reason']);
+ assert.equal('actor' in schema.properties.first_REV.properties,false);
+ assert.equal('to' in schema.properties.first_REV.properties,false);
+ assert.deepEqual(schema.properties.first_REV.properties.mood.enum,
   ['pacifying','irritated','rage','skeptical','surprised']);
- assert.deepEqual(schema.properties.second.properties.mood.enum,
+ assert.deepEqual(schema.properties.second_SHANNY.properties.mood.enum,
   ['anger','rage','crying','smug','surprised']);
  assert.equal(captured.messages.length,2,'old script examples do not leak');
 });
