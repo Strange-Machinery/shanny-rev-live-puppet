@@ -76,7 +76,8 @@ test('new Blackout acting treatment is added inside one Qwen call without old fo
  const input=JSON.parse(observed.messages.at(-1).content);
  assert.equal(input.audience_address.target,'SHANNY');
  assert.equal(input.shanny_blackout.regime,'HIGH_PRESSURE');
- assert.equal(input.shanny_blackout.pressure_target,0.65);
+ assert.equal(Object.hasOwn(input.shanny_blackout,'pressure_target'),false,
+  'creative model should not parrot the numeric statistical pressure target');
  assert.ok(input.shanny_blackout.acting_objective.length>50);
  assert.equal(input.donation_reader,'SHANNY');
 });
