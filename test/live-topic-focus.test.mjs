@@ -33,7 +33,7 @@ test('microdirector does not inject private notes about food into Qwen context',
   notes:'Old persona examples mention flour, cheese, pizza, soup, sandwiches and ingredients.',
   complete:async args=>{called++;request=args;return relevantPlan;}
  });
- await director.generate({kind:'donation',text:'Rev, please empty the bucket.'});
+ await director.generate({kind:'donation',text:'Please empty the bucket.'});
  assert.equal(called,1,'no extra model pass');
  assert.doesNotMatch(JSON.stringify(request.messages),/\b(?:flour|cheese|pizza|soup|sandwiches|ingredients)\b/i);
  assert.deepEqual(JSON.parse(request.messages.at(-1).content).focus_terms,['empty','bucket']);
@@ -64,7 +64,7 @@ test('completed topic-relevant Qwen output remains as creative as before',async(
  let called=0;
  const director=createBlackoutMicrodirector({notes:'One character reacts to status and unfairness.',
   complete:async()=>{called++;return relevantPlan;}});
- const response=await director.generate({kind:'donation',text:'Rev, dump the bucket now.'});
+ const response=await director.generate({kind:'donation',text:'Could someone dump the bucket now.'});
  assert.equal(called,1);
  assert.match(response.lines[1].text,/bucket/);
  assert.equal(response.hinge,relevantPlan.hinge);
