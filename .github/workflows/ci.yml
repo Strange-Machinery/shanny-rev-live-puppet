@@ -27,7 +27,8 @@ jobs:
         run: |
           foreach ($file in @('scripts/Review-BuffAlert.ps1',
                              'scripts/Review-BuffPreMSI.ps1',
-                             'scripts/Install-StankPopupArt.ps1')) {
+                             'scripts/Install-StankPopupArt.ps1',
+                             'scripts/Invoke-BuffSmokeLab.ps1')) {
             $tokens = $null
             $parseErrors = $null
             [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $file), [ref]$tokens, [ref]$parseErrors) | Out-Null
