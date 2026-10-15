@@ -29,8 +29,27 @@ function line(row,codes){
   return {actor,text:row.text.trim(),mood:row.mood,
     ...(available.length?{delivery:row.delivery}:{})};
 }
+function assignedSpeakers(topicContext){
+  const first=topicContext?.audience_address?.target==='REV'?'REV':'SHANNY';
+  return {first,second:first==='REV'?'SHANNY':'REV'};
+}
+/** Convert model-authored ROLE SLOTS into fixed speaker labels without
+ * asking Qwen to guess actors or recipients; legacy fixture plans still work.
+ */
+function expandSpeakerSlots(p,topicContext){
+  if(!p||typeof p!=='object'||Array.isArray(p)||Object.hasOwn(p,'lines'))return p;
+  if(!Object.hasOwn(p,'first')||!Object.hasOwn(p,'second'))return p;
+  const keys=Object.keys(p).sort().join(',');
+  if(keys!=='first,hinge,rev_reason,second'&&keys!=='first,hinge,rev_reason,second,third')
+    throw Error('Invalid causal Microdirector plan');
+  const actors=assignedSpeakers(topicContext);
+  const slots=[{actor:actors.first,...p.first},{actor:actors.second,...p.second}];
+  if(p.third!==undefined&&p.third!==null)slots.push({actor:actors.first,...p.third});
+  return {hinge:p.hinge,lines:slots,rev_reason:p.rev_reason};
+}
 export function validateMicroPlan(raw,kind,codes={},topicContext=null){
-  const p=typeof raw==='string'?JSON.parse(raw):raw;
+  const parsed=typeof raw==='string'?JSON.parse(raw):raw;
+  const p=expandSpeakerSlots(parsed,topicContext);
   if(!p||Array.isArray(p)||Object.keys(p).sort().join(',')!=='hinge,lines,rev_reason'||
      typeof p.hinge!=='string'||p.hinge.trim().length<12||p.hinge.length>160||
      typeof p.rev_reason!=='string'||p.rev_reason.length>80||
@@ -43,20 +62,14 @@ export function validateMicroPlan(raw,kind,codes={},topicContext=null){
   if(kind==='microphone'&&!lines.some(v=>v.actor==='SHANNY'))throw Error('Shanny must respond');
   if(lines.some(v=>v.actor==='REV')&&!p.rev_reason.trim())throw Error('Rev needs an actual argument');
   const valid={hinge:p.hinge.trim(),lines,rev_reason:p.rev_reason.trim()};
-  // A directly addressed viewer has an authoritative first speaker; never
-  // swap voices or synthesize a line from the wrong actor as the addressee.
   const target=topicContext?.audience_address?.target;
-  if(['SHANNY','REV'].includes(target)){
-    if(lines[0].actor!==target)
-      throw Error('Microdirector addressed-actor mismatch: expected '+target+' first');
-    if(p.lines[0].to!=='VIEWER')
-      throw Error('Microdirector recipient mismatch: first reply must address viewer');
-    // A secondary actor is reacting TO the named addressee, not pretending
-    // to receive the viewer's second-person challenge personally.
-    const partner=target==='SHANNY'?'REV':'SHANNY';
-    if(p.lines.some((row,i)=>i>0&&row.actor===partner&&row.to!==target))
-      throw Error('Microdirector recipient mismatch: partner must address '+target);
-  }
+  // Legacy raw actor-labelled plans still undergo role checks, but Qwen now
+  // writes positional speaker SLOTS with roles fixed by the runtime itself.
+  if(['SHANNY','REV'].includes(target)&&lines[0].actor!==target)
+    throw Error('Microdirector addressed-actor mismatch: expected '+target+' first');
+  // The old model-authored "to" field caused paid/synthetic turn failures.
+  // It is no longer requested or checked; who hears each line is the
+  // known viewer on the first turn and the partner on the second.
   if(topicContext){
     const reason=detectTopicDrift({input:topicContext.input,hooks:topicContext.hooks,plan:valid});
     if(reason)throw Error('Qwen topic drift blocked: '+reason);
@@ -66,44 +79,54 @@ export function validateMicroPlan(raw,kind,codes={},topicContext=null){
 /** Speculative synthesis is safe: this never releases partial text. */
 export function firstMicroLine(raw,codes={},topicContext=null){
   if(typeof raw!=='string'||raw.length>4000)return null;
-  const start=/^\s*\{\s*"hinge"\s*:\s*"(?:[^"\\]|\\.)*"\s*,\s*"lines"\s*:\s*\[\s*/.exec(raw);
-  if(!start||raw[start[0].length]!=='{')return null;
-  let end=-1,level=0,inString=false,escaped=false;
-  for(let i=start[0].length;i<raw.length;i++){
+  // Live model writes first/second ROLE SLOTS. Old actor-labelled fixture
+  // streaming is accepted for compatibility, but never used as a model spec.
+  const prefix=/^\s*\{\s*"hinge"\s*:\s*"(?:[^"\\]|\\.)*"\s*,\s*"(first|lines)"\s*:\s*(\[\s*)?/.exec(raw);
+  if(!prefix||raw[prefix[0].length]!=='{')return null;
+  if(prefix[1]==='lines'&&!prefix[2])return null;
+  if(prefix[1]==='first'&&prefix[2])return null;
+  let end=-1,depth=0,quoted=false,escape=false;
+  for(let i=prefix[0].length;i<raw.length;i++){
     const ch=raw[i];
-    if(inString){if(escaped)escaped=false;else if(ch==='\\')escaped=true;else if(ch==='"')inString=false;continue;}
-    if(ch==='"'){inString=true;continue;}
-    if(ch==='{')level++;
-    else if(ch==='}'&&--level===0){end=i+1;break;}
+    if(quoted){if(escape)escape=false;else if(ch==='\\')escape=true;else if(ch==='"')quoted=false;continue;}
+    if(ch==='"'){quoted=true;continue;}
+    if(ch==='{')depth++;
+    else if(ch==='}'&&--depth===0){end=i+1;break;}
   }
-  if(end<0||!/^\s*[,\]]/.test(raw.slice(end)))return null;
+  if(end<0||!/^\s*[,\]}]/.test(raw.slice(end)))return null;
   try{
-    const parsed=JSON.parse(raw.slice(start[0].length,end));
-    const candidate=line(parsed,availableEpisodeCodes(codes));
+    const parsed=JSON.parse(raw.slice(prefix[0].length,end));
+    const row=prefix[1]==='first'
+      ?{actor:assignedSpeakers(topicContext).first,...parsed}:parsed;
+    const candidate=line(row,availableEpisodeCodes(codes));
     const target=topicContext?.audience_address?.target;
-    if(['SHANNY','REV'].includes(target)&&
-       (candidate.actor!==target||parsed.to!=='VIEWER'))return null;
+    if(['SHANNY','REV'].includes(target)&&candidate.actor!==target)return null;
     if(topicContext&&detectTopicDrift({input:topicContext.input,hooks:topicContext.hooks,
        plan:{lines:[candidate]}}))return null;
     return candidate;
   }catch{return null;}
 }
-function exchangeSchema(codes){
+function exchangeSchema(codes,primaryActor='SHANNY'){
+  const first=primaryActor==='REV'?'REV':'SHANNY';
+  const second=first==='REV'?'SHANNY':'REV';
+  const slot=actor=>{
+    const available=codes[actor]||[];
+    return {type:'object',additionalProperties:false,
+      required:available.length?['text','mood','delivery']:['text','mood'],
+      properties:{
+        text:{type:'string',pattern:/^[^.!?"\\\r\n]{1,159}[.!?]$/.source},
+        mood:{type:'string',enum:actorMoods[actor]},
+        ...(available.length?{delivery:{type:'string',enum:available}}:{})
+      }};
+  };
+  // No union over actor names, no "to" field. The runtime owns order and
+  // recipient, so the tiny CPU writer only writes the performance itself.
   return {type:'object',additionalProperties:false,
-    required:['hinge','lines','rev_reason'],properties:{
+    required:['hinge','first','second','rev_reason'],properties:{
       hinge:{type:'string',minLength:12,maxLength:160},
-      lines:{type:'array',minItems:2,maxItems:3,
-        items:{anyOf:Object.entries(actorMoods).map(([actor,moods])=>{
-          const allowed=codes[actor]||[];
-          return {type:'object',additionalProperties:false,
-            required:allowed.length?['actor','text','mood','delivery','to']:['actor','text','mood','to'],
-            properties:{actor:{type:'string',enum:[actor]},
-              text:{type:'string',pattern:/^[^.!?"\\\r\n]{1,159}[.!?]$/.source},
-              mood:{type:'string',enum:moods},
-              to:{type:'string',enum:actor==='SHANNY'?['VIEWER','REV','BUFF']:['VIEWER','SHANNY','BUFF']},
-              ...(allowed.length?{delivery:{type:'string',enum:allowed}}:{})}};
-        })}},
-      rev_reason:{type:'string',maxLength:80}
+      first:slot(first),second:slot(second),
+      third:slot(first),
+      rev_reason:{type:'string',minLength:1,maxLength:80}
     }};
 }
 export function createBlackoutMicrodirector({complete,notes,examples=[],getDeliveryCodes=()=>({})}={}){
