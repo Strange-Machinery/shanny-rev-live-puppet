@@ -37,7 +37,7 @@ export function selectGrievanceHooks(text,{limit=1}={}){
    id:row.id,label:row.label,grievance:row.grievance
  }));
 }
-const FOOD_THEME=/\b(?:bread|crust|sandwich(?:es)?|ingredients?|recipes?|flour|dough|toast|baking)\b/i;
+const FOOD_THEME=/\b(?:bread|crust|sandwich(?:es)?|ingredients?|recipes?|flour|dough|toast|baking|bake|cookies?|pizza|burgers?|fries|ramen|kitchen|cooking|cheese|potatoes?|soup|lunch|dinner|breakfast|hungry|meal|food)\b/i;
 const REFUSAL_SLOGAN=/\bno\s+means\s+no\b/i;
 
 // Only the AUDIENCE'S subject authorizes a carryover. Old Qwen wording is
