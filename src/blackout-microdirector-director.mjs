@@ -1,6 +1,8 @@
 import {actorMoods,liveMood} from './live-moods.mjs';
 import {availableEpisodeCodes,shortlistEpisodeCodes,guideForEpisodeCodes} from './approved-delivery.mjs';
 import {makeMicroInput,echoFlags} from './blackout-lore-router.mjs';
+import {isSameLiveSubject} from './blackout-microdirector.mjs';
+import {focusTerms,detectTopicDrift} from './live-topic-focus.mjs';
 
 /** One existing Qwen call. A short causal hinge precedes performed dialogue. */
 const sentences=text=>[...new Intl.Segmenter('en',{granularity:'sentence'}).segment(text)].filter(v=>v.segment.trim()).length;
@@ -20,7 +22,7 @@ function line(row,codes){
   return {actor,text:row.text.trim(),mood:row.mood,
     ...(available.length?{delivery:row.delivery}:{})};
 }
-export function validateMicroPlan(raw,kind,codes={}){
+export function validateMicroPlan(raw,kind,codes={},topicContext=null){
   const p=typeof raw==='string'?JSON.parse(raw):raw;
   if(!p||Array.isArray(p)||Object.keys(p).sort().join(',')!=='hinge,lines,rev_reason'||
      typeof p.hinge!=='string'||p.hinge.trim().length<12||p.hinge.length>160||
@@ -33,10 +35,15 @@ export function validateMicroPlan(raw,kind,codes={}){
     throw Error('Donation requires both characters');
   if(kind==='microphone'&&!lines.some(v=>v.actor==='SHANNY'))throw Error('Shanny must respond');
   if(lines.some(v=>v.actor==='REV')&&!p.rev_reason.trim())throw Error('Rev needs an actual argument');
-  return {hinge:p.hinge.trim(),lines,rev_reason:p.rev_reason.trim()};
+  const valid={hinge:p.hinge.trim(),lines,rev_reason:p.rev_reason.trim()};
+  if(topicContext){
+    const reason=detectTopicDrift({input:topicContext.input,hooks:topicContext.hooks,plan:valid});
+    if(reason)throw Error('Qwen topic drift blocked: '+reason);
+  }
+  return valid;
 }
 /** Speculative synthesis is safe: this never releases partial text. */
-export function firstMicroLine(raw,codes={}){
+export function firstMicroLine(raw,codes={},topicContext=null){
   if(typeof raw!=='string'||raw.length>4000)return null;
   const start=/^\s*\{\s*"hinge"\s*:\s*"(?:[^"\\]|\\.)*"\s*,\s*"lines"\s*:\s*\[\s*/.exec(raw);
   if(!start||raw[start[0].length]!=='{')return null;
@@ -49,8 +56,12 @@ export function firstMicroLine(raw,codes={}){
     else if(ch==='}'&&--level===0){end=i+1;break;}
   }
   if(end<0||!/^\s*[,\]]/.test(raw.slice(end)))return null;
-  try{return line(JSON.parse(raw.slice(start[0].length,end)),availableEpisodeCodes(codes));}
-  catch{return null;}
+  try{
+    const candidate=line(JSON.parse(raw.slice(start[0].length,end)),availableEpisodeCodes(codes));
+    if(topicContext&&detectTopicDrift({input:topicContext.input,hooks:topicContext.hooks,
+       plan:{lines:[candidate]}}))return null;
+    return candidate;
+  }catch{return null;}
 }
 function exchangeSchema(codes){
   return {type:'object',additionalProperties:false,
@@ -87,22 +98,25 @@ export function createBlackoutMicrodirector({complete,notes,examples=[],getDeliv
         'First decide in "hinge": precisely what the incoming remark threatens, embarrasses, or contradicts, and why the second character reacts. Then write 2-3 grounded lines; do not imitate generic rage.',
         'SHANNY is surly, entitled, quick to defend her dignity and can seize the floor. REV resents being patronized, spots contradictions, is argumentative and may snap back. They may cooperate when earned. Neither automatically wins or pacifies. Address the actual viewer and each other.',
         'Only use a historical callback when the current JSON input contains a matching contextual_grievance_hook. If the list is empty, stay on the current audience subject; do not import remembered incident names or props. A hook may be a disputed COMMUNITY CLAIM or a fan inside joke: the fictional characters may DENY, reinterpret, mock, boast, concede or counterattack it. Never refuse to respond merely because a story is disputed; never present a disputed claim as adjudicated history.',
-        'Old voice-reference clips, example transcripts and private notes are background acting material, never topics to quote. The current audience statement owns the subject of every line; do not introduce nouns, props, situations, or accusations carried in from another scene. If the new input changes subjects, start an entirely new argument about that input.',
+        'Voice-reference clips and prior examples are BACKGROUND, not topics. The input owns the subject; use its specific issue, names and relevant history only. Never introduce a prop or object merely because another episode mentioned it.',
+        'Shanny turns a narrow demand into a dispute about treatment, priority, control or credit; she can press, twist a concession, soften or abruptly return to the original practical issue. Rev challenges the exact disputed wording or responsibility, can fail to finish a thought, become offended, or temporarily support her. Both must respond to the present provocation.',
+        'Use short imperfect spoken responses, a clear interpersonal cause, and the actual viewer remark. No mandatory hostility level, recurrent slogan, or stock punchline. An ordinary compliment or practical question can receive a sincere or mildly annoyed response.',
         'Select an episode-approved delivery code only from each actor available list. Calm contempt differs from shouting; severe rage must follow severe provocation. Do not pitch-shift, force squealing or automatically shout. Delivery selects a preapproved NATURAL cloned-voice reference.',
         'Return JSON keys in exact order: hinge, lines, rev_reason. Keep hinge at 12-160 characters; each line one spoken sentence, 8-16 words preferred, with actor, text, mood and delivery if available. Mood is for face and baseline affect, not a command to manipulate pitch. Give both characters agency for a donation; Rev must contribute an identifiable rebuttal or agreement, not boilerplate.',
         'AVAILABLE DELIVERY CODES:\n'+(guideForEpisodeCodes(codes)||'none; use actor, text and mood only'),
-        'PRIVATE CHARACTER BACKGROUND (not the current scene):\n'+notes
+        'Production character background is kept producer-private for audit and offline refinement. Do not reconstruct old conversation topics from unsupplied scenes.'
       ].join('\n');
       const messages=[{role:'system',content:system}];
       for(const example of examples){
         // Old few-shots can silently inject completely unrelated callbacks.
-        if(example?.microdirector!==true)continue;
+        if(example?.microdirector!==true||!isSameLiveSubject(text,example.input))continue;
         const p=validateMicroPlan(example.response,example.kind,codes);
         messages.push({role:'user',content:JSON.stringify({kind:example.kind,input:example.input})},
           {role:'assistant',content:JSON.stringify(p)});
       }
       messages.push({role:'user',content:JSON.stringify({
         ...microInput,
+        focus_terms:focusTerms(text),
         direction:'One concrete cause, two character reactions. Keep original comment central. Explain any callback by its relevance, not by inventing biography.'
       })});
       let responseSchema=exchangeSchema(codes);
@@ -116,9 +130,10 @@ export function createBlackoutMicrodirector({complete,notes,examples=[],getDeliv
       }
       let first=null;
       const onText=typeof onFirstLine==='function'?raw=>{
-        if(!first){const p=firstMicroLine(raw,codes);if(p){first=p;onFirstLine(p);}}
+        if(!first){const p=firstMicroLine(raw,codes,{input:text,hooks:microInput.contextual_grievance_hooks});if(p){first=p;onFirstLine(p);}}
       }:undefined;
-      const plan=validateMicroPlan(await complete({messages,signal,responseSchema,onText}),kind,codes);
+      const plan=validateMicroPlan(await complete({messages,signal,responseSchema,onText}),kind,codes,
+        {input:text,hooks:microInput.contextual_grievance_hooks});
       if(first&&JSON.stringify(first)!==JSON.stringify(plan.lines[0]))
         throw Error('Speculatively prepared line differed from final approved plan');
       return plan;
