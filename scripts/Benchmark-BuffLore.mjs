@@ -42,7 +42,11 @@ for(let i=0;i<sampleCount;i++){
  chooseBlackoutShanny({text:input.input,address:audience,hooks:input.contextual_grievance_hooks,kind:'donation'});
  focusTerms(input.input);
  detectTopicDrift({input:input.input,hooks:input.contextual_grievance_hooks,plan:competing});
- validateMicroPlan(competing,'donation',{}, {input:input.input,
+ const firstActor=audience.target==='REV'?'REV':'SHANNY';
+ const rolePlan={...competing,
+  first:{...competing.first,mood:firstActor==='REV'?'irritated':'anger'},
+  second:{...competing.second,mood:firstActor==='REV'?'anger':'irritated'}};
+ validateMicroPlan(rolePlan,'donation',{}, {input:input.input,
   hooks:input.contextual_grievance_hooks,audience_address:audience});
  focusDurations.push(performance.now()-focusStart);
 }
