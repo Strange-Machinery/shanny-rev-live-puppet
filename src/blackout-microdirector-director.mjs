@@ -48,7 +48,7 @@ export function firstMicroLine(raw,codes={}){
     if(ch==='{')level++;
     else if(ch==='}'&&--level===0){end=i+1;break;}
   }
-  if(end<0||!/^\s*[,|\]]/.test(raw.slice(end)))return null;
+  if(end<0||!/^\s*[,\]]/.test(raw.slice(end)))return null;
   try{return line(JSON.parse(raw.slice(start[0].length,end)),availableEpisodeCodes(codes));}
   catch{return null;}
 }
