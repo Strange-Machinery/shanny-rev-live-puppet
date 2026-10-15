@@ -52,14 +52,14 @@ try{
    'src/blackout-microdirector-director.mjs','src/live-lore-index.mjs',
    'src/live-lore-catalog.v2.mjs','src/live-lore-extras-a.mjs','src/live-lore-extras-b.mjs',
    'src/live-lore-extras-c.mjs','src/live-topic-focus.mjs',
-   'src/audience-addressee.mjs','src/live-server.mjs',
+   'src/audience-addressee.mjs','src/blackout-shanny-heat.mjs','src/live-server.mjs',
    'src/conversation-session.mjs','src/providers/omnivoice.mjs','src/real-host.mjs')){
     Gate ('parse-'+[IO.Path]::GetFileName($path)) 'node' @('--check',$path)
  }
  Gate 'focused_microdirector' 'node' @('--test','test/blackout-microdirector.test.mjs',
   'test/voice-microdirector-smoke.test.mjs','test/live-lore-index.test.mjs',
   'test/live-topic-focus.test.mjs','test/qwen-topic-drift.test.mjs',
-  'test/audience-addressee.test.mjs')
+  'test/audience-addressee.test.mjs','test/blackout-shanny-heat.test.mjs')
  Gate 'indexed_lore_30ms_budget' 'node' @('scripts/Benchmark-BuffLore.mjs')
  Gate 'python_episode_reference_selection' 'python' @('-m','unittest','discover',
   '-s','python','-p','test_live_episode_delivery.py','-v')
