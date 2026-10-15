@@ -14,6 +14,7 @@ import {createQwenCompletion} from './providers/qwen.mjs';
 import {PersistentWhisper} from './providers/whisper.mjs';
 import {createConversationDirector} from './conversation-director.mjs';
 import {createBlackoutMicrodirector} from './blackout-microdirector-director.mjs';
+import {liveLoreStats} from './live-lore-index.mjs';
 import {ConversationSession} from './conversation-session.mjs';
 import {AnimationMenu} from './animation-menu.mjs';
 import {waitForVoiceMemory} from './gpu-readiness.mjs';
@@ -159,7 +160,8 @@ export async function serveRealHost(config){
     let manualRainArming=false;
     const action=async data=>{
       if(data.action==='status')return {...session.status(),qwen:modelName+' (local CPU)',performance_mode:performanceMode,
-        microdirector:microdirectorEnabled?{enabled:true,available_delivery_codes:voice.availableEpisodeCodes,
+        microdirector:microdirectorEnabled?{enabled:true,lore_index:liveLoreStats(),
+          available_delivery_codes:voice.availableEpisodeCodes,
           qualified_samples_by_code:voice.availableEpisodeCounts,
           source_echo_flags:director.audit({history:session.history})}:{enabled:false},
         media:media?.info()||null,
