@@ -98,7 +98,7 @@ let polling=false;async function status(){if(polling)return;polling=true;try{con
       (micro.lore_index?.aliases||0)+' keyword aliases · '+
       (micro.topic_focus==='superchat-only-v1'?'Superchat focus ON (no legacy topic notes) · ':'Legacy topic prompt · ')+
       (backend.preferred==='v620'?'one approved dialogue (V620→MSI failover) · ':'one Qwen pass · ')+(micro.response_schema==='named-character-slots-v2'?
-        'Shanny/Rev identity-locked slots · 2-sentence capacity · ':
+        'Shanny/Rev identity-locked slots · natural dialogue · ':
         micro.response_schema==='fixed-speaker-slots-v1'?
         'fixed speaker slots / named reader · ':'legacy reply schema · ')+
       (micro.spoken_line_validator==='natural-punctuation-v2'?'natural speech gate v2 · ':'')+
