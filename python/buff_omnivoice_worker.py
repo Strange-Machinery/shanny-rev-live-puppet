@@ -17,6 +17,7 @@ import re
 import sys
 import time
 import traceback
+from live_episode_delivery import approved_routes
 
 PREFIX = "LIVE_WORKER "
 
@@ -44,6 +45,7 @@ def main():
     parser.add_argument("--rev-reference", required=True)
     parser.add_argument("--seed", type=int, default=73001)
     parser.add_argument("--mood-references", default="{}")
+    parser.add_argument("--approved-delivery-codes", default="{}")
     args = parser.parse_args()
 
     app_root = args.app_root.resolve(strict=True)
@@ -83,6 +85,17 @@ def main():
                 if not isinstance(reference_id, str):
                     raise RuntimeError("Invalid mood reference")
                 prompt_choices.add((actor, reference_id))
+        requested_delivery = json.loads(args.approved_delivery_codes)
+        episode_routes = {}
+        if requested_delivery:
+            # The episode catalog verifies every saved prompt and source receipt.
+            from expanded_voices import load_library
+            episode_routes = approved_routes(load_library(), references, requested_delivery)
+            if not episode_routes.get('SHANNY') or not episode_routes.get('REV'):
+                raise RuntimeError('Both characters need real, approved episode delivery references')
+            for actor, codes in episode_routes.items():
+                for reference_id in codes.values():
+                    prompt_choices.add((actor, reference_id))
         for actor, reference_id in prompt_choices:
             if reference_id not in references or references[reference_id]["speaker"].upper() != actor:
                 raise RuntimeError(f"{actor} reference is missing or belongs to another actor: {reference_id}")
@@ -164,6 +177,7 @@ def main():
             "model_load_ms": round((time.perf_counter() - load_started) * 1000.0, 3),
             "sample_rate_hz": model.sampling_rate,
             "references": selected,
+            "delivery_codes": {actor: sorted(codes) for actor, codes in episode_routes.items()},
             "pid": os.getpid(),
         })
 
@@ -202,7 +216,13 @@ def main():
                 mood = message.get("mood")
                 if mood is not None and mood not in allowed_moods[actor]:
                     raise ValueError("invalid expression mood")
-                reference_id = mood_references.get(actor, {}).get(mood, selected[actor])
+                delivery = message.get('delivery')
+                if delivery is not None:
+                    if not isinstance(delivery, str) or delivery not in episode_routes.get(actor, {}):
+                        raise ValueError('Episode delivery code is not approved for actor')
+                    reference_id = episode_routes[actor][delivery]
+                else:
+                    reference_id = mood_references.get(actor, {}).get(mood, selected[actor])
                 item = prompts[(actor, reference_id)]
                 prompt = item["prompt"]
                 prompt_path = item["prompt_path"]
@@ -253,6 +273,7 @@ def main():
                     "status": "SUCCEEDED",
                     "actor": actor,
                     "mood": mood,
+                    "delivery": delivery,
                     "reference_id": reference_id,
                     "relative_path": relative_path,
                     "generation_ms": round(generation_ms, 3),
