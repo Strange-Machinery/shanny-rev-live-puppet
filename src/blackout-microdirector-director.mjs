@@ -160,7 +160,7 @@ export function createBlackoutMicrodirector({complete,notes,examples=[],getDeliv
         dialogue_route:speakerContract,
         shanny_blackout:blackout,
         focus_terms:focusTerms(text),
-        direction:'One concrete cause, two character reactions. Keep original comment central. Explain any callback by its relevance, not by inventing biography.'
+        direction:'HARD ORDER: the named addressee answers the VIEWER first, then the other actor addresses that character. SHANNY blackout_heat guides only her own response, never hijacks a REV- or BUFF-addressed message. One concrete cause, two reactions; keep the exact comment central. No invented biography or unrelated props.'
       })});
       let responseSchema=exchangeSchema(codes);
       if(warmup){
