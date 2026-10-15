@@ -71,7 +71,8 @@ export async function serveRealHost(config){
     const notes=await readFile(config.characterNotes,'utf8');
     const examples=config.approvedExamples?JSON.parse(await readFile(config.approvedExamples,'utf8')):[];
     const complete=createQwenCompletion({endpoint:'http://127.0.0.1:'+port+'/v1/chat/completions',model:modelName,apiKey:qwenKey,placement:'cpu',timeoutMs:12000,
-      maxTokens:microdirectorEnabled?320:240});
+      maxTokens:microdirectorEnabled?320:240,
+      ...(microdirectorEnabled?{temperature:0.7,topP:0.9}:{})});
     // Voice prompts are qualified at worker startup. Qwen sees only those
     // categories actually available, not a guessed global voice inventory.
     const director=microdirectorEnabled?
