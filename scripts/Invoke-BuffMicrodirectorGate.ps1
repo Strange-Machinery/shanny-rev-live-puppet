@@ -61,7 +61,8 @@ try{
   'test/voice-microdirector-smoke.test.mjs','test/live-lore-index.test.mjs',
   'test/live-topic-focus.test.mjs','test/qwen-topic-drift.test.mjs',
   'test/audience-addressee.test.mjs','test/blackout-shanny-heat.test.mjs',
-  'test/conversation-session.test.mjs','test/qwen.test.mjs')
+  'test/conversation-session.test.mjs','test/qwen.test.mjs',
+  'test/qwen-character-identity.test.mjs')
  Gate 'indexed_lore_30ms_budget' 'node' @('scripts/Benchmark-BuffLore.mjs')
  Gate 'python_episode_reference_selection' 'python' @('-m','unittest','discover',
   '-s','python','-p','test_live_episode_delivery.py','-v')
