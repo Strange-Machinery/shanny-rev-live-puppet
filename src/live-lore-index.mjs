@@ -1,9 +1,9 @@
-import {LIVE_LORE_V1} from './live-lore-catalog.v1.mjs';
+import {LIVE_LORE_V2} from './live-lore-catalog.v2.mjs';
 
 const fold=value=>String(value).toLowerCase().normalize('NFKC')
   .replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
 const byId=new Map(), byWord=new Map();
-for(const source of LIVE_LORE_V1){
+for(const source of LIVE_LORE_V2){
   if(byId.has(source.id))throw Error('Duplicate fast lore id');
   byId.set(source.id,source);
   for(const term of source.terms){
