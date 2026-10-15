@@ -30,7 +30,7 @@ test('Qwen endpoint timeout, cancellation and concurrency limits',async()=>{
   const server=createServer(()=>{});await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   try {
     const complete=createQwenCompletion({...settings,timeoutMs:100,endpoint:'http://127.0.0.1:'+server.address().port+'/v1/chat/completions'});
-    const pending=complete({messages});await assert.rejects(complete({messages}),/concurrency/);await assert.rejects(pending,/timeout|aborted/i);
+    const pending=complete({messages});await assert.rejects(complete({messages}),/concurrency/);await assert.rejects(pending,/Qwen CPU timeout after 100 ms/i);
     const controller=new AbortController();controller.abort();await assert.rejects(complete({messages,signal:controller.signal}),/aborted/i);
   } finally {server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
 });
