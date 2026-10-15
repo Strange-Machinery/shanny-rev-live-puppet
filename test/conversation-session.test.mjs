@@ -413,9 +413,50 @@ test('rain presentation preserves addressee distinct from spoken donation reader
  await f.session.submit({kind:'donation',text:'Rev, do you remember the moon?',
   make_it_rain:true,...scope});
  await until(()=>Boolean(observed));
- assert.equal(observed.readBy,'SHANNY');
+ assert.equal(observed.readBy,'REV');
  assert.equal(observed.text,'Rev, do you remember the moon?');
  assert.equal(f.session.status().last_audience_address.target,'REV');
- assert.equal(f.session.status().last_audience_address.read_by,'SHANNY');
+ assert.equal(f.session.status().last_audience_address.read_by,'REV');
+ assert.equal(f.spoken[0].actor,'REV','rain path prepares Rev to read his own question');
  await f.session.stop();await until(()=>!f.session.turn);
+});
+
+test('ordinary Rev-addressed donation uses Rev to read before Qwen responds',async()=>{
+ let observed;
+ const f=fixture({generate:async options=>{
+  observed=options;
+  return {lines:[{actor:'REV',text:'I said what I meant.'},
+    {actor:'SHANNY',text:'Rev always has an explanation.'}],
+    rev_reason:'Rev defends the original decision.'};
+ }});
+ await f.session.initialize();const scope=await f.session.arm();
+ await f.session.submit({kind:'donation',text:'Rev, what happened to your channel?',...scope});
+ await until(()=>f.spoken.length===1);
+ assert.equal(f.spoken[0].actor,'REV');
+ assert.equal(f.spoken[0].text,'Rev, what happened to your channel?');
+ assert.deepEqual(f.session.status().last_audience_address,
+  {target:'REV',basis:'direct-vocative',read_by:'REV'});
+ f.emit('playback.started',f.spoken[0].id);
+ await until(()=>Boolean(observed));
+ assert.equal(observed.readBy,'REV');
+ await f.session.stop();await until(()=>!f.session.turn);
+});
+test('Shanny and no-name donations keep expected reader; explicit override wins',async()=>{
+ for(const [input,reader,target] of [
+  ['Shanny, explain the donation.','SHANNY','SHANNY'],
+  ['What about your channel?','SHANNY','UNSPECIFIED'],
+  ['(SHANNY) Rev, why did you quit?','SHANNY','REV'],
+  ['(REV) Shanny, are you joking?','REV','SHANNY']
+ ]){
+  const f=fixture({generate:async()=>({lines:[
+    {actor:'SHANNY',text:'I have an opinion.'},
+    {actor:'REV',text:'I disagree with that.'}],rev_reason:'Rev disputes the answer'})});
+  await f.session.initialize();const scope=await f.session.arm();
+  await f.session.submit({kind:'donation',text:input,...scope});
+  await until(()=>f.spoken.length===1);
+  assert.equal(f.spoken[0].actor,reader,input);
+  assert.equal(f.session.status().last_audience_address.read_by,reader,input);
+  assert.equal(f.session.status().last_audience_address.target,target,input);
+  await f.session.stop();await until(()=>!f.session.turn);
+ }
 });
