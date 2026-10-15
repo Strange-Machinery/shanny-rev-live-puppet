@@ -40,6 +40,27 @@ test('Qwen never accepts plaintext remote credentials or unverified local GPU pl
   assert.throws(()=>createQwenCompletion({...settings,maxTokens:10000}),/budgets/);
 });
 
+test('Microdirector sampling reduces topic drift without changing legacy Qwen defaults',async()=>{
+ let sampled;
+ const model=createQwenCompletion({...settings,temperature:0.7,topP:0.9,
+   request:async(_url,options)=>{sampled=JSON.parse(options.body);return response();}});
+ await model({messages});
+ assert.equal(sampled.temperature,0.7);
+ assert.equal(sampled.top_p,0.9);
+ let legacy;
+ const defaultModel=createQwenCompletion({...settings,
+   request:async(_url,options)=>{legacy=JSON.parse(options.body);return response();}});
+ await defaultModel({messages});
+ assert.equal(legacy.temperature,1);
+ assert.equal(legacy.top_p,1);
+});
+test('Qwen sampling bounds reject invalid configuration values',()=>{
+ for(const bad of [{temperature:-0.1},{temperature:3},{temperature:NaN},{topP:0},
+   {topP:1.1},{topP:NaN},{topP:'0.9'}]){
+   assert.throws(()=>createQwenCompletion({...settings,...bad}),/budgets/);
+ }
+});
+
 test('Qwen forwards bounded dialogue schema to constrain the single live writing pass',async()=>{
   let body;const complete=createQwenCompletion({...settings,request:async(url,options)=>{body=JSON.parse(options.body);return response();}});
   const schema={type:'object',properties:{lines:{type:'array',maxItems:3}}};
