@@ -47,6 +47,15 @@ function Gate([string]$label,[string]$exe,[string[]]$argv) {
 }
 Push-Location $checkout
 try{
+ foreach($scriptName in @('Invoke-BuffMicrodirectorGate.ps1','Start-BuffMicrodirectorTrial.ps1')){
+   $scriptPath=Join-Path $checkout ('scripts\'+$scriptName)
+   $tokens=$null;$syntaxErrors=$null
+   [System.Management.Automation.Language.Parser]::ParseFile($scriptPath,[ref]$tokens,[ref]$syntaxErrors) | Out-Null
+   $label='powershell_parse_'+$scriptName
+   $report.tests[$label]=[ordered]@{status=if($syntaxErrors.Count -eq 0){'PASS'}else{'FAIL'};errors=$syntaxErrors.Count}
+   if($syntaxErrors.Count -gt 0){throw ('PowerShell syntax failed for '+$scriptName+': '+($syntaxErrors | Out-String))}
+   Write-Host ('--- '+$label+' PASS ---') -ForegroundColor Cyan
+ }
  Gate 'node_dependency_install' 'npm' @('install','--ignore-scripts','--no-audit','--fund=false')
  foreach($path in @('src/approved-delivery.mjs','src/blackout-microdirector.mjs',
    'src/blackout-microdirector-director.mjs','src/live-lore-index.mjs',
