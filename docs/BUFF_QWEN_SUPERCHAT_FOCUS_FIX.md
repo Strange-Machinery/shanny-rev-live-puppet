@@ -242,3 +242,44 @@ character rig, paid-provider setting or host startup path was changed.
 8/8 targeted lexical/continuity cases passed in the isolated repository-source
 harness. The interrupted full Node/Python MSI gate **must be rerun** on the
 latest branch head; do not treat the earlier `022ac373` source gate as green.
+
+## Natural spoken-line validation — October 15
+
+During the first live audition after longer actor-locked utterances were enabled,
+the producer received `Invalid Microdirector spoken line - press a test button
+to retry`. The runtime's `line()` had several rejection causes hidden behind
+this one generic message: a 320-character limit, 70-word limit, an **absolute
+two-sentence maximum** counted by `Intl.Segmenter`, empty/nonstring speech,
+control characters and forbidden thinking tags. The constrained JSON schema
+also banned literal quotation/backslash characters and required terminal
+punctuation. **No failed model completion was captured, so the exact rule
+responsible on that live attempt is unknown.**
+
+The experimental Microdirector now:
+
+- Keeps 320 characters and 70 words per spoken utterance, actor-specific face
+  moods and approved delivery codes, the current-topic gate, and one Qwen call.
+- Treats **one or two sentences as an acting preference, not a hard reject**.
+  Interjections, an extra question or several short sentences may still form
+  a valid utterance. This is not permission for unlimited text: hard
+  character/word bounds remain.
+- Accepts ordinary quoted dialogue and natural punctuation in the Qwen JSON
+  `text` field. No longer asks a fragile schema regex to forbid speech quotes
+  or force `!/?/.` at the last character.
+- Converts only newline/tab formatting in model text to spaces (so generated
+  words themselves are unchanged), then checks length and rejects harmful
+  control characters or model-thinking tags.
+- Reports a safe precise failure reason such as
+  `Invalid Microdirector spoken line: line 2 exceeds 320 characters (341)`
+  without logging the actual voice text or donor information.
+- Advises Qwen to **aim below 280 characters**, while still preferring
+  16–32 words, to reduce crossing the existing 320-character gate.
+- Adds a private-only `natural speech gate v2` producer-panel marker for
+  verifying an updated experimental trial is actually running.
+
+Nine targeted JS-harness identity/speech tests passed, including punctuation,
+quoted text, multi-sentence Rev voice prefetch, and fail-closed oversized or
+unsafe lines with text-free diagnostics. The full MSI source gate and real
+Qwen response-quality listening are **pending** for this commit. No Unity,
+voice-reference, provider credentials, donation receipts, or production
+branches were changed.
