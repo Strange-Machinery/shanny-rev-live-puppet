@@ -219,3 +219,26 @@ slower completion is therefore possible. We need an MSI listening/timeout
 trial; offline deterministic validations do NOT certify that the 2B writer
 will follow this identity cue or meet first-response timing. No Unity,
 voice-audio, automatic donor, or producer-hotfix modifications were made.
+
+## Generic-verbs topic matcher regression — October 15
+
+The full MSI source gate at `022ac373` caught a real false-positive in
+`test/blackout-microdirector.test.mjs`: after a viewer asked
+`Shanny, explain the bucket.`, an unrelated `Explain this graphics card.`
+was incorrectly treated as the *same topic* because the old lexical matcher
+considered the instruction word `explain` a subject. It consequently
+carried the entire previous 232-character SHANNY line and its grievance
+into the graphics-card Qwen context.
+
+Fixed by excluding instruction words (`explain`, `compare`, `describe`,
+`discuss`, etc.) from the set of semantic subject terms. It still admits
+carryover when an actual subject such as `bucket` is shared, or the viewer
+explicitly refers back to the previous conversation. An extra regression
+in `test/qwen-topic-drift.test.mjs` checks independent graphics card,
+CPU, console and monitor requests against an earlier bucket dispute, plus
+an explicit genuine bucket followup. No Qwen prompt, OmniVoice voice sample,
+character rig, paid-provider setting or host startup path was changed.
+
+8/8 targeted lexical/continuity cases passed in the isolated repository-source
+harness. The interrupted full Node/Python MSI gate **must be rerun** on the
+latest branch head; do not treat the earlier `022ac373` source gate as green.
