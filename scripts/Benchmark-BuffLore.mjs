@@ -3,6 +3,7 @@ import {lookupLiveLore,liveLoreStats} from '../src/live-lore-index.mjs';
 import {makeMicroInput} from '../src/blackout-lore-router.mjs';
 import {focusTerms,detectTopicDrift} from '../src/live-topic-focus.mjs';
 import {validateMicroPlan} from '../src/blackout-microdirector-director.mjs';
+import {identifyAudienceAddressee,audienceReplyContract} from '../src/audience-addressee.mjs';
 const inputs=[
   'Rev, go dump Shanny\'s bucket again.',
   'Wait, what happened when Will got dropkicked?',
@@ -35,6 +36,8 @@ for(let i=0;i<sampleCount;i++){
  durations.push(performance.now()-began);
  const focusStart=performance.now();
  const input=makeMicroInput({text:inputs[i%inputs.length],kind:'donation',history});
+ const audience=identifyAudienceAddressee(input.input);
+ audienceReplyContract(audience,'donation','SHANNY');
  focusTerms(input.input);
  detectTopicDrift({input:input.input,hooks:input.contextual_grievance_hooks,plan:competing});
  validateMicroPlan(competing,'donation',{}, {input:input.input,hooks:input.contextual_grievance_hooks});
