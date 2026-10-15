@@ -29,8 +29,21 @@ function Gate([string]$label,[string]$exe,[string[]]$argv) {
  & $exe @argv *> $log
  $code=$LASTEXITCODE
  $report.tests[$label]=[ordered]@{status=if($code -eq 0){'PASS'}else{'FAIL'};exit_code=$code;log=$log}
+ if($code -ne 0){
+  # Print the actionable assertion, not only the final stack-trace footer.
+  $failureMatches=@(Select-String -LiteralPath $log -Pattern 'not ok\s+\d+\s+-|^\s*(FAIL|FAILED)(\s|:)|^\s*(error|failureType|expected|actual):' -Context 2,8)
+  if($failureMatches.Count -gt 0){
+   Write-Host ('Failure diagnostics from '+$label+':') -ForegroundColor Red
+   foreach($match in ($failureMatches | Select-Object -First 4)){
+    @($match.Context.PreContext,$match.Line,$match.Context.PostContext) |
+      ForEach-Object { if($_){Write-Host $_} }
+   }
+  }else{
+   Get-Content -LiteralPath $log -Tail 30 | ForEach-Object {Write-Host $_}
+  }
+  throw "$label failed: $code (see $log)"
+ }
  Get-Content -LiteralPath $log -Tail 9 | ForEach-Object {Write-Host $_}
- if($code -ne 0){throw "$label failed: $code (see $log)"}
 }
 Push-Location $checkout
 try{
