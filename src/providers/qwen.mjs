@@ -46,7 +46,7 @@ export function createQwenCompletion({ endpoint, model, apiKey = '', timeoutMs =
       if (!reply.ok) { await reply.body?.cancel(); throw new Error('Qwen HTTP ' + reply.status); }
       if(typeof onText==='function'){
         const content=await readQwenStream(reply,combined,onText);
-        onTiming({model,completion_ms:performance.now()-start});return content;
+        onTiming({model,completion_ms:performance.now()-start,status:'ok'});return content;
       }
       const value = await readJson(reply, 16_000);
       combined.throwIfAborted();
@@ -57,8 +57,16 @@ export function createQwenCompletion({ endpoint, model, apiKey = '', timeoutMs =
           /<\/?think>/i.test(choice.message.content)) {
         throw new Error('Qwen output truncated, thinking, or malformed');
       }
-      onTiming({ model, completion_ms: performance.now() - start });
+      onTiming({ model, completion_ms: performance.now() - start, status:'ok' });
       return choice.message.content;
+    } catch(error) {
+      const localTimeout=combined.aborted&&!signal?.aborted &&
+        combined.reason?.name==='TimeoutError';
+      if(localTimeout){
+        onTiming({model,completion_ms:performance.now()-start,status:'timeout'});
+        throw new Error('Qwen CPU generation timed out after '+timeoutMs+' ms');
+      }
+      throw error;
     } finally { busy = false; }
   };
 }
