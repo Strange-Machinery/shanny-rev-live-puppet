@@ -93,7 +93,7 @@ function CheckCommand([string]$name,[string]$exe,[string[]]$argv){
 }
 try{
  CheckCommand 'npm setup' 'npm' @('install','--ignore-scripts','--no-audit','--fund=false')
- CheckCommand 'new microdirector Node tests' 'node' @('--test','test/blackout-microdirector.test.mjs','test/voice-microdirector-smoke.test.mjs')
+ CheckCommand 'new microdirector Node tests' 'node' @('--test','test/blackout-microdirector.test.mjs','test/voice-microdirector-smoke.test.mjs','test/qwen-failover.test.mjs','test/qwen.test.mjs')
  CheckCommand 'full Node regression' 'npm' @('test')
  CheckCommand 'new episode voice sample routing tests' 'python' @('-m','unittest','discover','-s','python','-p','test_live_episode_delivery.py','-v')
  CheckCommand 'existing offline Python regression' 'python' @('-m','unittest','discover','-s','python','-p','test_offline.py','-v')
