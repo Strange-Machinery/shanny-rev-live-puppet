@@ -42,7 +42,7 @@ test('max spoken limit is 320 characters and 70 words, but punctuation and short
  assert.throws(()=>check('W'.repeat(320)+'!'),/exceeds 320 characters \(321\)/);
  assert.equal(check('First sentence. Second sentence. Third sentence.').lines[0].text,
   'First sentence. Second sentence. Third sentence.');
- assert.throws(()=>check(Array(71).fill('word').join(' ')+'!'),/exceeds 70 words \(71\)/);
+ assert.throws(()=>check(Array(71).fill('x').join(' ')+'!'),/exceeds 70 words \(71\)/);
  assert.equal(check('Absolutely not!').lines[0].text,'Absolutely not!',
   'a short intense interruption must remain allowed');
 });
