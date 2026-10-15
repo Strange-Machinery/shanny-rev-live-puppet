@@ -15,7 +15,7 @@ const HOT=/\b(?:fuck\s+(?:you|off)|liar|lies|lying|lie\s+to|hypocrit\w*|betray\w
 const DIRECTIVE=/\b(?:you\s+(?:must|better|need\s+to|have\s+to)|go\s+(?:do|dump|clean)|shut\s+up|obey|explain\s+yourself|apologize\s+now|answer\s+me)\b/i;
 const TENDER=/\b(?:i\s+love\s+you|we\s+love\s+you|you\s+did\s+great|hope\s+you\s+feel\s+better|sorry\s+you\s+are\s+hurting|thank\s+you\s+for\s+helping|we\s+support\s+you)\b/i;
 const LANES=Object.freeze([
- Object.freeze({name:'direct_attack',share:0.39,voiceHint:'furious anger rage',intention:'Defend dignity by attacking the actual insulting wording, pressing a concrete grievance and refusing to let the partner silently redefine it. An earned direct fuck you is possible; never use it as a quota.'}),
+ Object.freeze({name:'direct_attack',share:0.39,voiceHint:'low surly anger challenge',intention:'Attack the actual imposition or insulting wording if present, defend dignity and press the concrete grievance. If no insult was made, object to being put on display instead of inventing one. A directed fuck you requires a real affront, never a quota.'}),
  Object.freeze({name:'disgust_contempt',share:0.22,voiceHint:'disgust contempt',intention:'Treat the current accusation or demand as revolting and beneath her. Use specific disgust and biting disdain aimed at what was actually said, not random filth or body imagery.'}),
  Object.freeze({name:'wounded_victim',share:0.21,voiceHint:'crying defensive hurt',intention:'Self-victimize from the present slight: turn the actual demand into proof she is used, unheard or blamed. Her tears are still an accusation; Rev can correct the logic without becoming a comfort machine.'}),
  Object.freeze({name:'insular_crying',share:0.18,voiceHint:'sobbing sadness crying',intention:'Withdraw inward into tearful self-pity about what the current remark implies for her own suffering; make the grievance legible. She can cry while blaming Rev or chat. No invented past trauma or compulsory forgiveness.'}),
@@ -45,6 +45,7 @@ export function chooseBlackoutShanny({text,address={target:'UNSPECIFIED'},hooks=
   let at=0;
   for(const option of LANES){at+=option.share;if(phase<at){lane=option;break;}}
  }
+ const voiceHint=lane.name==='direct_attack'&&earnedPressure?'furious anger rage':lane.voiceHint;
  const source=direct?'the viewer addresses Shanny':target==='REV'?'the viewer addresses Rev':
   target==='BUFF'?'the viewer addresses Buff':target==='BOTH'?'the viewer addresses both':'the viewer makes a general remark';
  const reference=loadedHook?'the current matched lore hook, only if its grievance actually applies':'the current audience remark only';
@@ -55,7 +56,7 @@ export function chooseBlackoutShanny({text,address={target:'UNSPECIFIED'},hooks=
  return {
   regime:heated?'HIGH_PRESSURE':'CONTAINED',
   emotional_lane:lane.name,
-  voice_hint:lane.voiceHint,
+  voice_hint:voiceHint,
   acting_objective:lane.intention,
   moment_reason:why,
   addressed_context:source,
