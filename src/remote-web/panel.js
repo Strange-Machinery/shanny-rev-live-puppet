@@ -88,7 +88,9 @@ let polling=false;async function status(){if(polling)return;polling=true;try{con
     const flags=micro.source_echo_flags||{};
     $('service-note').textContent='Microdirector ACTIVE · '+counts.SHANNY+'/20 Shanny categories, '+counts.REV+'/23 Rev categories · '+voiceSamples+
       ' verified episode samples · '+(micro.lore_index?.hooks||0)+' lore families · '+
-      (micro.lore_index?.aliases||0)+' keyword aliases · one Qwen pass. '+(flags.old_notes_contain_food_theme||flags.legacy_examples_contain_food_theme||flags.recent_spoken_food_echo||
+      (micro.lore_index?.aliases||0)+' keyword aliases · '+
+      (micro.topic_focus==='superchat-only-v1'?'Superchat focus ON (no legacy topic notes) · ':'Legacy topic prompt · ')+
+      'one Qwen pass. '+(flags.old_notes_contain_food_theme||flags.legacy_examples_contain_food_theme||flags.recent_spoken_food_echo||
       flags.old_notes_contain_no_means_no||flags.legacy_examples_contain_bread_or_refusal?
       'Historical repetition cues detected in private inputs; review those sources if off-topic dialogue recurs.':'No known stale refusal/bread phrases detected in private inputs.');
   } else $('service-note').textContent='Real Qwen, character voices and Unity run on the producer computer. No YouTube livestream is needed. Use Connect preview to watch and hear the stage.';
