@@ -13,6 +13,7 @@ import {OmniVoiceProvider} from './providers/omnivoice.mjs';
 import {createQwenCompletion} from './providers/qwen.mjs';
 import {PersistentWhisper} from './providers/whisper.mjs';
 import {createConversationDirector} from './conversation-director.mjs';
+import {createBlackoutMicrodirector} from './blackout-microdirector-director.mjs';
 import {ConversationSession} from './conversation-session.mjs';
 import {AnimationMenu} from './animation-menu.mjs';
 import {waitForVoiceMemory} from './gpu-readiness.mjs';
@@ -30,6 +31,9 @@ export async function serveRealHost(config){
   let phase='Starting character services';
   const progress=message=>{phase=message;process.stderr.write('BUFF_STARTUP '+message+'\n');};
   if(config.resourceHeadroomVerified!==true)throw new Error('Character voice resource check is required');
+  const microdirectorEnabled=config.microdirector?.enabled===true;
+  if(microdirectorEnabled&&config.omnivoice?.approvedDelivery!==true)
+    throw new Error('Microdirector needs explicitly approved natural episode voice routing');
   const root=resolve(config.scratch),token=randomBytes(32).toString('hex'),qwenKey=randomBytes(32).toString('hex');
   await mkdir(root,{recursive:true});
   const lockPath=join(root,'host.lock');let lock;
@@ -66,8 +70,14 @@ export async function serveRealHost(config){
     await waitUntil(async()=>{if(model.exitCode!==null)throw new Error('Local Qwen exited; inspect producer diagnostics');try{return (await fetch('http://127.0.0.1:'+port+'/health',{signal:AbortSignal.timeout(1500)})).ok;}catch{return false;}},120000);
     const notes=await readFile(config.characterNotes,'utf8');
     const examples=config.approvedExamples?JSON.parse(await readFile(config.approvedExamples,'utf8')):[];
-    const complete=createQwenCompletion({endpoint:'http://127.0.0.1:'+port+'/v1/chat/completions',model:modelName,apiKey:qwenKey,placement:'cpu',timeoutMs:12000,maxTokens:240});
-    const director=createConversationDirector({complete,notes,examples});
+    const complete=createQwenCompletion({endpoint:'http://127.0.0.1:'+port+'/v1/chat/completions',model:modelName,apiKey:qwenKey,placement:'cpu',timeoutMs:microdirectorEnabled?18000:12000,
+      maxTokens:microdirectorEnabled?320:240});
+    // Voice prompts are qualified at worker startup. Qwen sees only those
+    // categories actually available, not a guessed global voice inventory.
+    const director=microdirectorEnabled?
+      createBlackoutMicrodirector({complete,notes,examples,
+        getDeliveryCodes:()=>voice?.availableEpisodeCodes||{}}):
+      createConversationDirector({complete,notes,examples});
     progress('Checking room for the character voices...');
     await waitForVoiceMemory({progress,readFreeMiB:async()=>{
       const gpu=await promisify(execFile)('nvidia-smi',['--query-gpu=memory.free','--format=csv,noheader,nounits'],{windowsHide:true,timeout:5000});
@@ -147,7 +157,10 @@ export async function serveRealHost(config){
     },1000);
     let manualRainArming=false;
     const action=async data=>{
-      if(data.action==='status')return {...session.status(),qwen:modelName+' (local CPU)',performance_mode:performanceMode,media:media?.info()||null,
+      if(data.action==='status')return {...session.status(),qwen:modelName+' (local CPU)',performance_mode:performanceMode,
+        microdirector:microdirectorEnabled?{enabled:true,available_delivery_codes:voice.availableEpisodeCodes,
+          source_echo_flags:director.audit({history:session.history})}:{enabled:false},
+        media:media?.info()||null,
         presentation_visible:media?.info().presentation_visible||false,donations:donations?.status()||null,
         preview_url:preview?'http://127.0.0.1:'+preview.port+'/#key='+preview.token:null};
       if(data.action?.startsWith('media-')){if(!media)throw new Error('Stage feed not configured');return media.viewer(data);}
