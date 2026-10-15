@@ -47,8 +47,8 @@ test('max spoken limit is 320 characters, at most 70 words and two sentences',()
 });
 test('Qwen receives true identity locks and fixed actor-named fields, not anonymous first/second',async()=>{
  for(const [input,expectedFirst,expectedSecond,raw] of [
-  ['Shanny, explain why you are angry.','SHANNY','REV',shannyFirst],
-  ['Rev, why are you so defensive?','REV','SHANNY',revFirst]
+  ['Shanny, explain why you are angry about the bucket.','SHANNY','REV',shannyFirst],
+  ['Rev, why are you defensive about the bucket?','REV','SHANNY',revFirst]
  ]){
   let request,called=0,early;
   const director=createBlackoutMicrodirector({notes:'Private notes: never quote them.',
