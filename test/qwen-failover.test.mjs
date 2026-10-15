@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createQwenFailover,createV620ModelProbe} from '../src/providers/qwen-failover.mjs';
+import {createBlackoutMicrodirector} from '../src/blackout-microdirector-director.mjs';
 
 const plan=JSON.stringify({hinge:'This is about the real donation.',
   first_SHANNY:{text:'I am Shanny, and I am angry about the actual question.',mood:'anger'},
@@ -120,4 +121,34 @@ test('private primary errors are never copied to producer backend status',async(
  });
  assert.equal(await complete(),plan);
  assert.doesNotMatch(JSON.stringify(complete.status()),/private donor|persona notes|voice clips/i);
+});
+
+test('director rejects a fully generated wrong-person V620 response and uses only local character lines',async()=>{
+ const wrong=JSON.stringify({hinge:'This question concerns the bucket and blame.',
+  first_REV:{text:'I am actually Rev.',mood:'irritated'},
+  second_SHANNY:{text:'The bucket is my problem.',mood:'anger'},
+  rev_reason:'Rev objects to being blamed.'});
+ const correct=JSON.stringify({hinge:'Shanny feels accused about the bucket and Rev challenges her.',
+  first_SHANNY:{text:'I am Shanny, and I am the one answering your question about the bucket!',mood:'anger'},
+  second_REV:{text:'Shanny, you cannot put all the bucket blame on me!',mood:'irritated'},
+  rev_reason:'Rev disputes being blamed for bucket work.'});
+ let early=[],localCalls=0,remoteCalls=0;
+ const complete=createQwenFailover({
+  probe:async()=>true,
+  primary:async({onText})=>{remoteCalls++;assert.equal(onText,undefined);return wrong;},
+  fallback:async({onText})=>{localCalls++;onText?.(correct);return correct;}
+ });
+ const director=createBlackoutMicrodirector({notes:'Private stage acting direction',
+  complete});
+ const plan=await director.generate({text:'Shanny, explain the bucket.',
+  kind:'donation',onFirstLine:line=>early.push(line)});
+ assert.equal(remoteCalls,1);
+ assert.equal(localCalls,1);
+ assert.equal(complete.status().last_route,'msi');
+ assert.equal(complete.status().last_reason,'remote-generation-failed');
+ assert.deepEqual(plan.lines.map(line=>line.actor),['SHANNY','REV']);
+ assert.equal(early.length,1);
+ assert.equal(early[0].actor,'SHANNY');
+ assert.match(early[0].text,/I am Shanny/);
+ assert.doesNotMatch(JSON.stringify(early),/I am actually Rev/);
 });
