@@ -238,8 +238,14 @@ export function createBlackoutMicrodirector({complete,notes,examples=[],getDeliv
       const onText=typeof onFirstLine==='function'?raw=>{
         if(!first){const p=firstMicroLine(raw,codes,{input:text,hooks:microInput.contextual_grievance_hooks,audience_address:address});if(p){first=p;onFirstLine(p);}}
       }:undefined;
-      const plan=validateMicroPlan(await complete({messages,signal,responseSchema,onText}),kind,codes,
-        {input:text,hooks:microInput.contextual_grievance_hooks,audience_address:address});
+      const topicContext={input:text,hooks:microInput.contextual_grievance_hooks,
+        audience_address:address};
+      const plan=validateMicroPlan(await complete({messages,signal,responseSchema,onText,
+        // The V620 failover adapter can reject a complete but invalid
+        // remote result BEFORE preparing ANY speculative voice. The final
+        // validation below remains the release authority for both models.
+        validateResponse:raw=>validateMicroPlan(raw,kind,codes,topicContext)
+      }),kind,codes,topicContext);
       if(first&&JSON.stringify(first)!==JSON.stringify(plan.lines[0]))
         throw Error('Speculatively prepared line differed from final approved plan');
       return plan;
