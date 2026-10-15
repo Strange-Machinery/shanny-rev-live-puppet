@@ -58,6 +58,36 @@ class ApprovedLiveDeliveryTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             select_reference(routes, "REV", "S07", "request-123", 73001)
 
+    def test_rage_intensity_selects_real_approved_source_not_pitch_manipulation(self):
+        library = {"category_routes": {"SHANNY": {"S06": [
+            {"reference_id": "full-rage", "rank": 8},
+            {"reference_id": "medium-rage", "rank": 9}
+        ]}}}
+        references = {
+            "full-rage": {"speaker": "Shanny", "reference_selection": {
+                "category": "S06", "automatic_routing_eligible": True,
+                "delivery_intensity": "full"}},
+            "medium-rage": {"speaker": "Shanny", "reference_selection": {
+                "category": "S06", "automatic_routing_eligible": True,
+                "delivery_intensity": "medium"}}
+        }
+        routes = approved_routes(library, references, {"SHANNY": ["S06"]})
+        self.assertEqual(select_reference(routes, "SHANNY", "S06", "1", 73001,
+                                          intensity="full")[0], "full-rage")
+        self.assertEqual(select_reference(routes, "SHANNY", "S06", "1", 73001,
+                                          intensity="medium")[0], "medium-rage")
+        with self.assertRaises(ValueError):
+            select_reference(routes, "SHANNY", "S06", "1", 73001,
+                             intensity="unknown")
+
+    def test_episode_original_reassurance_fallback_is_verified(self):
+        library = {"category_routes": {"REV": {}}}
+        refs = {"rev-03-reassuring": {"speaker": "Rev",
+                "reference_selection": {"category": "R03"}}}
+        route = approved_routes(library, refs, {"REV": ["R03"]})
+        self.assertEqual(route["REV"]["R03"][0]["reference_id"],
+                         "rev-03-reassuring")
+
     def test_foreign_reference_cannot_influence_another_actor(self):
         broken = {**self.catalog, "category_routes": {
             "SHANNY": {"S07": [{"reference_id": "r-mock", "rank": 999}]},
