@@ -24,9 +24,11 @@ test('microdirector uses evidence-gated optional lore, never gratuitously invoke
  assert.deepEqual(selectGrievanceHooks('Rev says he wants to learn to walk more.'),[]);
 });
 test('context includes only relevant current hook and bounded played history',()=>{
+ const earlier='Why did Rev empty the bucket?';
  const input=makeMicroInput({text:'Rev, explain the bucket.',kind:'donation',
-  history:[{actor:'SHANNY',text:'I was in the room.'},{actor:'REV',text:'You keep changing topics.'}],
-  hinges:['An earlier argument had nothing to do with this.']});
+  history:[{actor:'SHANNY',text:'I was in the room.',input:earlier},
+           {actor:'REV',text:'You keep changing topics.',input:earlier}],
+  hinges:[{text:'Rev resents emptying the bucket.',input:earlier}]});
  assert.equal(input.contextual_grievance_hooks.length,1);
  assert.equal(input.contextual_grievance_hooks[0].id,'bucket');
  assert.equal(input.recent_played_lines.length,2);
