@@ -72,10 +72,11 @@ export async function serveRealHost(config){
     const notes=await readFile(config.characterNotes,'utf8');
     const examples=config.approvedExamples?JSON.parse(await readFile(config.approvedExamples,'utf8')):[];
     const complete=createQwenCompletion({endpoint:'http://127.0.0.1:'+port+'/v1/chat/completions',model:modelName,apiKey:qwenKey,placement:'cpu',
-      // Slot-only JSON is smaller; a modest bounded timeout extension absorbs
-      // occasional CPU stalls without a second model pass or a retry storm.
-      timeoutMs:microdirectorEnabled?16000:12000,
-      maxTokens:microdirectorEnabled?256:240,
+      // Longer character dialogue needs output tokens and CPU wall time.
+      // Experimental Microdirector only; the original producer path is untouched.
+      // A single bounded call, no automatic retries or provider spending.
+      timeoutMs:microdirectorEnabled?24000:12000,
+      maxTokens:microdirectorEnabled?384:240,
       ...(microdirectorEnabled?{temperature:0.7,topP:0.9}:{})});
     // Voice prompts are qualified at worker startup. Qwen sees only those
     // categories actually available, not a guessed global voice inventory.
@@ -164,8 +165,10 @@ export async function serveRealHost(config){
     const action=async data=>{
       if(data.action==='status')return {...session.status(),qwen:modelName+' (local CPU)',performance_mode:performanceMode,
         microdirector:microdirectorEnabled?{enabled:true,
-          qwen_budget:{max_tokens:256,timeout_ms:16000,model_calls_per_turn:1},
-          response_schema:'fixed-speaker-slots-v1',
+          qwen_budget:{max_tokens:384,timeout_ms:24000,model_calls_per_turn:1},
+          dialogue_length:{preferred_words_min:16,preferred_words_max:32,
+            max_chars_per_line:320,max_sentences_per_line:2},
+          response_schema:'named-character-slots-v2',
           shanny_blackout:{version:'producer-blackout-v1',overt_pressure_target:0.65,
             lanes:['direct_attack','disgust_contempt','wounded_victim','insular_crying','contained_blackout']},
           audience_roles:'viewer-address-v1',topic_focus:'superchat-only-v1',
