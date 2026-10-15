@@ -2,6 +2,7 @@ import {performance} from 'node:perf_hooks';
 import {lookupLiveLore,liveLoreStats} from '../src/live-lore-index.mjs';
 import {makeMicroInput} from '../src/blackout-lore-router.mjs';
 import {focusTerms,detectTopicDrift} from '../src/live-topic-focus.mjs';
+import {validateMicroPlan} from '../src/blackout-microdirector-director.mjs';
 const inputs=[
   'Rev, go dump Shanny\'s bucket again.',
   'Wait, what happened when Will got dropkicked?',
@@ -21,7 +22,10 @@ const inputs=[
 ];
 const sampleCount=20000;
 const history=[{actor:'REV',text:'You always talk about sandwiches.',input:'What ingredients are in your sandwich?'}];
-const competing={hinge:'Rev argues the demand is unfair.',lines:[{actor:'SHANNY',text:'I heard what you said about the bucket.'},{actor:'REV',text:'At least let me answer the actual bucket accusation.'}]};
+const competing={hinge:'Rev objects to the superchat while Shanny disputes the reason.',
+ lines:[{actor:'SHANNY',text:'That was a pointed question about who is responsible.',mood:'anger'},
+ {actor:'REV',text:'I can answer that question without another interruption.',mood:'irritated'}],
+ rev_reason:'Rev objects to being blamed.'};
 const focusDurations=[];
 for(let i=0;i<2000;i++)lookupLiveLore(inputs[i%inputs.length]);
 const durations=[];
@@ -33,6 +37,7 @@ for(let i=0;i<sampleCount;i++){
  const input=makeMicroInput({text:inputs[i%inputs.length],kind:'donation',history});
  focusTerms(input.input);
  detectTopicDrift({input:input.input,hooks:input.contextual_grievance_hooks,plan:competing});
+ validateMicroPlan(competing,'donation',{}, {input:input.input,hooks:input.contextual_grievance_hooks});
  focusDurations.push(performance.now()-focusStart);
 }
 durations.sort((a,b)=>a-b);
