@@ -1,6 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import {setTimeout as delay} from 'node:timers/promises';
 import {parseDonationText} from './donations/parse.mjs';
+import {identifyAudienceAddressee} from './audience-addressee.mjs';
 import {preparePopupDetails} from './popup-details.mjs';
 import {RAIN_CUE_DURATION_MS,RAIN_DANCE_MIN_MS,RAIN_SEAT_SETTLE_MS} from './rain-cue.mjs';
 
@@ -8,7 +9,7 @@ import {RAIN_CUE_DURATION_MS,RAIN_DANCE_MIN_MS,RAIN_SEAT_SETTLE_MS} from './rain
 export class ConversationSession {
   constructor({gateway,director,whisper,presentation,onChange=()=>{},now=Date.now,pause=delay}) {
     Object.assign(this,{gateway,director,whisper,presentation,onChange,now,pause});
-    this.mode='muted';this.epoch=0;this.revision=0;this.history=[];this.hinges=[];this.trace=[];this.cursor=0;this.turn=null;this.error='';this.lastTiming=null;
+    this.mode='muted';this.epoch=0;this.revision=0;this.history=[];this.hinges=[];this.trace=[];this.lastAudienceAddress=null;this.cursor=0;this.turn=null;this.error='';this.lastTiming=null;
   }
   async initialize(){await this.gateway.panic();this.scope=await this.gateway.status();this.cursor=this.scope.cursor;}
   async arm(){
@@ -145,6 +146,11 @@ export class ConversationSession {
         turn.readActor=parsed.actor;text=parsed.text;
       }
       turn.text=text;
+      // Who reads a superchat is not necessarily its named recipient.
+      turn.audienceAddress=identifyAudienceAddressee(text);
+      this.lastAudienceAddress={target:turn.audienceAddress.target,
+        basis:turn.audienceAddress.basis,
+        read_by:kind==='donation'?turn.readActor:null};
       // Public popup data is strictly whitelisted; never publish private
       // transaction IDs or invent donor/amount fields for hotmic turns.
       turn.popup=preparePopupDetails({kind,donation,text});
@@ -216,7 +222,8 @@ export class ConversationSession {
     const generatedAt=this.now();
     let preparation;
     const plan=await this.director.generate({kind:turn.kind,text:turn.text,history:this.history,
-      hinges:this.hinges,signal:turn.abort.signal,
+      hinges:this.hinges,readBy:turn.kind==='donation'?turn.readActor:null,
+      signal:turn.abort.signal,
       onFirstLine:line=>{
         this.check(turn);
         if(!preparation){
@@ -249,7 +256,8 @@ export class ConversationSession {
     const readId=read?await this.queuePrepared(turn,read):null;
     const generatedAt=this.now();let early;
     const plan=await this.director.generate({kind:turn.kind,text:turn.text,history:this.history,
-      hinges:this.hinges,signal:turn.abort.signal,
+      hinges:this.hinges,readBy:turn.kind==='donation'?turn.readActor:null,
+      signal:turn.abort.signal,
       onFirstLine:line=>{this.check(turn);if(!early)early=this.queuePrepared(turn,line).then(id=>({id}),error=>({error}));}});
     this.check(turn);turn.timing.model_ms=this.now()-generatedAt;
     const first=early?await early:null;this.check(turn);if(first?.error)throw first.error;
@@ -346,6 +354,7 @@ export class ConversationSession {
   }
   status(){return {mode:this.mode,session_id:this.scope?.session_id,mode_epoch:this.epoch,gateway_epoch:this.scope?.epoch,
     turn_busy:Boolean(this.turn),conversation_busy:Boolean(this.turn),active_audio:0,trace:this.trace,
-    history:this.history,error:this.error,latency:this.lastTiming,real_characters:true,playback:'UNITY_AUDIO',qwen:'LOCAL_QWEN35_2B_CPU',
+    history:this.history,last_audience_address:this.lastAudienceAddress,
+    error:this.error,latency:this.lastTiming,real_characters:true,playback:'UNITY_AUDIO',qwen:'LOCAL_QWEN35_2B_CPU',
     speech:'PRIVATE_OMNIVOICE',whisper_available:Boolean(this.whisper),reaction_metrics:{sample_count:0},resume_count:0};}
 }
