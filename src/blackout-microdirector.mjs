@@ -45,7 +45,7 @@ export function echoFlags(notes='',examples=[],history=[]){
    old_notes_contain_no_means_no:samples.slice(0,1).some(v=>/\bno\s+means\s+no\b/i.test(v)),
    old_notes_contain_bread:samples.slice(0,1).some(v=>/\b(?:moldy\s+)?bread\b/i.test(v)),
    legacy_examples_contain_bread_or_refusal:samples.slice(1,-history.length||undefined).some(v=>/\b(?:moldy\s+)?bread\b|\bno\s+means\s+no\b/i.test(v)),
-   recent_spoken_echo:history.slice(-4).some(v=>/\b(?:moldy\s+)?bread\b|\bno\s+means\s+no\b/i.test(String(v.text||''))
+   recent_spoken_echo:history.slice(-4).some(v=>/\b(?:moldy\s+)?bread\b|\bno\s+means\s+no\b/i.test(String(v.text||'')))
  };
 }
 export function makeMicroInput({text,kind,history=[],hinges=[]}){
