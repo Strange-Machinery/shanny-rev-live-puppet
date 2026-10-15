@@ -39,8 +39,29 @@ if($cfg.mode -ne 'real-characters' -or $cfg.media.enabled -ne $true -or
    $cfg.resourceHeadroomVerified -ne $true -or $cfg.player -ine $expectedPlayer){
  throw 'The existing private real-character profile does not match the accepted player/media/resource settings'
 }
-if(Test-Path -LiteralPath (Join-Path $cfg.scratch 'host.lock')){
- throw 'Previous character host lock detected. Close it or inspect its owner; do not delete it automatically.'
+# The experiment uses its own scratch and lock. An abandoned lock in the
+# ORIGINAL scratch must remain untouched; inspect the PID before deciding.
+# Never bypass a live owner and never delete another session's lock.
+$previousLock=Join-Path $cfg.scratch 'host.lock'
+if(Test-Path -LiteralPath $previousLock -PathType Leaf){
+ try {
+  $previousOwner=Get-Content -LiteralPath $previousLock -Raw | ConvertFrom-Json
+ }catch{
+  throw 'Previous host lock is unreadable. Inspect it manually; nothing changed.'
+ }
+ $previousPid=0
+ if(-not [int]::TryParse([string]$previousOwner.pid,[ref]$previousPid) -or $previousPid -le 0){
+  throw 'Previous host lock has no valid owner PID. Inspect it manually; nothing changed.'
+ }
+ try {
+  $previousProcess=Get-CimInstance -ClassName Win32_Process -Filter ("ProcessId = {0}" -f $previousPid) -ErrorAction Stop
+ }catch{
+  throw 'Could not verify original lock owner PID; refusing to start a second host.'
+ }
+ if($previousProcess){
+  throw "Previous host-lock PID $previousPid is still active. Close the original host cleanly before running the trial."
+ }
+ Write-Warning "Original character host lock belongs to exited PID $previousPid. Leaving that file untouched; trial uses separate scratch."
 }
 $running=@(Get-Process -Name BuffStankTank,llama-server -ErrorAction SilentlyContinue)
 if($running.Count){
