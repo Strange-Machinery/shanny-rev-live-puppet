@@ -11,7 +11,7 @@ const TRAILING=new RegExp(',\\s*@?('+NAME_PART+')\\s*[.!?]*\\s*$','i');
 const HELLO=/^(?:(?:hey|hi|hello|yo|okay|ok|listen|sup)[\s,!:]+){1,2}/i;
 const FOLLOW_WORD=/^(?:why|what|when|where|how|who|whose|which|please|tell|explain|show|give|go|stop|listen|answer|say|think|remember|you|your|youre|you're|dont|don't|let)\b|^(?:can|could|would|will|do|does|did|are|were|have|has|should|shall|may|might)\s+you\b/i;
 const DIRECT_PAIR=/^\s*(?:and|&|plus|,)\s*/i;
-const COLLECTIVE=/\b(?:you\s+two|both\s+of\s+you|you\s+guys|hey\s+guys|hi\s+guys|to\s+both\s+of\s+you)\b/i;
+const COLLECTIVE=/\b(?:you\s+two|you\s+both|both\s+of\s+you|you\s+guys|hey\s+guys|hi\s+guys|to\s+both\s+of\s+you)\b/i;
 
 function actorOf(raw){
  const name=String(raw||'').toLowerCase().replace(/^@/,'').replace(/[\s_-]/g,'');
