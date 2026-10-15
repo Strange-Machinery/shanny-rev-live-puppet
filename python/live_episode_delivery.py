@@ -74,14 +74,26 @@ def approved_routes(library, references, requested):
                     "reference_id": choice["reference_id"],
                     "rank": float(rank),
                     "source_family_id": sel.get("source_family_id") or sel.get("source_video_id"),
+                    "delivery_intensity": sel.get("delivery_intensity"),
                 })
+            if not qualified and actor == "REV" and code == "R03":
+                # The episode system itself explicitly retains its original
+                # approved Rev R03 reassurance prompt when no expansion exists.
+                original = references.get("rev-03-reassuring")
+                if isinstance(original, dict) and str(original.get("speaker", "")).upper() == "REV":
+                    qualified = [{
+                        "reference_id": "rev-03-reassuring",
+                        "rank": 0.0,
+                        "source_family_id": "qualified-original-R03",
+                        "delivery_intensity": None,
+                    }]
             if qualified:
                 qualified.sort(key=lambda row: (-row["rank"], row["reference_id"]))
                 result[actor][code] = qualified
     return result
 
 
-def select_reference(routes, actor, code, request_id, seed, prior=None):
+def select_reference(routes, actor, code, request_id, seed, prior=None, intensity=None):
     """Choose in constant small time, deterministically given this live request.
 
     The first suitable ranked prompt wins only when the category has one
@@ -94,6 +106,13 @@ def select_reference(routes, actor, code, request_id, seed, prior=None):
         raise ValueError("Voice category not qualified for this actor")
     if not isinstance(seed, int):
         raise ValueError("Invalid deterministic selection seed")
+    if intensity is not None:
+        if intensity not in ('full', 'medium'):
+            raise ValueError('Invalid episode intensity choice')
+        preferred_level = [row for row in choices if row.get('delivery_intensity') == intensity]
+        if not preferred_level:
+            raise ValueError('No approved episode source with requested delivery intensity')
+        choices = preferred_level
     preferred = None
     if prior and (families(actor, code) & prior.get("groups", frozenset())):
         preferred = prior.get("source_family_id")
