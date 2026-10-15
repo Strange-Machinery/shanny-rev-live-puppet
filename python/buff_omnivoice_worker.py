@@ -224,9 +224,15 @@ def main():
                 if voice_code is not None:
                     if not isinstance(voice_code, str) or voice_code not in episode_routes.get(actor, {}):
                         raise ValueError('Episode delivery code is not approved for actor')
+                    # The approved episode S06 category has distinct
+                    # medium and full intensity source variants. Qwen's
+                    # existing face-affect choice disambiguates them without
+                    # adding another token field or pitch modification.
+                    intensity = ('full' if mood == 'rage' else 'medium') if (
+                        actor == 'SHANNY' and voice_code == 'S06') else None
                     reference_id, next_selection = select_reference(
                         episode_routes, actor, voice_code, request_id, args.seed,
-                        last_reference.get(actor))
+                        last_reference.get(actor), intensity=intensity)
                 else:
                     reference_id = mood_references.get(actor, {}).get(mood, selected[actor])
                     next_selection = None
