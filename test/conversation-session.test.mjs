@@ -375,3 +375,47 @@ test('under-$100 VERIFIED paid donation never reads prepared TTS to an unacknowl
  assert.deepEqual(events,['seat-start','no-OBS-confirmation','stopped']);
  assert.equal(f.session.mode,'muted');
 });
+
+test('donation reader override is not the named viewer addressee on the plain live path',async()=>{
+ let observed;
+ const f=fixture({generate:async options=>{
+   observed=options;return {lines:[
+     {actor:'SHANNY',text:'You want me to answer that?'},
+     {actor:'REV',text:'I have my own opinion on that.'}
+   ],rev_reason:'Rev adds his viewpoint'};}});
+ await f.session.initialize();const scope=await f.session.arm();
+ await f.session.submit({kind:'donation',
+   text:'(REV) Shanny, what do you think about my computer?',...scope});
+ await until(()=>f.spoken.length===1);
+ assert.equal(f.spoken[0].actor,'REV','reader override controls TTS reader ONLY');
+ assert.equal(f.spoken[0].text,'Shanny, what do you think about my computer?');
+ assert.equal(f.session.status().last_audience_address.target,'SHANNY');
+ assert.equal(f.session.status().last_audience_address.read_by,'REV');
+ f.emit('playback.started',f.spoken[0].id);
+ await until(()=>Boolean(observed));
+ assert.equal(observed.readBy,'REV','director knows who read the donation');
+ assert.equal(observed.text,'Shanny, what do you think about my computer?');
+ await f.session.stop();await until(()=>!f.session.turn);
+});
+test('rain presentation preserves addressee distinct from spoken donation reader',async()=>{
+ let observed;
+ const f=fixture({generate:async options=>{
+   observed=options;return {lines:[
+     {actor:'REV',text:'I already told you why I did it.'},
+     {actor:'SHANNY',text:'And he left out the most important part!'}
+   ],rev_reason:'Rev answers the donor'};}});
+ f.session.presentation={
+  begin:async()=>({duration_ms:20000}),waitVisible:async()=>{},
+  seat:async()=>{},end:async()=>{},stop:()=>{}
+ };
+ f.session.pause=async()=>{};
+ await f.session.initialize();const scope=await f.session.arm();
+ await f.session.submit({kind:'donation',text:'Rev, do you remember the moon?',
+  make_it_rain:true,...scope});
+ await until(()=>Boolean(observed));
+ assert.equal(observed.readBy,'SHANNY');
+ assert.equal(observed.text,'Rev, do you remember the moon?');
+ assert.equal(f.session.status().last_audience_address.target,'REV');
+ assert.equal(f.session.status().last_audience_address.read_by,'SHANNY');
+ await f.session.stop();await until(()=>!f.session.turn);
+});
