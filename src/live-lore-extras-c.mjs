@@ -328,7 +328,10 @@ export const LIVE_LORE_EXTRAS_C = [
       "race for protective order",
       "restraining order shanny",
       "restraining order rev",
-      "court order between them"
+      "court order between them",
+      "protection order",
+      "protection order rev and shanny",
+      "shanny and rev protection order"
     ],
     "cue": "Reaction titles mention a disputed race to obtain protective orders during an apparent breakup. Characters can argue over whose account is believed; legal outcomes are not inferred.",
     "evidence": "reaction-title",
