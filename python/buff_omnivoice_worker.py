@@ -17,7 +17,7 @@ import re
 import sys
 import time
 import traceback
-from live_episode_delivery import approved_routes
+from live_episode_delivery import approved_routes, select_reference
 
 PREFIX = "LIVE_WORKER "
 
@@ -94,8 +94,9 @@ def main():
             if not episode_routes.get('SHANNY') or not episode_routes.get('REV'):
                 raise RuntimeError('Both characters need real, approved episode delivery references')
             for actor, codes in episode_routes.items():
-                for reference_id in codes.values():
-                    prompt_choices.add((actor, reference_id))
+                for variants in codes.values():
+                    for candidate in variants:
+                        prompt_choices.add((actor, candidate['reference_id']))
         for actor, reference_id in prompt_choices:
             if reference_id not in references or references[reference_id]["speaker"].upper() != actor:
                 raise RuntimeError(f"{actor} reference is missing or belongs to another actor: {reference_id}")
@@ -181,6 +182,7 @@ def main():
             "pid": os.getpid(),
         })
 
+        last_reference = {}
         for raw in sys.stdin:
             raw = raw.strip()
             if not raw:
@@ -220,9 +222,12 @@ def main():
                 if voice_code is not None:
                     if not isinstance(voice_code, str) or voice_code not in episode_routes.get(actor, {}):
                         raise ValueError('Episode delivery code is not approved for actor')
-                    reference_id = episode_routes[actor][voice_code]
+                    reference_id, next_selection = select_reference(
+                        episode_routes, actor, voice_code, request_id, args.seed,
+                        last_reference.get(actor))
                 else:
                     reference_id = mood_references.get(actor, {}).get(mood, selected[actor])
+                    next_selection = None
                 item = prompts[(actor, reference_id)]
                 prompt = item["prompt"]
                 prompt_path = item["prompt_path"]
@@ -267,6 +272,8 @@ def main():
                 temporary = output.with_suffix(output.suffix + ".tmp")
                 temporary.write_bytes(wav_bytes)
                 os.replace(temporary, output)
+                if next_selection is not None:
+                    last_reference[actor] = next_selection
                 emit({
                     "type": "RESULT",
                     "id": request_id,
