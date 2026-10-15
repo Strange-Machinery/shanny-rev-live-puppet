@@ -4,7 +4,8 @@ import { readQwenStream } from './qwen-stream.mjs';
 
 /** Calls an already provisioned endpoint. Never loads/downloads a model. */
 export function createQwenCompletion({ endpoint, model, apiKey = '', timeoutMs = 6000,
-  maxTokens = 192, placement, resourceHeadroomVerified = false, request = fetch,
+  maxTokens = 192, temperature = 1, topP = 1,
+  placement, resourceHeadroomVerified = false, request = fetch,
   onTiming = () => {} } = {}) {
   const url = new URL(endpoint);
   const loopback = ['127.0.0.1', '[::1]', 'localhost'].includes(url.hostname);
@@ -20,7 +21,9 @@ export function createQwenCompletion({ endpoint, model, apiKey = '', timeoutMs =
   }
   if (typeof model !== 'string' || !model.trim() || model.length > 200 ||
       !Number.isInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 30_000 ||
-      !Number.isInteger(maxTokens) || maxTokens < 32 || maxTokens > 512) {
+      !Number.isInteger(maxTokens) || maxTokens < 32 || maxTokens > 512 ||
+      typeof temperature !== 'number' || !Number.isFinite(temperature) || temperature < 0 || temperature > 2 ||
+      typeof topP !== 'number' || !Number.isFinite(topP) || topP <= 0 || topP > 1) {
     throw new Error('Invalid Qwen model or budgets');
   }
   let busy = false;
@@ -36,7 +39,7 @@ export function createQwenCompletion({ endpoint, model, apiKey = '', timeoutMs =
         method: 'POST', redirect: 'error', signal: combined,
         headers: { 'Content-Type': 'application/json', ...(apiKey ? { Authorization: 'Bearer ' + apiKey } : {}) },
         body: JSON.stringify({ model, messages, stream: typeof onText==='function', max_tokens: maxTokens,
-          temperature: 1, top_p: 1, response_format: { type: 'json_object', ...(responseSchema?{schema:responseSchema}:{}) },
+          temperature, top_p: topP, response_format: { type: 'json_object', ...(responseSchema?{schema:responseSchema}:{}) },
           chat_template_kwargs: { enable_thinking: false } })
       });
       // Do not echo remote errors: they may contain private prompt text.
