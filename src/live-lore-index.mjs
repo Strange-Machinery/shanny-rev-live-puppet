@@ -1,6 +1,7 @@
 import {LIVE_LORE_V2} from './live-lore-catalog.v2.mjs';
 
 const fold=value=>String(value).toLowerCase().normalize('NFKC')
+  .replace(/\b([a-z][a-z0-9]+)['’]s\b/g,'$1')
   .replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ');
 const byId=new Map(), byWord=new Map();
 for(const source of LIVE_LORE_V2){
