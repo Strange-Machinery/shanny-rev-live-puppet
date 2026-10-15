@@ -9,7 +9,7 @@ const WORDS=/[a-z0-9][a-z0-9'-]*/gi;
 const STOP=new Set([
  'a','about','again','all','also','an','and','are','at','be','because',
  'been','but','by','can','chat','could','did','do','does','donation',
- 'donated','donor','for','from','had','has','have','he','her','hey','him',
+ 'donated','donor','for','from','go','had','has','have','he','her','hey','him',
  'his','how','i','in','is','it','its','just','like','me','more','my',
  'of','on','or','our','please','rev','shanny','so','some','superchat',
  'tell','than','that','the','their','them','then','there','these','they',
