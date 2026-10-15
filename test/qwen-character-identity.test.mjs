@@ -83,6 +83,31 @@ test('invalid speech failures are actionable but do not reveal audience or gener
   });
  }
 });
+test('early Rev voice prefetch and final reply agree with quoted, three-sentence speech',async()=>{
+ const raw={...revFirst,
+  first_REV:{...revFirst.first_REV,
+   text:'Shanny, I said "stop blaming me!" You keep making this my entire problem. I already carried the bucket!'}};
+ let prefetched;
+ const director=createBlackoutMicrodirector({notes:'Private',
+  getDeliveryCodes:()=>codes,
+  complete:async({onText})=>{onText?.(JSON.stringify(raw));return raw;}});
+ const result=await director.generate({text:'Rev, what happened with the bucket?',
+  kind:'donation',onFirstLine:line=>{prefetched=line;}});
+ assert.equal(prefetched.actor,'REV');
+ assert.equal(prefetched.text,result.lines[0].text);
+ assert.equal(prefetched.delivery,'R11');
+ assert.equal(result.lines[1].actor,'SHANNY');
+});
+test('a malformed second character gets a line-2 diagnosis without revealing words',()=>{
+ const spoken='Sensitive fictional dialogue from Shanny';
+ assert.throws(()=>validateMicroPlan({...revFirst,
+  second_SHANNY:{...revFirst.second_SHANNY,text:spoken.repeat(12)}},
+ 'donation',codes,context('REV','Rev, explain the bucket.')),error=>{
+   assert.match(error.message,/Invalid Microdirector spoken line: line 2 exceeds 320 characters/);
+   assert.doesNotMatch(error.message,/Sensitive|Shanny/);
+   return true;
+ });
+});
 test('Qwen receives true identity locks and fixed actor-named fields, not anonymous first/second',async()=>{
  for(const [input,expectedFirst,expectedSecond,raw] of [
   ['Shanny, explain why you are angry about the bucket.','SHANNY','REV',shannyFirst],
