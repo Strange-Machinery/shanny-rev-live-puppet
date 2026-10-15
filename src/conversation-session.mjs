@@ -8,7 +8,7 @@ import {RAIN_CUE_DURATION_MS,RAIN_DANCE_MIN_MS,RAIN_SEAT_SETTLE_MS} from './rain
 export class ConversationSession {
   constructor({gateway,director,whisper,presentation,onChange=()=>{},now=Date.now,pause=delay}) {
     Object.assign(this,{gateway,director,whisper,presentation,onChange,now,pause});
-    this.mode='muted';this.epoch=0;this.revision=0;this.history=[];this.trace=[];this.cursor=0;this.turn=null;this.error='';this.lastTiming=null;
+    this.mode='muted';this.epoch=0;this.revision=0;this.history=[];this.hinges=[];this.trace=[];this.cursor=0;this.turn=null;this.error='';this.lastTiming=null;
   }
   async initialize(){await this.gateway.panic();this.scope=await this.gateway.status();this.cursor=this.scope.cursor;}
   async arm(){
@@ -212,7 +212,8 @@ export class ConversationSession {
     }
     const generatedAt=this.now();
     let preparation;
-    const plan=await this.director.generate({kind:turn.kind,text:turn.text,history:this.history,signal:turn.abort.signal,
+    const plan=await this.director.generate({kind:turn.kind,text:turn.text,history:this.history,
+      hinges:this.hinges,signal:turn.abort.signal,
       onFirstLine:line=>{
         this.check(turn);
         if(!preparation){
@@ -235,6 +236,7 @@ export class ConversationSession {
         if(index+1<plan.lines.length)nextId=await this.queuePrepared(turn,plan.lines[index+1]);
       });prior=id;
     }
+    if(plan.hinge){this.hinges.push(plan.hinge);this.hinges=this.hinges.slice(-2);}
   }
   async preparePresentationRows(turn){
     // The exact same voice/plan verification is shared by both paths.
@@ -243,7 +245,8 @@ export class ConversationSession {
     const read=turn.kind==='donation'?{actor:turn.readActor||'SHANNY',text:turn.text}:null;
     const readId=read?await this.queuePrepared(turn,read):null;
     const generatedAt=this.now();let early;
-    const plan=await this.director.generate({kind:turn.kind,text:turn.text,history:this.history,signal:turn.abort.signal,
+    const plan=await this.director.generate({kind:turn.kind,text:turn.text,history:this.history,
+      hinges:this.hinges,signal:turn.abort.signal,
       onFirstLine:line=>{this.check(turn);if(!early)early=this.queuePrepared(turn,line).then(id=>({id}),error=>({error}));}});
     this.check(turn);turn.timing.model_ms=this.now()-generatedAt;
     const first=early?await early:null;this.check(turn);if(first?.error)throw first.error;
@@ -251,6 +254,7 @@ export class ConversationSession {
     for(let i=0;i<plan.lines.length;i++)rows.push({line:plan.lines[i],id:i===0&&first?.id?first.id:await this.queuePrepared(turn,plan.lines[i])});
     for(const row of rows)await this.wait(turn,'speech.prepared',row.id);
     this.check(turn);this.onChange({type:'plan.ready',turn_id:turn.id,lines:plan.lines});
+    turn.causalHinge=plan.hinge||null;
     return rows;
   }
   async playPreparedPresentationRows(turn,rows){
@@ -334,6 +338,7 @@ export class ConversationSession {
     // Once speech finishes, hide immediately. Only genuine rain uses the
     // long musical prelude; it never continues behind speech.
     await this.presentation.end({signal:turn.abort.signal});this.check(turn);
+    if(turn.causalHinge){this.hinges.push(turn.causalHinge);this.hinges=this.hinges.slice(-2);}
     turn.timing.presentation_ms=this.now()-visibleAt;
   }
   status(){return {mode:this.mode,session_id:this.scope?.session_id,mode_epoch:this.epoch,gateway_epoch:this.scope?.epoch,
