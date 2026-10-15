@@ -3,6 +3,7 @@ import {availableEpisodeCodes,shortlistEpisodeCodes,guideForEpisodeCodes} from '
 import {makeMicroInput,echoFlags} from './blackout-lore-router.mjs';
 import {isSameLiveSubject} from './blackout-microdirector.mjs';
 import {focusTerms,detectTopicDrift} from './live-topic-focus.mjs';
+import {identifyAudienceAddressee,audienceReplyContract} from './audience-addressee.mjs';
 
 /** One existing Qwen call. A short causal hinge precedes performed dialogue. */
 const sentences=text=>[...new Intl.Segmenter('en',{granularity:'sentence'}).segment(text)].filter(v=>v.segment.trim()).length;
@@ -36,6 +37,11 @@ export function validateMicroPlan(raw,kind,codes={},topicContext=null){
   if(kind==='microphone'&&!lines.some(v=>v.actor==='SHANNY'))throw Error('Shanny must respond');
   if(lines.some(v=>v.actor==='REV')&&!p.rev_reason.trim())throw Error('Rev needs an actual argument');
   const valid={hinge:p.hinge.trim(),lines,rev_reason:p.rev_reason.trim()};
+  // A directly addressed viewer has an authoritative first speaker; never
+  // swap voices or synthesize a line from the wrong actor as the addressee.
+  const target=topicContext?.audience_address?.target;
+  if(['SHANNY','REV'].includes(target)&&lines[0].actor!==target)
+    throw Error('Microdirector addressed-actor mismatch: expected '+target+' first');
   if(topicContext){
     const reason=detectTopicDrift({input:topicContext.input,hooks:topicContext.hooks,plan:valid});
     if(reason)throw Error('Qwen topic drift blocked: '+reason);
@@ -58,6 +64,8 @@ export function firstMicroLine(raw,codes={},topicContext=null){
   if(end<0||!/^\s*[,\]]/.test(raw.slice(end)))return null;
   try{
     const candidate=line(JSON.parse(raw.slice(start[0].length,end)),availableEpisodeCodes(codes));
+    const target=topicContext?.audience_address?.target;
+    if(['SHANNY','REV'].includes(target)&&candidate.actor!==target)return null;
     if(topicContext&&detectTopicDrift({input:topicContext.input,hooks:topicContext.hooks,
        plan:{lines:[candidate]}}))return null;
     return candidate;
@@ -87,16 +95,22 @@ export function createBlackoutMicrodirector({complete,notes,examples=[],getDeliv
   return {
     audit:({history=[]}={})=>echoFlags(notes,examples,history),
     async warmup(){await this.generate({text:'Startup check',kind:'microphone',warmup:true});},
-    async generate({text,kind,history=[],hinges=[],signal,warmup=false,onFirstLine}={}){
+    async generate({text,kind,history=[],hinges=[],readBy=null,signal,warmup=false,onFirstLine}={}){
       if(typeof text!=='string'||!text.trim()||text.length>1000||
          !['donation','microphone'].includes(kind))throw Error('Invalid Microdirector input');
       const microInput=makeMicroInput({text,kind,history,hinges});
+      const address=identifyAudienceAddressee(text);
+      // The donor text reader and its addressee are independent stage roles.
+      const stageReader=kind==='donation'&&['SHANNY','REV'].includes(readBy)?readBy:
+        kind==='donation'?'SHANNY':null;
+      const speakerContract=audienceReplyContract(address,kind,stageReader);
       const deliveryContext=[text,...microInput.contextual_grievance_hooks.map(row=>row.grievance)].join(' ');
       const codes=shortlistEpisodeCodes(availableEpisodeCodes(getDeliveryCodes()),deliveryContext);
       const system=[
         'Write the live fictional adult Blackout SHANNY and REV cartoon. Buff is the host. This is ONE Qwen completion, not a multi-stage writing engine.',
         'First decide in "hinge": precisely what the incoming remark threatens, embarrasses, or contradicts, and why the second character reacts. Then write 2-3 grounded lines; do not imitate generic rage.',
-        'SHANNY is surly, entitled, quick to defend her dignity and can seize the floor. REV resents being patronized, spots contradictions, is argumentative and may snap back. They may cooperate when earned. Neither automatically wins or pacifies. Address the actual viewer and each other.',
+        'SHANNY is surly, entitled, quick to defend her dignity and can seize the floor. REV resents being patronized, spots contradictions, is argumentative and may snap back. They may cooperate when earned. Neither automatically wins or pacifies.',
+        'CRITICAL dialogue routing: audience addressee, current speaking actor, and stage superchat reader are THREE DIFFERENT roles. A name MENTIONED as a subject is NOT necessarily an address. A direct named addressee answers first. The second speaker reacts to the addressee\'s answer or disputed facts; the second speaker is not personally addressed by the viewer unless both are named as addressees.',
         'Only use a historical callback when the current JSON input contains a matching contextual_grievance_hook. If the list is empty, stay on the current audience subject; do not import remembered incident names or props. A hook may be a disputed COMMUNITY CLAIM or a fan inside joke: the fictional characters may DENY, reinterpret, mock, boast, concede or counterattack it. Never refuse to respond merely because a story is disputed; never present a disputed claim as adjudicated history.',
         'Voice-reference clips and prior examples are BACKGROUND, not topics. The input owns the subject; use its specific issue, names and relevant history only. Never introduce a prop or object merely because another episode mentioned it.',
         'Shanny turns a narrow demand into a dispute about treatment, priority, control or credit; she can press, twist a concession, soften or abruptly return to the original practical issue. Rev challenges the exact disputed wording or responsibility, can fail to finish a thought, become offended, or temporarily support her. Both must respond to the present provocation.',
@@ -116,6 +130,9 @@ export function createBlackoutMicrodirector({complete,notes,examples=[],getDeliv
       }
       messages.push({role:'user',content:JSON.stringify({
         ...microInput,
+        audience_address:address,
+        donation_reader:stageReader,
+        dialogue_route:speakerContract,
         focus_terms:focusTerms(text),
         direction:'One concrete cause, two character reactions. Keep original comment central. Explain any callback by its relevance, not by inventing biography.'
       })});
@@ -130,10 +147,10 @@ export function createBlackoutMicrodirector({complete,notes,examples=[],getDeliv
       }
       let first=null;
       const onText=typeof onFirstLine==='function'?raw=>{
-        if(!first){const p=firstMicroLine(raw,codes,{input:text,hooks:microInput.contextual_grievance_hooks});if(p){first=p;onFirstLine(p);}}
+        if(!first){const p=firstMicroLine(raw,codes,{input:text,hooks:microInput.contextual_grievance_hooks,audience_address:address});if(p){first=p;onFirstLine(p);}}
       }:undefined;
       const plan=validateMicroPlan(await complete({messages,signal,responseSchema,onText}),kind,codes,
-        {input:text,hooks:microInput.contextual_grievance_hooks});
+        {input:text,hooks:microInput.contextual_grievance_hooks,audience_address:address});
       if(first&&JSON.stringify(first)!==JSON.stringify(plan.lines[0]))
         throw Error('Speculatively prepared line differed from final approved plan');
       return plan;
