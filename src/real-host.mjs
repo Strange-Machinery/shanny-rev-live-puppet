@@ -160,7 +160,9 @@ export async function serveRealHost(config){
     let manualRainArming=false;
     const action=async data=>{
       if(data.action==='status')return {...session.status(),qwen:modelName+' (local CPU)',performance_mode:performanceMode,
-        microdirector:microdirectorEnabled?{enabled:true,lore_index:liveLoreStats(),
+        microdirector:microdirectorEnabled?{enabled:true,topic_focus:'superchat-only-v1',
+          background_notes_in_qwen_prompt:false,offtopic_voice_prefetch_blocked:true,
+          lore_index:liveLoreStats(),
           available_delivery_codes:voice.availableEpisodeCodes,
           qualified_samples_by_code:voice.availableEpisodeCounts,
           source_echo_flags:director.audit({history:session.history})}:{enabled:false},
