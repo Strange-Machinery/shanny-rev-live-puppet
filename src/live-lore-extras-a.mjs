@@ -167,7 +167,10 @@ export const LIVE_LORE_EXTRAS_A = [
       "evicted in colorado",
       "kicked out colorado",
       "lost colorado home",
-      "eviction day"
+      "eviction day",
+      "kicked out of colorado",
+      "kicked out of their colorado home",
+      "kicked out after covid"
     ],
     "cue": "The earlier eviction and disputed household decisions are recurring points of public mockery. Shanny contests who caused the crisis; Rev may argue logistical facts.",
     "evidence": "public-report-community",
