@@ -33,6 +33,29 @@ test('topic continuity is grounded in audience input and keeps two short lines',
  assert.equal(now.recent_causes[0].includes('bucket'),true);
 });
 
+test('generic request words never resurrect an unrelated bucket dispute',()=>{
+ const prior='Shanny, explain the bucket.';
+ const history=[{actor:'SHANNY',
+  text:'The bucket argument has already taken over my night, Rev.',
+  input:prior,source:'donation'}];
+ const hinges=[{text:'Shanny and Rev dispute whose bucket this is.',input:prior}];
+ for(const newTopic of [
+   'Explain this graphics card.',
+   'Compare this graphics card to my old CPU.',
+   'Describe the new game console.',
+   'Discuss the new monitor, please.'
+ ]){
+   assert.equal(isSameLiveSubject(newTopic,prior),false,newTopic);
+   const routed=makeMicroInput({text:newTopic,kind:'donation',history,hinges});
+   assert.deepEqual(routed.recent_played_lines,[],newTopic);
+   assert.deepEqual(routed.recent_causes,[],newTopic);
+ }
+ const related=makeMicroInput({text:'Rev, explain the bucket again.',
+   kind:'donation',history,hinges});
+ assert.equal(related.recent_played_lines.length,1);
+ assert.equal(related.recent_causes.length,1);
+});
+
 test('explicit continuity is possible while independent prompts begin with clean context',()=>{
  const history=[{actor:'REV',text:'You mentioned a sandwich.',input:'What did you eat for lunch?'}];
  const followup=makeMicroInput({text:'You just said that about the sandwich.',kind:'microphone',history});
