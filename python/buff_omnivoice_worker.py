@@ -179,6 +179,8 @@ def main():
             "sample_rate_hz": model.sampling_rate,
             "references": selected,
             "delivery_codes": {actor: sorted(codes) for actor, codes in episode_routes.items()},
+            "delivery_sample_counts": {actor: {code: len(variants) for code, variants in codes.items()}
+                                       for actor, codes in episode_routes.items()},
             "pid": os.getpid(),
         })
 
