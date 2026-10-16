@@ -158,6 +158,9 @@ test('exact repeating words and echoed Buff phrases fail V620-only speech valida
     'I am Buff and I am the host.','Please carry on.'),relay),/host identity confusion/);
   assert.throws(()=>assertBlackoutLiveSpeech(response(
     'I was trying to finish a real point.','I was trying to finish a real point.'),relay),/repeated dialogue/);
+  const across=JSON.stringify({first_SHANNY:{text:'Sentence.'},
+    second_REV:{text:'Sentence.'},third_SHANNY:{text:'Sentence.'}});
+  assert.throws(()=>assertBlackoutLiveSpeech(across,relay),/repetitive speech blocked/);
 });
 test('normal anger, natural short emphasis and a substantive response remain acceptable',()=>{
   const relay=detectBlackoutLiveRelay(producerMessage,'BUFF');
