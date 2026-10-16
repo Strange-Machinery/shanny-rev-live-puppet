@@ -144,3 +144,34 @@ test('stream timings measure first CONTENT separately; nonstream cannot claim TT
   assert.ok(samples[0].first_content_ms>=0);
   assert.ok(samples[0].completion_ms>=samples[0].first_content_ms);
 });
+
+test('opt-in diagnostic LM Studio SSE keeps JSON schema and measures first content without TTS',async()=>{
+  const timings=[],partial=[];let body;
+  const remote={
+    endpoint:'http://100.79.20.28:1234/v1/chat/completions',
+    model:'qwen3.8-27b',placement:'off-device',
+    trustedTailnetHost:'100.79.20.28',responseFormat:'lmstudio',
+    diagnosticRemoteSse:true
+  };
+  const schema={type:'object',required:['ready'],properties:{ready:{type:'boolean'}}};
+  const sse='data: '+JSON.stringify({choices:[{index:0,delta:{content:'{"ready":'},finish_reason:null}]})+'\n\n'+
+    'data: '+JSON.stringify({choices:[{index:0,delta:{content:'true}'},finish_reason:'stop'}]})+'\n\n'+
+    'data: [DONE]\n\n';
+  const complete=createQwenCompletion({...remote,
+    onTiming:x=>timings.push(x),
+    request:async(_url,args)=>{
+      body=JSON.parse(args.body);
+      return new Response(sse);
+    }});
+  assert.equal(await complete({messages:[],responseSchema:schema,onText:raw=>partial.push(raw)}),'{"ready":true}');
+  assert.equal(body.stream,true);
+  assert.deepEqual(body.response_format,
+    {type:'json_schema',json_schema:{name:'buff_character_exchange',schema}});
+  assert.equal(partial.at(0),'{"ready":');
+  assert.ok(timings[0].first_content_ms>=0);
+  assert.equal(timings[0].status,'ok');
+  assert.throws(()=>createQwenCompletion({
+    endpoint:'http://127.0.0.1:1234/v1/chat/completions',
+    model:'test',placement:'cpu',diagnosticRemoteSse:true
+  }),/Invalid Qwen/);
+});
