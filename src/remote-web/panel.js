@@ -93,7 +93,15 @@ let polling=false;async function status(){if(polling)return;polling=true;try{con
       ' · MSI fallbacks '+(backend.fallback_count||0)+
       (backend.last_reason&&backend.last_reason!=='none'?' ('+backend.last_reason+')':'')+' · ':
       'MSI CPU Qwen local · ';
-    $('service-note').textContent='Microdirector ACTIVE · '+route+counts.SHANNY+'/20 Shanny categories, '+counts.REV+'/23 Rev categories · '+voiceSamples+
+    if(micro.live_profile==='msi-blackout-gold-v01'){
+      $('service-note').textContent='MSI BLACKOUT GOLD · ORIGINAL 2B WRITING DIRECTOR · '+route+
+        'full private character treatment · '+
+        (micro.approved_examples_count||0)+' approved dialogue examples · '+
+        'short 8–16 word comic turns · one-sentence validation · '+
+        'no hashed emotional lane or injected lore · '+
+        (Number.isFinite(s.latency?.model_ms)?'Last Qwen '+Math.round(s.latency.model_ms)+' ms · ':'')+
+        'model output not proven funny until producer listens.';
+    }else $('service-note').textContent='Microdirector ACTIVE · '+route+counts.SHANNY+'/20 Shanny categories, '+counts.REV+'/23 Rev categories · '+voiceSamples+
       ' verified episode samples · '+(micro.lore_index?.hooks||0)+' lore families · '+
       (micro.lore_index?.aliases||0)+' keyword aliases · '+
       (micro.topic_focus==='superchat-only-v1'?'Superchat focus ON (no legacy topic notes) · ':'Legacy topic prompt · ')+

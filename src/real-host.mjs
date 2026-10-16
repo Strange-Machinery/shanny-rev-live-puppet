@@ -12,6 +12,7 @@ import {createLocalPuppetGateway} from './donations/gateway-client.mjs';
 import {OmniVoiceProvider} from './providers/omnivoice.mjs';
 import {createQwenCompletion} from './providers/qwen.mjs';
 import {createQwenFailover,createV620ModelProbe} from './providers/qwen-failover.mjs';
+import {guardOriginalMsiBlackoutRemote} from './msi-blackout-gold.mjs';
 import {PersistentWhisper} from './providers/whisper.mjs';
 import {createConversationDirector} from './conversation-director.mjs';
 import {createBlackoutMicrodirector} from './blackout-microdirector-director.mjs';
@@ -34,6 +35,10 @@ export async function serveRealHost(config){
   const progress=message=>{phase=message;process.stderr.write('BUFF_STARTUP '+message+'\n');};
   if(config.resourceHeadroomVerified!==true)throw new Error('Character voice resource check is required');
   const microdirectorEnabled=config.microdirector?.enabled===true;
+  const profile=config.microdirector?.liveProfile||null;
+  if(profile&&(profile!=='msi-blackout-gold-v01'||!microdirectorEnabled))
+    throw Error('Unknown or unapproved private BLACKOUT writer profile');
+  const msiBlackoutGold=profile==='msi-blackout-gold-v01';
   if(microdirectorEnabled&&config.omnivoice?.approvedDelivery!==true)
     throw new Error('Microdirector needs explicitly approved natural episode voice routing');
   const root=resolve(config.scratch),token=randomBytes(32).toString('hex'),qwenKey=randomBytes(32).toString('hex');
@@ -74,9 +79,11 @@ export async function serveRealHost(config){
     const examples=config.approvedExamples?JSON.parse(await readFile(config.approvedExamples,'utf8')):[];
     const localComplete=createQwenCompletion({endpoint:'http://127.0.0.1:'+port+'/v1/chat/completions',model:modelName,apiKey:qwenKey,placement:'cpu',
       // Preserve the exact warm local CPU Qwen fallback and legacy behavior.
-      timeoutMs:microdirectorEnabled?24000:12000,
-      maxTokens:microdirectorEnabled?384:240,
-      ...(microdirectorEnabled?{temperature:0.7,topP:0.9}:{})});
+      // Gold uses the ORIGINAL MSI writer budgets and sampling, not
+      // Microdirector's longer, more constrained settings.
+      timeoutMs:microdirectorEnabled&&!msiBlackoutGold?24000:12000,
+      maxTokens:microdirectorEnabled&&!msiBlackoutGold?384:240,
+      ...(microdirectorEnabled&&!msiBlackoutGold?{temperature:0.7,topP:0.9}:{})});
     // V620 routing is opt-in, in the isolated Microdirector profile only.
     // No provider credentials, native Unity, or approved OmniVoice settings
     // are changed. The original local CPU writer remains a warm failover.
@@ -89,17 +96,25 @@ export async function serveRealHost(config){
         endpoint:'http://'+v620Host+':1234/v1/chat/completions',
         model:v620Model,placement:'off-device',responseFormat:'lmstudio',
         trustedTailnetHost:v620Host,
-        timeoutMs:30000,maxTokens:512,temperature:0.7,topP:0.9
+        timeoutMs:30000,maxTokens:msiBlackoutGold?240:512,
+        temperature:msiBlackoutGold?1:0.7,topP:msiBlackoutGold?1:0.9
       });
       const probe=createV620ModelProbe({host:v620Host,model:v620Model,timeoutMs:1500});
-      complete=createQwenFailover({primary:remote,fallback:localComplete,probe,cooldownMs:10000});
+      // Transfer the exact old MSI prompt/validator to V620. Only this
+      // response-validation bridge differs; the MSI fallback is untouched.
+      complete=createQwenFailover({
+        primary:msiBlackoutGold?guardOriginalMsiBlackoutRemote(remote):remote,
+        fallback:localComplete,probe,cooldownMs:10000
+      });
       progress('V620 27B preferred, warm MSI CPU Qwen ready as fallback...');
     }
     // Voice prompts are qualified at worker startup. Qwen sees only those
     // categories actually available, not a guessed global voice inventory.
-    const director=microdirectorEnabled?
+    const director=microdirectorEnabled&&!msiBlackoutGold?
       createBlackoutMicrodirector({complete,notes,examples,
         getDeliveryCodes:()=>voice?.availableEpisodeCodes||{}}):
+      // The original MSI director is reused directly, including the private
+      // character treatment, approved examples and brief 8–16-word lines.
       createConversationDirector({complete,notes,examples});
     progress('Checking room for the character voices...');
     await waitForVoiceMemory({progress,readFreeMiB:async()=>{
@@ -184,7 +199,22 @@ export async function serveRealHost(config){
         qwen:preferV620?v620Model+' (V620 primary; MSI CPU backup)':modelName+' (local CPU)',
         qwen_backend:preferV620?complete.status():{preferred:'msi',last_route:'msi',last_reason:'none'},
         performance_mode:performanceMode,
-        microdirector:microdirectorEnabled?{enabled:true,
+        microdirector:msiBlackoutGold?{
+          enabled:true,live_profile:'msi-blackout-gold-v01',
+          qwen_budget:preferV620?{
+            max_tokens:240,timeout_ms:30000,fallback_max_tokens:240,
+            fallback_timeout_ms:12000,accepted_passes_per_turn:1,max_attempts_on_failure:2
+          }:{max_tokens:240,timeout_ms:12000,model_calls_per_turn:1},
+          dialogue_length:{preferred_words_min:8,preferred_words_max:16,
+            max_words_per_line:35,max_sentences_per_line:1},
+          response_schema:'original-msi-blackout-lines-v1',
+          spoken_line_validator:'original-msi-blackout-v1',
+          background_notes_in_qwen_prompt:true,
+          approved_examples_count:examples.length,
+          available_delivery_codes:voice.availableEpisodeCodes,
+          qualified_samples_by_code:voice.availableEpisodeCounts,
+          source_echo_flags:{}
+        }:microdirectorEnabled?{enabled:true,
           qwen_budget:preferV620?{max_tokens:512,timeout_ms:30000,
             fallback_max_tokens:384,fallback_timeout_ms:24000,
             accepted_passes_per_turn:1,max_attempts_on_failure:2}:
