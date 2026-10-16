@@ -8,13 +8,14 @@ param(
  [ValidateSet('v620','msi')][string]$QwenBackend='v620',
  [string]$V620Host='100.79.20.28',
  [string]$V620Model='qwen3.8-27b',
+ [switch]$FastSeatedPlayback,
  [switch]$Launch
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 $PSNativeCommandUseErrorActionPreference=$false
 $repo='https://github.com/Strange-Machinery/shanny-rev-live-puppet.git'
-$branch='rd/buff-natural-voice-qwen-audit-20261014'
+$branch='rd/qwen-latency-rnd-20261015'
 $dir=Join-Path $env:TEMP ('buff-microdirector-trial-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+(Get-Random -Minimum 100 -Maximum 999))
 $checkout=Join-Path $dir 'source'
 $reportFile=Join-Path $dir 'gate.json'
@@ -111,7 +112,7 @@ try{
  $cfg.omnivoice.workerScript=Join-Path $checkout 'python\buff_omnivoice_worker.py'
  $cfg.omnivoice | Add-Member -MemberType NoteProperty -Name approvedDelivery -Value $true -Force
  $selectedPriority=if($QwenBackend -eq 'v620'){'v620-preferred'}else{'msi-only'}
- $remoteConfig=[pscustomobject]@{enabled=$true;qwenPriority=$selectedPriority}
+ $remoteConfig=[pscustomobject]@{enabled=$true;qwenPriority=$selectedPriority;fastSeatedPlayback=([bool]$FastSeatedPlayback)}
  if($QwenBackend -eq 'v620'){
   $remoteConfig | Add-Member -MemberType NoteProperty -Name v620 -Value ([pscustomobject]@{host=$V620Host;model=$V620Model}) -Force
  }
@@ -121,6 +122,7 @@ try{
  $cfg | ConvertTo-Json -Depth 40 | Set-Content -LiteralPath $private -Encoding utf8
  $report.passed+='Private trial profile prepared (no real donation credentials)'
  $report.qwen_preference=$QwenBackend
+ $report.fast_seated_synthetic_only=([bool]$FastSeatedPlayback)
  $report.msi_cpu_fallback=($QwenBackend -eq 'v620')
  if($QwenBackend -eq 'v620'){
   Write-Host ('Qwen trial routing: V620 LM Studio '+$V620Model+' preferred; MSI CPU 2B standby.') -ForegroundColor Cyan
@@ -131,6 +133,7 @@ try{
  $report.private_profile='CREATED_LOCAL_NOT_SHARED'
  $report.original_profile_untouched=$true
  $report.production_player_untouched=$true
+ if($FastSeatedPlayback){Write-Host 'R&D: first-WAV seated playback is ON for operator synthetic tests/hotmic ONLY; real paid donations stay fully prepared.' -ForegroundColor Yellow}
  $report.actual_episode_sample_audio='PENDING_REAL_RUNTIME_TEST'
  $report.qwen_causal_latency='PENDING_REAL_RUNTIME_TEST'
  if(-not $Launch){
