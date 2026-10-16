@@ -88,12 +88,17 @@ export function createYouTubeChatBridge({session,paidBusy=()=>false,videoId='',f
     });
     // Collector stderr never goes to public OBS, nor is raw chat logged here.
     current.stderr?.resume();
-    current.on('error',()=>{counts.reconnects++;});
-    current.on('exit',()=>{
+    // Windows spawn failure may emit 'error' WITHOUT an 'exit' event;
+    // handle either once and retry without looping on a dead child.
+    let ended=false;
+    const onEnd=()=>{
+      if(ended)return;ended=true;
       if(child===current)child=null;
       lines.close();
       if(enabled){counts.reconnects++;restart=setTimeout(()=>{restart=null;launch();},5000);restart.unref?.();}
-    });
+    };
+    current.on('error',onEnd);
+    current.on('exit',onEnd);
   }
   async function enable(){
     if(enabled)return status();
