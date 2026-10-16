@@ -5,7 +5,14 @@
  * must never be published to viewer signaling.
  */
 const SOURCES=new Set(['youtube','streamlabs','streamelements']);
-export function preparePopupDetails({kind,donation,text}={}){
+export function preparePopupDetails({kind,donation,text,chatAuthor=null}={}){
+  if(kind==='chat'){
+    if(typeof text!=='string'||!text.trim()||text.length>450||
+       typeof chatAuthor!=='string'||chatAuthor.length>60||
+       /[\x00-\x1f\x7f]/.test(chatAuthor))
+      throw new Error('Invalid live-chat popup');
+    return Object.freeze({type:'chat',donor:chatAuthor||'YouTube viewer',message:text});
+  }
   if(kind==='microphone')return Object.freeze({type:'hotmic'});
   if(kind!=='donation')throw new Error('Unknown popup origin');
   if(typeof text!=='string'||!text.trim()||text.length>1000)
