@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {detectBlackoutLiveRelay,planBlackoutLiveV01,decorateBlackoutLiveV01,assertBlackoutLiveSpeech,withBlackoutLiveV01} from '../src/blackout-live-v01.mjs';
 import {createQwenFailover} from '../src/providers/qwen-failover.mjs';
+import {createBlackoutMicrodirector} from '../src/blackout-microdirector-director.mjs';
 
 const turn=(first='SHANNY',lane='direct_attack',input='Shanny, why are you blaming Rev?')=>({
   kind:'donation',input,first_speaker:first,second_speaker:first==='SHANNY'?'REV':'SHANNY',
