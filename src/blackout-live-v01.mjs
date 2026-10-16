@@ -141,7 +141,8 @@ export function assertBlackoutLiveSpeech(raw,relay=null){
     Object.entries(response||{}).filter(([key])=>/^(?:first|second|third)(?:_(?:SHANNY|REV))?$/.test(key))
       .map(([,value])=>value);
   const spoken=lines.map(line=>line?.text).filter(v=>typeof v==='string');
-  if(spoken.some(repeatedSpeech))throw Error('BLACKOUT_LIVE repetitive speech blocked');
+  if(spoken.some(repeatedSpeech)||repeatedSpeech(spoken.join(' ')))
+    throw Error('BLACKOUT_LIVE repetitive speech blocked');
   const canonical=spoken.map(text=>tokenWords(text).join(' '));
   if(canonical.some((text,i)=>text&&text.split(' ').length>=6&&canonical.indexOf(text)<i))
     throw Error('BLACKOUT_LIVE repeated dialogue blocked');
