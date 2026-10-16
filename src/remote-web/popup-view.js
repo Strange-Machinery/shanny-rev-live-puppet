@@ -12,6 +12,11 @@ export function popupView(status){
     visible:true,kind:'hotmic',heading:'LIVE RESPONSE',
     donor:'',amount:'',message:''
   };
+  if(p.type==='chat'&&typeof p.donor==='string'&&p.donor.length<=60&&
+     typeof p.message==='string'&&p.message.length<=450)return {
+    visible:true,kind:'chat',heading:'YOUTUBE LIVE CHAT',
+    donor:p.donor,amount:'',message:p.message
+  };
   if(p.type==='celebration')return {
     visible:true,kind:'celebration',heading:'MEMBERSHIP BOMB · MAKE IT RAIN',
     donor:'',amount:'',message:''
