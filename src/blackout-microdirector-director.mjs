@@ -87,11 +87,11 @@ export function validateMicroPlan(raw,kind,codes={},topicContext=null){
      typeof p.hinge!=='string'||p.hinge.trim().length<12||p.hinge.length>160||
      typeof p.rev_reason!=='string'||p.rev_reason.length>80||
      !Array.isArray(p.lines)||p.lines.length<2||p.lines.length>3||
-     !['donation','microphone'].includes(kind))throw Error('Invalid causal Microdirector plan');
+     !['donation','microphone','chat'].includes(kind))throw Error('Invalid causal Microdirector plan');
   const usable=availableEpisodeCodes(codes);
   const lines=p.lines.map((row,i)=>line(row,usable,i+1));
-  if(kind==='donation'&&(!lines.some(v=>v.actor==='SHANNY')||!lines.some(v=>v.actor==='REV')))
-    throw Error('Donation requires both characters');
+  if((kind==='donation'||kind==='chat')&&(!lines.some(v=>v.actor==='SHANNY')||!lines.some(v=>v.actor==='REV')))
+    throw Error(kind==='chat'?'Chat requires both characters':'Donation requires both characters');
   if(kind==='microphone'&&!lines.some(v=>v.actor==='SHANNY'))throw Error('Shanny must respond');
   if(lines.some(v=>v.actor==='REV')&&!p.rev_reason.trim())throw Error('Rev needs an actual argument');
   const valid={hinge:p.hinge.trim(),lines,rev_reason:p.rev_reason.trim()};
@@ -182,9 +182,9 @@ export function createBlackoutMicrodirector({complete,notes,examples=[],getDeliv
   return {
     audit:({history=[]}={})=>echoFlags(notes,examples,history),
     async warmup(){await this.generate({text:'Startup check',kind:'microphone',warmup:true});},
-    async generate({text,kind,history=[],hinges=[],readBy=null,signal,warmup=false,onFirstLine}={}){
+    async generate({text,kind,history=[],hinges=[],readBy=null,chatAuthor=null,signal,warmup=false,onFirstLine}={}){
       if(typeof text!=='string'||!text.trim()||text.length>1000||
-         !['donation','microphone'].includes(kind))throw Error('Invalid Microdirector input');
+         !['donation','microphone','chat'].includes(kind))throw Error('Invalid Microdirector input');
       const microInput=makeMicroInput({text,kind,history,hinges});
       const address=identifyAudienceAddressee(text);
       // The donor text reader and its addressee are independent stage roles.
@@ -193,7 +193,7 @@ export function createBlackoutMicrodirector({complete,notes,examples=[],getDeliv
       const speakerContract=audienceReplyContract(address,kind,stageReader);
       // The producer's episode BLACKOUT treatment is translated into one tiny
       // per-message acting decision, not a second model call or voice effect.
-      const blackout=chooseBlackoutShanny({text,address,hooks:microInput.contextual_grievance_hooks,kind});
+      const blackout=chooseBlackoutShanny({text,address,hooks:microInput.contextual_grievance_hooks,kind:kind==='chat'?'microphone':kind});
       const deliveryContext=[blackout.voice_hint,text,...microInput.contextual_grievance_hooks.map(row=>row.grievance)].join(' ');
       const codes=shortlistEpisodeCodes(availableEpisodeCodes(getDeliveryCodes()),deliveryContext);
       const actors=assignedSpeakers({audience_address:address});
@@ -215,6 +215,7 @@ export function createBlackoutMicrodirector({complete,notes,examples=[],getDeliv
       const messages=[{role:'system',content:system},
         {role:'user',content:JSON.stringify({
           ...microInput,
+          ...(kind==='chat'?{chat_event:{source:'youtube',viewer_name:String(chatAuthor||'YouTube viewer').slice(0,60)}}:{}),
           audience_address:{target:address.target,basis:address.basis},
           donation_reader:stageReader,
           first_speaker:actors.first,second_speaker:actors.second,
@@ -223,7 +224,7 @@ export function createBlackoutMicrodirector({complete,notes,examples=[],getDeliv
           shanny_blackout:{regime:blackout.regime,emotional_lane:blackout.emotional_lane,
             acting_objective:blackout.acting_objective},
           focus_terms:focusTerms(text),
-          direction:names.first+' is '+actors.first+' answering the viewer AS '+actors.first+'; '+names.second+' is '+actors.second+' reacting to '+actors.first+' AS '+actors.second+'. Stay on this donation.'
+          direction:names.first+' is '+actors.first+' answering the viewer AS '+actors.first+'; '+names.second+' is '+actors.second+' reacting to '+actors.first+' AS '+actors.second+'. '+(kind==='chat'?'Stay on this live-chat comment.':'Stay on this donation.')
         })}];
       let responseSchema=exchangeSchema(codes,actors.first);
       if(warmup){
