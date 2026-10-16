@@ -8,13 +8,14 @@ param(
  [ValidateSet('v620','msi')][string]$QwenBackend='v620',
  [string]$V620Host='100.79.20.28',
  [string]$V620Model='qwen3.8-27b',
+ [switch]$OriginalMSIBlackout,
  [switch]$Launch
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 $PSNativeCommandUseErrorActionPreference=$false
 $repo='https://github.com/Strange-Machinery/shanny-rev-live-puppet.git'
-$branch='rd/buff-natural-voice-qwen-audit-20261014'
+$branch='rd/v620-msi-blackout-gold-v01-20261016'
 $dir=Join-Path $env:TEMP ('buff-microdirector-trial-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+(Get-Random -Minimum 100 -Maximum 999))
 $checkout=Join-Path $dir 'source'
 $reportFile=Join-Path $dir 'gate.json'
@@ -100,7 +101,7 @@ function CheckCommand([string]$name,[string]$exe,[string[]]$argv){
 }
 try{
  CheckCommand 'npm setup' 'npm' @('install','--ignore-scripts','--no-audit','--fund=false')
- CheckCommand 'new microdirector Node tests' 'node' @('--test','test/blackout-microdirector.test.mjs','test/voice-microdirector-smoke.test.mjs','test/qwen-failover.test.mjs','test/qwen.test.mjs')
+ CheckCommand 'new microdirector Node tests' 'node' @('--test','test/blackout-microdirector.test.mjs','test/voice-microdirector-smoke.test.mjs','test/qwen-failover.test.mjs','test/qwen.test.mjs','test/msi-blackout-gold.test.mjs')
  CheckCommand 'full Node regression' 'npm' @('test')
  CheckCommand 'new episode voice sample routing tests' 'python' @('-m','unittest','discover','-s','python','-p','test_live_episode_delivery.py','-v')
  CheckCommand 'existing offline Python regression' 'python' @('-m','unittest','discover','-s','python','-p','test_offline.py','-v')
@@ -112,6 +113,9 @@ try{
  $cfg.omnivoice | Add-Member -MemberType NoteProperty -Name approvedDelivery -Value $true -Force
  $selectedPriority=if($QwenBackend -eq 'v620'){'v620-preferred'}else{'msi-only'}
  $remoteConfig=[pscustomobject]@{enabled=$true;qwenPriority=$selectedPriority}
+ if($OriginalMSIBlackout){
+  $remoteConfig | Add-Member -MemberType NoteProperty -Name liveProfile -Value 'msi-blackout-gold-v01' -Force
+ }
  if($QwenBackend -eq 'v620'){
   $remoteConfig | Add-Member -MemberType NoteProperty -Name v620 -Value ([pscustomobject]@{host=$V620Host;model=$V620Model}) -Force
  }
@@ -121,12 +125,19 @@ try{
  $cfg | ConvertTo-Json -Depth 40 | Set-Content -LiteralPath $private -Encoding utf8
  $report.passed+='Private trial profile prepared (no real donation credentials)'
  $report.qwen_preference=$QwenBackend
+ $report.original_msi_blackout=[bool]$OriginalMSIBlackout
  $report.msi_cpu_fallback=($QwenBackend -eq 'v620')
  if($QwenBackend -eq 'v620'){
   Write-Host ('Qwen trial routing: V620 LM Studio '+$V620Model+' preferred; MSI CPU 2B standby.') -ForegroundColor Cyan
   Write-Host 'V620 unavailable/unloaded causes automatic MSI CPU Qwen fallback.'
  }else{
   Write-Host 'Qwen trial routing: MSI CPU only (manual rollback mode).' -ForegroundColor Yellow
+ }
+ if($OriginalMSIBlackout){
+  Write-Host 'MSI BLACKOUT GOLD: original director, private character treatment, approved examples, short 8-16 word lines.' -ForegroundColor Cyan
+  Write-Host 'No Microdirector, BLACKOUT_LIVE beat planner, new lore or hashed emotional steering.'
+ }else{
+  Write-Host 'Original MSI BLACKOUT profile OFF; existing Microdirector behavior unchanged.'
  }
  $report.private_profile='CREATED_LOCAL_NOT_SHARED'
  $report.original_profile_untouched=$true
