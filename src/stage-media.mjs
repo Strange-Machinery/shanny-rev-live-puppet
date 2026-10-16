@@ -193,7 +193,7 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
     setPopup(details){
       if(presentationVisible||commands.size)throw new Error('Cannot change details during visible performance');
       if(details===null){popup=null;return;}
-      if(!details||!['hotmic','donation','test','celebration'].includes(details.type))
+      if(!details||!['hotmic','donation','test','celebration','chat'].includes(details.type))
         throw new Error('Invalid public popup details');
       // Manual membership celebrations carry NO donor/payment identity.
       if(details.type==='celebration'){popup={type:'celebration'};return;}
@@ -202,6 +202,14 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
       if(typeof details.message!=='string'||details.message.length>1000)
         throw new Error('Invalid public popup message');
       if(details.type==='test'){popup={type:'test',message:details.message};return;}
+      if(details.type==='chat'){
+        if(!details.message.trim()||details.message.length>450||
+           typeof details.donor!=='string'||details.donor.length>60||
+           /[\x00-\x1f\x7f]/.test(details.donor))
+          throw new Error('Invalid public chat display fields');
+        popup={type:'chat',donor:details.donor,message:details.message};
+        return;
+      }
       if(typeof details.donor!=='string'||details.donor.length>80||
          !Number.isFinite(details.amount)||details.amount<=0||
          typeof details.currency!=='string'||!/^[A-Z]{3}$/.test(details.currency))
