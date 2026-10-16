@@ -9,10 +9,10 @@ $('connect-stage').onclick=()=>void stage.connect();
 $('stage-sound').onclick=async()=>{const video=$('stage-preview');video.muted=!video.muted;try{await video.play();$('stage-sound').textContent=video.muted?'Enable preview sound':'Mute preview sound';}catch{$('stage-status').textContent='Connect the preview first.';}};
 $('copy-obs').onclick=async()=>{try{const result=await api('obs-link');try{await navigator.clipboard.writeText(result.url);$('stage-status').textContent='OBS link copied. Paste into a 1920 × 1080 Browser source.';}catch{$('obs-link').hidden=false;$('obs-link').value=result.url;$('obs-link').select();$('stage-status').textContent='Copy this link into your OBS Browser source.';}}catch(error){$('stage-status').textContent=error.message;}};
 window.addEventListener('pagehide',()=>void stage.close());
-let revision=0,request=null,stream=null,context=null,recording=false,starting=false,chunks=[],frames=0,timer=null,online=false,donationsEnabled=false,stageBusy=false,stageAvailable=false,lastQueueDepth=0;
+let revision=0,request=null,stream=null,context=null,recording=false,starting=false,chunks=[],frames=0,timer=null,online=false,donationsEnabled=false,chatEnabled=false,stageBusy=false,stageAvailable=false,lastQueueDepth=0;
 async function api(path,body,signal){const response=await fetch('/api/'+path,{method:body?'POST':'GET',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,signal,redirect:'error',cache:'no-store'});const result=await response.json();if(!response.ok)throw new Error(result.error||'Connection failed');return result;}
 function stopCapture(){recording=false;starting=false;clearTimeout(timer);stream?.getTracks().forEach(track=>track.stop());stream=null;void context?.close();context=null;$('mic').textContent='Test microphone';}
-function stop(){revision++;request?.abort();stopCapture();chunks=[];frames=0;donationsEnabled=false;
+function stop(){revision++;request?.abort();stopCapture();chunks=[];frames=0;donationsEnabled=false;chatEnabled=false;
  $('result').textContent='Stopped. Microphone off.';void api('action',{action:'stop'}).catch(()=>{});
 }
 async function donationAction(action){
@@ -44,6 +44,23 @@ function showDonations(d){
  $('donation-enable').disabled=!online||d.enabled||d.requires_setup;
  $('donation-stop').disabled=!online||!d.enabled;
 }
+function showChat(c){
+ if(!c)return;
+ chatEnabled=Boolean(c.enabled);
+ const counts=c.counts||{};
+ $('chat-status').textContent=(c.enabled?'YouTube chat ENABLED':'YouTube chat OFF')+
+   (c.configured?'':' · Set youtubeChat.videoId in the private trial profile')+
+   ' · '+(c.mode==='read'?'Read and react':'React')+
+   ' · queued '+(Number(c.queue_depth)||0)+
+   ' · accepted '+(Number(counts.accepted)||0)+
+   ' · ignored '+(Number(counts.ignored)||0);
+ $('chat-enable').disabled=!online||!c.configured||c.enabled;
+ $('chat-disable').disabled=!online||!c.enabled;
+}
+async function chatAction(action){
+ try{showChat(await api('action',{action}));}
+ catch(error){$('chat-status').textContent=error.message;}
+}
 async function run(action,extra={}){const captured=revision;request=new AbortController();$('result').textContent='Preparing voices and reactions…';try{const result=await api('action',{action,make_it_rain:$('make-it-rain').checked,...extra},request.signal);if(captured===revision)$('result').textContent=(result.transcript?'You said: '+result.transcript+'\n\n':'')+result.message;}catch(error){if(captured===revision)$('result').textContent=error.message;}}
 function encodeAudio(){const buffer=new ArrayBuffer(44+frames*2),view=new DataView(buffer);const ascii=(offset,text)=>[...text].forEach((c,i)=>view.setUint8(offset+i,c.charCodeAt(0)));ascii(0,'RIFF');view.setUint32(4,buffer.byteLength-8,true);ascii(8,'WAVE');ascii(12,'fmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);view.setUint32(24,48000,true);view.setUint32(28,96000,true);view.setUint16(32,2,true);view.setUint16(34,16,true);ascii(36,'data');view.setUint32(40,frames*2,true);let n=44;for(const chunk of chunks)for(const sample of chunk){view.setInt16(n,Math.max(-32768,Math.min(32767,Math.round(sample*32767))),true);n+=2;}const bytes=new Uint8Array(buffer);let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(binary);}
 function finish(){if(!recording)return;stopCapture();const audio=encodeAudio();chunks=[];frames=0;void run('microphone',{audio});}
@@ -51,6 +68,8 @@ async function microphone(){if(recording){finish();return;}if(starting||!online)
 $('donate').onclick=()=>void run('donate',{text:$('text').value});$('replay').onclick=()=>void run('transcript',{text:$('text').value});$('mic').onclick=()=>void microphone();$('stop').onclick=stop;
 $('donation-enable').onclick=()=>void donationAction('donation-enable');
 $('donation-stop').onclick=()=>void donationAction('donation-stop');
+$('chat-enable').onclick=()=>void chatAction('chat-enable');
+$('chat-disable').onclick=()=>void chatAction('chat-disable');
 $('rain-now').onclick=async()=>{
  $('rain-now').disabled=true;
  $('rain-now-status').textContent='Starting the paired money-rain choreography…';
@@ -72,14 +91,14 @@ $('shut-up').onclick=()=>{
 $('make-it-rain').onchange=()=>{
  if(donationsEnabled)void donationAction('donation-mode');
 };
-window.addEventListener('offline',()=>{stageAvailable=false;$('rain-now').disabled=true;if(!donationsEnabled)stop();});
+window.addEventListener('offline',()=>{stageAvailable=false;$('rain-now').disabled=true;if(!donationsEnabled&&!chatEnabled)stop();});
 window.addEventListener('pagehide',()=>{stopCapture();
  // The OBS Browser source and opted-in feed outlive this control page.
- if(!donationsEnabled)void fetch('/api/action',{method:'POST',
+ if(!donationsEnabled&&!chatEnabled)void fetch('/api/action',{method:'POST',
    headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},
    body:JSON.stringify({action:'stop'}),keepalive:true}).catch(()=>{});
 });
-let polling=false;async function status(){if(polling)return;polling=true;try{const s=await api('status');online=true;stageBusy=Boolean(s.busy);stageAvailable=Boolean(s.media?.available);showDonations(s.donations);$('status').textContent='Connected to producer · '+(s.real_characters?'Real characters · Blackout Shanny':'Testing fixtures')+' · '+(s.whisper?'Whisper ready':'Whisper unavailable');if(s.real_characters){
+let polling=false;async function status(){if(polling)return;polling=true;try{const s=await api('status');online=true;stageBusy=Boolean(s.busy);stageAvailable=Boolean(s.media?.available);showDonations(s.donations);showChat(s.youtube_chat);$('status').textContent='Connected to producer · '+(s.real_characters?'Real characters · Blackout Shanny':'Testing fixtures')+' · '+(s.whisper?'Whisper ready':'Whisper unavailable');if(s.real_characters){
   const micro=s.microdirector;
   if(micro?.enabled){
     const counts=Object.fromEntries(['SHANNY','REV'].map(actor=>[actor,(micro.available_delivery_codes?.[actor]||[]).length]));
@@ -120,7 +139,7 @@ let polling=false;async function status(){if(polling)return;polling=true;try{con
       ?'Rain audio in OBS: '+state+' · use OBS Browser Source sound, not the producer preview.'
       :'No OBS Browser Source connected: the Unity dance is visible but the rain soundtrack only plays inside the approved OBS HUD.';
   }
-$('dialogue').textContent=s.error||s.history.map(row=>row.actor+': '+row.text).join('\n\n');}}catch(error){if(online&&!donationsEnabled)stop();online=false;$('status').textContent='Producer unavailable. Ask them to start sharing, then reopen your launcher.';}finally{polling=false;for(const id of ['donate','replay','mic'])$(id).disabled=!online;$('rain-now').disabled=!online||stageBusy||!stageAvailable||Boolean(donationsEnabled&&lastQueueDepth>0);}}
+$('dialogue').textContent=s.error||s.history.map(row=>row.actor+': '+row.text).join('\n\n');}}catch(error){if(online&&!donationsEnabled&&!chatEnabled)stop();online=false;$('status').textContent='Producer unavailable. Ask them to start sharing, then reopen your launcher.';}finally{polling=false;for(const id of ['donate','replay','mic'])$(id).disabled=!online;$('rain-now').disabled=!online||stageBusy||!stageAvailable||Boolean(donationsEnabled&&lastQueueDepth>0);}}
 void status();setInterval(()=>void status(),3000);
 let catalog={revision:'',items:[]};
 function options(id,values){$(id).replaceChildren(...values.map(value=>new Option(value.label||value,value.value||value)));}
