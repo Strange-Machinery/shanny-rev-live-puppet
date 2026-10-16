@@ -78,6 +78,8 @@ try{
   'test/youtube-chat-integration.test.mjs')
  Gate 'indexed_lore_30ms_budget' 'node' @('scripts/Benchmark-BuffLore.mjs')
  Gate 'python_collector_syntax' 'python' @('-c','import ast,pathlib;ast.parse(pathlib.Path("python/youtube_chat_collector.py").read_text(encoding="utf-8"))')
+ Gate 'python_chat_collector_tests' 'python' @('-m','unittest','discover',
+   '-s','python','-p','test_youtube_chat_collector.py','-v')
  Gate 'python_episode_reference_selection' 'python' @('-m','unittest','discover',
   '-s','python','-p','test_live_episode_delivery.py','-v')
  if(-not $SkipFullSuite){
