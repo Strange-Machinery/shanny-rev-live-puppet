@@ -4,7 +4,7 @@
 param([switch]$SkipFullSuite)
 $ErrorActionPreference='Stop'
 $PSNativeCommandUseErrorActionPreference=$false
-$branch='rd/buff-natural-voice-qwen-audit-20261014'
+$branch='rd/youtube-live-chat-bridge-v01-20261016'
 $repo='https://github.com/Strange-Machinery/shanny-rev-live-puppet.git'
 $checkout=Join-Path $env:TEMP ('buff-directed-voice-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+(Get-Random -Minimum 100 -Maximum 999))
 foreach($name in @('git','node','npm','python')){
@@ -62,7 +62,10 @@ try{
    'src/live-lore-catalog.v2.mjs','src/live-lore-extras-a.mjs','src/live-lore-extras-b.mjs',
    'src/live-lore-extras-c.mjs','src/live-topic-focus.mjs',
    'src/audience-addressee.mjs','src/blackout-shanny-heat.mjs','src/live-server.mjs',
-   'src/conversation-session.mjs','src/providers/qwen.mjs','src/providers/qwen-failover.mjs',
+   'src/conversation-session.mjs','src/youtube-chat-bridge.mjs',
+   'src/stage-media.mjs','src/popup-details.mjs','src/remote-panel.mjs',
+   'src/remote-web/popup-view.js','src/remote-web/stage-page.js',
+   'src/remote-web/panel.js','src/providers/qwen.mjs','src/providers/qwen-failover.mjs',
    'src/providers/omnivoice.mjs','src/donations/parse.mjs','src/real-host.mjs')){
     Gate ('parse-'+[IO.Path]::GetFileName($path)) 'node' @('--check',$path)
  }
@@ -71,8 +74,10 @@ try{
   'test/live-topic-focus.test.mjs','test/qwen-topic-drift.test.mjs',
   'test/audience-addressee.test.mjs','test/blackout-shanny-heat.test.mjs',
   'test/conversation-session.test.mjs','test/qwen.test.mjs','test/qwen-failover.test.mjs',
-  'test/qwen-character-identity.test.mjs')
+  'test/qwen-character-identity.test.mjs','test/youtube-chat-bridge.test.mjs',
+  'test/youtube-chat-integration.test.mjs')
  Gate 'indexed_lore_30ms_budget' 'node' @('scripts/Benchmark-BuffLore.mjs')
+ Gate 'python_collector_syntax' 'python' @('-c','import ast,pathlib;ast.parse(pathlib.Path("python/youtube_chat_collector.py").read_text(encoding="utf-8"))')
  Gate 'python_episode_reference_selection' 'python' @('-m','unittest','discover',
   '-s','python','-p','test_live_episode_delivery.py','-v')
  if(-not $SkipFullSuite){
