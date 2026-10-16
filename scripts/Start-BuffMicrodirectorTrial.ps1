@@ -9,6 +9,7 @@ param(
  [string]$V620Host='100.79.20.28',
  [string]$V620Model='qwen3.8-27b',
  [string]$YouTubeVideoId='',
+ [string]$YouTubeChatFixture='',
  [ValidateSet('react','read')][string]$YouTubeChatMode='react',
  [ValidateRange(5,120)][int]$YouTubeChatCooldownSeconds=12,
  [string]$YouTubeChatPython='python',
@@ -20,6 +21,8 @@ $PSNativeCommandUseErrorActionPreference=$false
 $repo='https://github.com/Strange-Machinery/shanny-rev-live-puppet.git'
 if($YouTubeVideoId -and $YouTubeVideoId -cnotmatch '^[a-zA-Z0-9_-]{11}$'){throw 'Invalid YouTube video ID (expected 11 characters)'}
 if(-not $YouTubeChatPython){throw 'YouTube collector Python executable is required'}
+if($YouTubeChatFixture -and -not(Test-Path -LiteralPath $YouTubeChatFixture -PathType Leaf)){throw 'YouTube chat fixture file not found'}
+if($YouTubeVideoId -and $YouTubeChatFixture){throw 'Choose either live video ID or offline fixture, not both'}
 $branch='rd/youtube-live-chat-bridge-v01-20261016'
 $dir=Join-Path $env:TEMP ('buff-microdirector-trial-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+(Get-Random -Minimum 100 -Maximum 999))
 $checkout=Join-Path $dir 'source'
@@ -125,13 +128,13 @@ try{
  $cfg | Add-Member -MemberType NoteProperty -Name donations -Value ([pscustomobject]@{}) -Force
  # Trial-only chat intake. Video ID set does NOT automatically enable chat.
  $cfg | Add-Member -MemberType NoteProperty -Name youtubeChat -Value ([pscustomobject]@{
-   videoId=$YouTubeVideoId;mode=$YouTubeChatMode
+   videoId=$YouTubeVideoId;fixture=$YouTubeChatFixture;mode=$YouTubeChatMode
    minGapMs=1000*$YouTubeChatCooldownSeconds;python=$YouTubeChatPython
  }) -Force
  $private=Join-Path $dir 'producer.trial.local.json'
  $cfg | ConvertTo-Json -Depth 40 | Set-Content -LiteralPath $private -Encoding utf8
  $report.passed+='Private trial profile prepared (no real donation credentials)'
- $report.youtube_chat_configured=([bool]$YouTubeVideoId)
+ $report.youtube_chat_configured=([bool]($YouTubeVideoId -or $YouTubeChatFixture))
  $report.youtube_chat_default_off=$true
  $report.qwen_preference=$QwenBackend
  $report.msi_cpu_fallback=($QwenBackend -eq 'v620')
