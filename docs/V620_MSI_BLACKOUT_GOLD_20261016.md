@@ -6,6 +6,8 @@
 
 The existing src/conversation-director.mjs file is UNMODIFIED from the successful MSI BLACKOUT treatment (blob SHA c8b3826fbe7d5f6c92a8d9650aaf0c69751a9cba). The private MSI character treatment is read from the same existing producer.local.json-referenced file at runtime and included in the system prompt, never copied into GitHub. Up to THREE existing approved examples, if configured in that private profile, are used unchanged. No generated examples or lore jokes are substituted.
 
+**Private-network data boundary:** GOLD intentionally sends the full private character treatment and any approved example text within each generation request from your MSI to **your V620 LM Studio over the pinned private Tailscale peer**. The notes/examples are not committed to GitHub, published in OBS, or put in the operator status response. LM Studio may keep its own request logs if configured; review its logging before using sensitive private material. This is a private opt-in trial, not a public hosted-model upload.
+
 The old creative rules, output schema and validator remain:
 - BLACKOUT audience antagonism, Shanny's combustible grievance, Rev's independent surly response, hostility specific to the viewer.
 - Short one-sentence 8–16-word target per performed line, rather than the newer Microdirector's 16–32 words.
