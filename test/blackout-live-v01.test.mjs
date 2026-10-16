@@ -85,3 +85,29 @@ test('failed remote V620 v0.1 falls back exactly once to UNMODIFIED MSI prompt',
   assert.equal(msiCalls,1);
   assert.equal(complete.status().last_route,'msi');
 });
+
+test('successful V620 v0.1 delivers one remote plan without a local generation',async()=>{
+  let remote=0,local=0,early=[];
+  const complete=createQwenFailover({probe:async()=>true,
+    primary:withBlackoutLiveV01(async ({messages,onText})=>{
+      remote++;assert.equal(onText,undefined);
+      assert.ok(JSON.parse(messages[1].content).blackout_live_v01);
+      return '{"ready":true}';
+    }),
+    fallback:async()=>{local++;throw Error('must not run');}});
+  assert.equal(await complete({messages:messages(),onText:text=>early.push(text)}),'{"ready":true}');
+  assert.deepEqual(early,['{"ready":true}']);
+  assert.equal(remote,1);assert.equal(local,0);
+  assert.equal(complete.status().last_route,'v620');
+});
+test('STOP during profiled V620 completion never launches MSI or emits stale audio',async()=>{
+  const controller=new AbortController();let backup=0,early=0;
+  const complete=createQwenFailover({probe:async()=>true,
+    primary:withBlackoutLiveV01(async ()=>{
+      controller.abort();throw Error('cancelled');
+    }),
+    fallback:async()=>{backup++;return '{"ready":true}';}});
+  await assert.rejects(complete({messages:messages(),signal:controller.signal,
+    onText:()=>early++}),/cancelled/);
+  assert.equal(backup,0);assert.equal(early,0);
+});
