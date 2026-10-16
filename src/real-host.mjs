@@ -12,6 +12,7 @@ import {createLocalPuppetGateway} from './donations/gateway-client.mjs';
 import {OmniVoiceProvider} from './providers/omnivoice.mjs';
 import {createQwenCompletion} from './providers/qwen.mjs';
 import {createQwenFailover,createV620ModelProbe} from './providers/qwen-failover.mjs';
+import {withBlackoutLiveV01} from './blackout-live-v01.mjs';
 import {PersistentWhisper} from './providers/whisper.mjs';
 import {createConversationDirector} from './conversation-director.mjs';
 import {createBlackoutMicrodirector} from './blackout-microdirector-director.mjs';
@@ -81,6 +82,10 @@ export async function serveRealHost(config){
     // No provider credentials, native Unity, or approved OmniVoice settings
     // are changed. The original local CPU writer remains a warm failover.
     const preferV620=microdirectorEnabled&&config.microdirector?.qwenPriority==='v620-preferred';
+    const liveProfile=config.microdirector?.liveProfile||null;
+    if(liveProfile&&(liveProfile!=='blackout_live_v01'||!preferV620))
+      throw new Error('BLACKOUT_LIVE v0.1 requires explicitly preferred private V620');
+    const blackoutLiveV01=liveProfile==='blackout_live_v01';
     let complete=localComplete;
     const v620Model=preferV620?(config.microdirector?.v620?.model||'qwen3.8-27b'):null;
     if(preferV620){
@@ -92,7 +97,10 @@ export async function serveRealHost(config){
         timeoutMs:30000,maxTokens:512,temperature:0.7,topP:0.9
       });
       const probe=createV620ModelProbe({host:v620Host,model:v620Model,timeoutMs:1500});
-      complete=createQwenFailover({primary:remote,fallback:localComplete,probe,cooldownMs:10000});
+      // Only the remote request gets the v0.1 acting arc. MSI fallback receives
+      // the exact pre-existing director messages, not the new profile.
+      complete=createQwenFailover({primary:blackoutLiveV01?withBlackoutLiveV01(remote):remote,
+        fallback:localComplete,probe,cooldownMs:10000});
       progress('V620 27B preferred, warm MSI CPU Qwen ready as fallback...');
     }
     // Voice prompts are qualified at worker startup. Qwen sees only those
@@ -185,6 +193,7 @@ export async function serveRealHost(config){
         qwen_backend:preferV620?complete.status():{preferred:'msi',last_route:'msi',last_reason:'none'},
         performance_mode:performanceMode,
         microdirector:microdirectorEnabled?{enabled:true,
+          live_profile:blackoutLiveV01?'blackout_live_v01':'baseline',
           qwen_budget:preferV620?{max_tokens:512,timeout_ms:30000,
             fallback_max_tokens:384,fallback_timeout_ms:24000,
             accepted_passes_per_turn:1,max_attempts_on_failure:2}:

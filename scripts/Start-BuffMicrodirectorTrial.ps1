@@ -8,18 +8,22 @@ param(
  [ValidateSet('v620','msi')][string]$QwenBackend='v620',
  [string]$V620Host='100.79.20.28',
  [string]$V620Model='qwen3.8-27b',
+ [switch]$BlackoutLiveV01,
  [switch]$Launch
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 $PSNativeCommandUseErrorActionPreference=$false
 $repo='https://github.com/Strange-Machinery/shanny-rev-live-puppet.git'
-$branch='rd/buff-natural-voice-qwen-audit-20261014'
+$branch='rd/blackout-live-v01-v620-20261015'
 $dir=Join-Path $env:TEMP ('buff-microdirector-trial-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+(Get-Random -Minimum 100 -Maximum 999))
 $checkout=Join-Path $dir 'source'
 $reportFile=Join-Path $dir 'gate.json'
 foreach($name in @('git','node','npm','python')){
  if(-not(Get-Command $name -ErrorAction SilentlyContinue)){throw "Missing prerequisite: $name"}
+}
+if($BlackoutLiveV01 -and $QwenBackend -ne 'v620'){
+ throw 'BLACKOUT_LIVE v0.1 requires -QwenBackend v620; MSI stays on its original behavior'
 }
 if($QwenBackend -eq 'v620'){
  if($V620Host -notmatch '^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.\d{1,3}\.\d{1,3}$'){
@@ -100,7 +104,7 @@ function CheckCommand([string]$name,[string]$exe,[string[]]$argv){
 }
 try{
  CheckCommand 'npm setup' 'npm' @('install','--ignore-scripts','--no-audit','--fund=false')
- CheckCommand 'new microdirector Node tests' 'node' @('--test','test/blackout-microdirector.test.mjs','test/voice-microdirector-smoke.test.mjs','test/qwen-failover.test.mjs','test/qwen.test.mjs')
+ CheckCommand 'new microdirector Node tests' 'node' @('--test','test/blackout-microdirector.test.mjs','test/voice-microdirector-smoke.test.mjs','test/qwen-failover.test.mjs','test/qwen.test.mjs','test/blackout-live-v01.test.mjs')
  CheckCommand 'full Node regression' 'npm' @('test')
  CheckCommand 'new episode voice sample routing tests' 'python' @('-m','unittest','discover','-s','python','-p','test_live_episode_delivery.py','-v')
  CheckCommand 'existing offline Python regression' 'python' @('-m','unittest','discover','-s','python','-p','test_offline.py','-v')
@@ -112,6 +116,9 @@ try{
  $cfg.omnivoice | Add-Member -MemberType NoteProperty -Name approvedDelivery -Value $true -Force
  $selectedPriority=if($QwenBackend -eq 'v620'){'v620-preferred'}else{'msi-only'}
  $remoteConfig=[pscustomobject]@{enabled=$true;qwenPriority=$selectedPriority}
+ if($BlackoutLiveV01){
+  $remoteConfig | Add-Member -MemberType NoteProperty -Name liveProfile -Value 'blackout_live_v01' -Force
+ }
  if($QwenBackend -eq 'v620'){
   $remoteConfig | Add-Member -MemberType NoteProperty -Name v620 -Value ([pscustomobject]@{host=$V620Host;model=$V620Model}) -Force
  }
@@ -121,10 +128,16 @@ try{
  $cfg | ConvertTo-Json -Depth 40 | Set-Content -LiteralPath $private -Encoding utf8
  $report.passed+='Private trial profile prepared (no real donation credentials)'
  $report.qwen_preference=$QwenBackend
+ $report.blackout_live_v01=[bool]$BlackoutLiveV01
  $report.msi_cpu_fallback=($QwenBackend -eq 'v620')
  if($QwenBackend -eq 'v620'){
   Write-Host ('Qwen trial routing: V620 LM Studio '+$V620Model+' preferred; MSI CPU 2B standby.') -ForegroundColor Cyan
   Write-Host 'V620 unavailable/unloaded causes automatic MSI CPU Qwen fallback.'
+  if($BlackoutLiveV01){
+   Write-Host 'BLACKOUT_LIVE v0.1 ACTIVE for V620 only; the warm MSI writer retains its original prompt.' -ForegroundColor Cyan
+  }else{
+   Write-Host 'Baseline V620 writer selected (BLACKOUT_LIVE v0.1 OFF).'
+  }
  }else{
   Write-Host 'Qwen trial routing: MSI CPU only (manual rollback mode).' -ForegroundColor Yellow
  }

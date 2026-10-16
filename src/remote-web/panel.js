@@ -93,7 +93,8 @@ let polling=false;async function status(){if(polling)return;polling=true;try{con
       ' · MSI fallbacks '+(backend.fallback_count||0)+
       (backend.last_reason&&backend.last_reason!=='none'?' ('+backend.last_reason+')':'')+' · ':
       'MSI CPU Qwen local · ';
-    $('service-note').textContent='Microdirector ACTIVE · '+route+counts.SHANNY+'/20 Shanny categories, '+counts.REV+'/23 Rev categories · '+voiceSamples+
+    const liveTag=micro.live_profile==='blackout_live_v01'?'BLACKOUT_LIVE v0.1 (V620 only; MSI baseline on fallback) · ':'';
+    $('service-note').textContent='Microdirector ACTIVE · '+liveTag+route+counts.SHANNY+'/20 Shanny categories, '+counts.REV+'/23 Rev categories · '+voiceSamples+
       ' verified episode samples · '+(micro.lore_index?.hooks||0)+' lore families · '+
       (micro.lore_index?.aliases||0)+' keyword aliases · '+
       (micro.topic_focus==='superchat-only-v1'?'Superchat focus ON (no legacy topic notes) · ':'Legacy topic prompt · ')+
