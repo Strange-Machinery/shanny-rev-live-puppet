@@ -128,3 +128,20 @@ test('invalid untrusted chat plan clears held audio and safely re-arms without l
  await f.session.stop();
  assert.ok(f.session.revision>previous);
 });
+
+
+test('private OBS server actually serves popup-view module required by stage-page',async t=>{
+ const {mkdtemp,rm}=await import('node:fs/promises');
+ const {join}=await import('node:path');
+ const {tmpdir}=await import('node:os');
+ const {serveRemotePanel}=await import('../src/remote-panel.mjs');
+ const dir=await mkdtemp(join(tmpdir(),'chat-obs-assets-'));
+ const panel=await serveRemotePanel({action:async data=>data.action==='stop'?{stopped:true}:{},
+   publicOrigin:'http://127.0.0.1',scratch:dir,allowLocalPreview:true});
+ t.after(async()=>{await panel.close();await rm(dir,{recursive:true,force:true});});
+ const url='http://127.0.0.1:'+panel.port+'/popup-view.js';
+ const response=await fetch(url,{redirect:'error'});
+ assert.equal(response.status,200,'stage imports ./popup-view.js; do not return a 404');
+ assert.match(response.headers.get('content-type')||'',/text\/javascript/);
+ assert.match(await response.text(),/export function popupView/);
+});
