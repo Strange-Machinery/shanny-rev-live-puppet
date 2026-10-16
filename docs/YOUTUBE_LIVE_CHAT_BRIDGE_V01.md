@@ -97,3 +97,20 @@ Before any real stream:
 6. Genuine paid $100+ behavior must still be accepted separately under the existing authenticated money pipeline; NEVER test genuine payments in the disconnected research trial.
 
 Rollback: use the original rd/buff-natural-voice-qwen-audit-20261014 source and its original private profile. No source merge and no production promotion until Windows source gates and actual producer hardware/OBS listening are accepted.
+
+
+## October 16 follow-up: tighter source qualification
+
+A separate lightweight source smoke script now exists. From the isolated checkout, use:
+
+```powershell
+& (Join-Path $bootstrap 'scripts/Invoke-YouTubeChatSmoke.ps1')
+```
+
+This runs Node parse checks, focused chat bridge/integration tests, offline Python collector tests, and one JSONL fixture round-trip **without** a YouTube account, model inference, microphones, live-stream or Unity/OBS playback. Use -FullNodeSuite only when npm dependencies can be installed into this isolated clone.
+
+Other repairs on this research branch: the OBS HTTP asset server now serves `popup-view.js` (required by the stage page); the producer status forwards the actual writer route for V620-vs-MSI attribution; chat popups reject extra payment fields; chat uses the message-plaque artwork instead of hotmic artwork; collector reconnects back off if YouTube is offline, and the private panel reports collector-process state and reconnect counts.
+
+**Evidence completed outside the MSI:** Node 22 collector tests 8/8 PASS; Python collector offline tests 3/3 PASS; 12 mocked ConversationSession checks passed with actual fetched session/source logic for both modes. These are *not* Windows/OmniVoice/native OBS acceptance. GitHub Actions runs on this private research branch currently report failed jobs with no executed steps or retrievable logs. Do not equate those GitHub job outcomes with completed tests.
+
+**Not yet done:** full Windows source gate, an actual `pytchat-ng` livestream reception, TTS timing p50/p95, real OBS-visible playback, live money-queue contention and human comedic audition. The production original remains the rollback.
