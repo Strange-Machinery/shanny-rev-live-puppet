@@ -107,7 +107,7 @@ test('chat public popup is not a donation or payment-capable payload',async t=>{
  assert.equal(view.kind,'chat');assert.equal(view.amount,'');
  assert.equal(view.heading,'YOUTUBE LIVE CHAT');
  assert.throws(()=>preparePopupDetails({kind:'chat',chatAuthor:'x'.repeat(61),text:'hi'}));
- const stage=await createStageMedia({token:'read-only-test-token-1234567890'});
+ const stage=await createStageMedia({token:'read-only-test-token-12345678901234567890'});
  t.after(()=>stage.close());
  assert.doesNotThrow(()=>stage.setPopup(details));
  assert.throws(()=>stage.setPopup({type:'chat',donor:'Viewer',message:'',amount:999}));
