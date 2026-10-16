@@ -42,6 +42,7 @@ def watch(video_id):
                     when = stamp_ms(getattr(message, 'timestamp', 0))
                     if not when or when < joined_ms - 10000:
                         continue
+                    saw_text = True
                     author = getattr(message, 'author', None)
                     emit({
                         'source': 'youtube',
