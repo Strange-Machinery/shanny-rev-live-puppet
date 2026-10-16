@@ -66,8 +66,11 @@ def watch(video_id):
                 except Exception:
                     pass
         # Collector never writes to YouTube, to local wallets or to Qwen.
+        if saw_text or time.monotonic() - connected_at > 60:
+            retry = 1
+        else:
+            retry = min(retry * 2, 30)
         time.sleep(retry)
-        retry = min(retry * 2, 30)
 
 
 def main():
