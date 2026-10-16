@@ -133,6 +133,16 @@ test('producer regression: Buff request is a relay to Rev, not Buff speaking as 
   assert.equal(arc.relay.recipient,'REV');
   assert.equal(arc.relay.beneficiary,'SHANNY');
   assert.doesNotMatch(JSON.stringify(arc),/first_BUFF|second_BUFF/);
+  const baseline=hostRelayTurn();
+  baseline.focus_terms=['buff','finish','sentence'];
+  baseline.dialogue_route='The viewer directly addresses BUFF, not either actor.';
+  const original=messages(baseline);
+  const decorated=decorateBlackoutLiveV01(original);
+  const v620=JSON.parse(decorated[1].content);
+  assert.deepEqual(v620.focus_terms,['turn-taking','complete-thought']);
+  assert.match(v620.dialogue_route,/offstage host.*REV.*SHANNY/i);
+  assert.equal(JSON.parse(original[1].content).focus_terms[0],'buff');
+  assert.equal(JSON.parse(original[1].content).dialogue_route,baseline.dialogue_route);
 });
 test('host-only question is not falsely classified as a relay and generic relays remain distinct',()=>{
   assert.equal(detectBlackoutLiveRelay('Buff, what do you think?','BUFF'),null);
