@@ -7,8 +7,9 @@ import {RAIN_CUE_DURATION_MS,RAIN_DANCE_MIN_MS,RAIN_SEAT_SETTLE_MS} from './rain
 
 /** One conversation turn at a time. Only actual playback receipts advance speech. */
 export class ConversationSession {
-  constructor({gateway,director,whisper,presentation,onChange=()=>{},now=Date.now,pause=delay}) {
-    Object.assign(this,{gateway,director,whisper,presentation,onChange,now,pause});
+  constructor({gateway,director,whisper,presentation,onChange=()=>{},now=Date.now,pause=delay,fastSeatedPlayback=false}) {
+    if(typeof fastSeatedPlayback!=='boolean')throw Error('Invalid fast seated research flag');
+    Object.assign(this,{gateway,director,whisper,presentation,onChange,now,pause,fastSeatedPlayback});
     this.mode='muted';this.epoch=0;this.revision=0;this.history=[];this.hinges=[];this.trace=[];this.lastAudienceAddress=null;this.cursor=0;this.turn=null;this.error='';this.lastTiming=null;
   }
   async initialize(){await this.gateway.panic();this.scope=await this.gateway.status();this.cursor=this.scope.cursor;}
@@ -271,6 +272,7 @@ export class ConversationSession {
     const rows=[];if(read)rows.push({line:read,id:readId,read:true});
     for(let i=0;i<plan.lines.length;i++)rows.push({line:plan.lines[i],id:i===0&&first?.id?first.id:await this.queuePrepared(turn,plan.lines[i])});
     for(const row of rows)await this.wait(turn,'speech.prepared',row.id);
+    turn.timing.all_audio_ready_ms=this.now()-turn.started;
     this.check(turn);this.onChange({type:'plan.ready',turn_id:turn.id,lines:plan.lines});
     turn.causalHinge=plan.hinge||null;
     return rows;
@@ -298,7 +300,64 @@ export class ConversationSession {
       throw new Error('OBS did not acknowledge visible paid donation; refusing unseen TTS');
     return acknowledged;
   }
+  /**
+   * Research-only opt-in for synthetic test donations and hotmic.
+   * Release the first approved line after its WAV is ready, while later WAVs
+   * are prepared one ahead during actual playback. Never enters the paid
+   * donation route or the rain choreography. Full Qwen plan validation and
+   * the viewer-visible stage receipt remain mandatory before any release.
+   */
+  async runFastSeated(turn){
+    const read=turn.kind==='donation'?{actor:turn.readActor||'SHANNY',text:turn.text}:null;
+    const readId=read?await this.queuePrepared(turn,read):null;
+    const generatedAt=this.now();let early;
+    const plan=await this.director.generate({kind:turn.kind,text:turn.text,history:this.history,
+      hinges:this.hinges,readBy:turn.kind==='donation'?turn.readActor:null,
+      signal:turn.abort.signal,
+      onFirstLine:line=>{
+        this.check(turn);
+        if(!early){
+          turn.timing.first_line_ms=this.now()-generatedAt;
+          early=this.queuePrepared(turn,line).then(id=>({id}),error=>({error}));
+        }
+      }});
+    this.check(turn);turn.timing.model_ms=this.now()-generatedAt;
+    const first=early?await early:null;this.check(turn);
+    if(first?.error)throw first.error;
+    let nextId=first?.id||await this.queuePrepared(turn,plan.lines[0]);
+    // Only the first fully synthesized and validated reply needs to be
+    // ready before stage reveal. Subsequent speech stays held until needed.
+    await this.wait(turn,'speech.prepared',nextId);
+    turn.timing.first_audio_ready_ms=this.now()-turn.started;
+    if(readId)await this.wait(turn,'speech.prepared',readId);
+    this.check(turn);
+    this.onChange({type:'plan.ready',turn_id:turn.id,lines:plan.lines});
+    await this.presentation.begin({rain:false,popup:turn.popup,signal:turn.abort.signal});
+    this.check(turn);await this.requirePresentationVisible(turn);
+    const visibleAt=this.now();let prior=readId;
+    if(readId){
+      await this.gateway.release({id:readId,session_id:this.scope.session_id,epoch:this.scope.epoch});
+      await this.wait(turn,'playback.started',readId,15000);
+      this.check(turn);this.onChange({type:'line.started',turn_id:turn.id,...read});
+      await this.wait(turn,'playback.finished',readId,45000);
+      this.check(turn);this.onChange({type:'line.finished',turn_id:turn.id,...read});
+    }
+    for(let i=0;i<plan.lines.length;i++){
+      const line=plan.lines[i],id=nextId;
+      await this.wait(turn,'speech.prepared',id);
+      await this.play(turn,line,id,prior,async()=>{
+        if(i+1<plan.lines.length)nextId=await this.queuePrepared(turn,plan.lines[i+1]);
+      });
+      prior=id;
+    }
+    this.check(turn);
+    await this.presentation.end({signal:turn.abort.signal});this.check(turn);
+    if(plan.hinge){this.hinges.push({text:plan.hinge,input:turn.text,kind:turn.kind});this.hinges=this.hinges.slice(-2);}
+    turn.timing.presentation_ms=this.now()-visibleAt;
+  }
   async runPresentation(turn){
+    if(!turn.make_it_rain&&this.fastSeatedPlayback&&['test','hotmic'].includes(turn.popup?.type))
+      return this.runFastSeated(turn);
     let visibleAt,rows;
     if(turn.make_it_rain){
       // Paid $100+ and the checked-rain option are SHOW FIRST.
