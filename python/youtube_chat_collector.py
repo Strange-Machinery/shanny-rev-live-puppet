@@ -70,7 +70,10 @@ def watch(video_id):
             retry = 1
         else:
             retry = min(retry * 2, 30)
-        time.sleep(retry)
+        try:
+            time.sleep(retry)
+        except KeyboardInterrupt:
+            return
 
 
 def main():
