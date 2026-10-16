@@ -9,6 +9,11 @@
 <div class="buttons"><button id="rain-now" class="rain-now" disabled>MAKE IT RAIN NOW!</button></div>
 <p id="rain-now-status" role="status">Manual membership-bomb celebration · paired Shanny/Rev rain dance, no fabricated donation.</p>
 <p>Once connected, paid YouTube Super Chats, Streamlabs tips and StreamElements tips appear automatically. STOP turns automatic reactions off; Shut up only interrupts the current speech.</p></section>
+<section id="chat-controls"><h2>YouTube Live Chat</h2>
+<p>Ordinary chat is read-only and low priority. Super Chats stay on the separate paid donation feed. Configure the video ID privately on the producer computer. Chat never starts automatically.</p>
+<p id="chat-status" role="status">YouTube chat OFF · needs a private video ID.</p>
+<div class="buttons"><button id="chat-enable" disabled>Enable YouTube chat</button><button id="chat-disable" disabled>Disable YouTube chat</button></div>
+<p>Viewer comments can become Qwen-directed Shanny/Rev exchanges; producer STOP or Shut up takes precedence. Existing voices and OBS stage are reused.</p></section>
 <section><h2>Testing</h2><p class="notice" id="service-note">Test session: real speech recognition on the producer computer; character replies and show playback are simulated. No livestream is needed.</p><pre id="dialogue" aria-live="polite"></pre>
 <label for="text">Say something to Shanny and Rev</label><textarea id="text" rows="3" maxlength="1000">Buff, tell Rev to let Shanny finish.</textarea><p>Testing uses the selected seated/rain option above.</p><div class="buttons"><button id="donate">Test donation</button><button id="replay">Test typed response</button></div>
 <h2>Microphone</h2><p>Use your microphone and headphones. Audio is sent privately to your producer only when you finish a recording.</p><select id="device" aria-label="Microphone"><option value="">Default microphone</option></select><button id="mic">Test microphone</button><pre id="result" aria-live="polite"></pre></section>
