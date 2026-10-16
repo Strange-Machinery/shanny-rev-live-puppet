@@ -30,6 +30,8 @@ def watch(video_id):
     retry = 1
     while True:
         chat = None
+        connected_at = time.monotonic()
+        saw_text = False
         try:
             chat = pytchat.create(video_id=video_id)
             retry = 1
