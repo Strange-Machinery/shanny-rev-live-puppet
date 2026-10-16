@@ -168,7 +168,7 @@ test('producer repeating-V620 completion cannot prefetch voice; falls back to un
       assert.equal(JSON.parse(messages[1].content).blackout_live_v01.relay.recipient,'REV');
       return bad;
     }),
-    fallback:async args=>{localCount++;seenLocal=args.messages;return good;}
+    fallback:async args=>{localCount++;seenLocal=args.messages;args.onText?.(good);return good;}
   });
   const director=createBlackoutMicrodirector({complete,notes:'Private cartoon acting direction'});
   const plan=await director.generate({text:producerMessage,kind:'donation',
