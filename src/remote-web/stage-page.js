@@ -117,8 +117,8 @@ function renderPresentation(visible,status){
     donor.textContent='';amount.textContent='';message.textContent='';
     donorKicker.textContent='';messageKicker.textContent='';
   }else{
-    donorKicker.textContent=view.kind==='donation'?'STANK FROM':'LOCAL PREVIEW';
-    messageKicker.textContent='THE MESSAGE';
+    donorKicker.textContent=view.kind==='donation'?'STANK FROM':view.kind==='chat'?'CHAT FROM':'LOCAL PREVIEW';
+    messageKicker.textContent=view.kind==='chat'?'VIEWER SAYS':'THE MESSAGE';
     donor.textContent=view.donor;amount.textContent=view.amount;
     scrollText=view.message;
   }
