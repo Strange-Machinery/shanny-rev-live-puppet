@@ -4,7 +4,7 @@
 param([switch]$SkipFullSuite)
 $ErrorActionPreference='Stop'
 $PSNativeCommandUseErrorActionPreference=$false
-$branch='rd/buff-natural-voice-qwen-audit-20261014'
+$branch='rd/qwen-latency-rnd-20261015'
 $repo='https://github.com/Strange-Machinery/shanny-rev-live-puppet.git'
 $checkout=Join-Path $env:TEMP ('buff-directed-voice-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+(Get-Random -Minimum 100 -Maximum 999))
 foreach($name in @('git','node','npm','python')){
@@ -71,7 +71,7 @@ try{
   'test/live-topic-focus.test.mjs','test/qwen-topic-drift.test.mjs',
   'test/audience-addressee.test.mjs','test/blackout-shanny-heat.test.mjs',
   'test/conversation-session.test.mjs','test/qwen.test.mjs','test/qwen-failover.test.mjs',
-  'test/qwen-character-identity.test.mjs')
+  'test/qwen-character-identity.test.mjs','test/qwen-latency-rnd.test.mjs')
  Gate 'indexed_lore_30ms_budget' 'node' @('scripts/Benchmark-BuffLore.mjs')
  Gate 'python_episode_reference_selection' 'python' @('-m','unittest','discover',
   '-s','python','-p','test_live_episode_delivery.py','-v')
