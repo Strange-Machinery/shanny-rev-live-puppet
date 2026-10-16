@@ -78,6 +78,7 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
         const s=await action({action:'status'});
         if(lease)lease=Date.now()+15000;
         return send(200,{mode:s.mode,whisper:s.whisper_available,qwen:s.qwen,speech:s.speech,
+          qwen_backend:s.qwen_backend||null,last_audience_address:s.last_audience_address||null,
           busy:s.turn_busy||s.conversation_busy||s.active_audio>0,kind:'REMOTE_TESTING',production_ready:false,
             real_characters:Boolean(s.real_characters),history:s.history||[],error:s.error||'',latency:s.latency||null,
               microdirector:s.microdirector||null,media:s.media||null,donations:s.donations||null,
