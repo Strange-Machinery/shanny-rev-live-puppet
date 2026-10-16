@@ -130,12 +130,18 @@ export class ConversationSession {
     this.history.push({...line,input:turn.text,source:turn.kind});this.history=this.history.slice(-8);
     this.onChange({type:'line.finished',...line});
   }
-  async submit({kind,text,audioPath,session_id,mode_epoch,make_it_rain=false,donation}){
+  async submit({kind,text,audioPath,session_id,mode_epoch,make_it_rain=false,donation,chatAuthor=null,readChat=false}){
     if(this.mode!=='live'||this.turn||session_id!==this.scope.session_id||mode_epoch!==this.epoch)throw new Error('Stopped, stale, or busy conversation');
-    if(!['donation','microphone'].includes(kind))throw new Error('Unknown response kind');
+    if(!['donation','microphone','chat'].includes(kind))throw new Error('Unknown response kind');
+    // Viewer identities are display-only, never producer commands or a payment source.
+    if(kind==='chat'&&(typeof chatAuthor!=='string'||chatAuthor.length>60||
+        /[\x00-\x1f\x7f]/.test(chatAuthor)||typeof readChat!=='boolean'))
+      throw new Error('Invalid live-chat metadata');
+    if(kind!=='chat'&&(chatAuthor!==null||readChat!==false))
+      throw new Error('Chat metadata is not allowed on paid or microphone turns');
     if(typeof make_it_rain!=='boolean')throw new Error('Make it rain must be a checkbox choice');
     if(make_it_rain&&!this.presentation)throw new Error('The paired rain presentation is unavailable');
-    const turn={id:randomUUID(),kind,text,make_it_rain,revision:this.revision,abort:new AbortController(),events:[],started:this.now(),
+    const turn={id:randomUUID(),kind,text,make_it_rain,chatAuthor:kind==='chat'?chatAuthor:null,readChat:kind==='chat'&&readChat,revision:this.revision,abort:new AbortController(),events:[],started:this.now(),
       timing:{kind,target_ms:kind==='donation'?15000:8000,transcription_ms:0,model_ms:null,first_reply_ms:null,total_ms:null,within_target:null}};this.turn=turn;this.lastTiming=turn.timing;
     try {
       if(audioPath){if(!this.whisper)throw new Error('Whisper is unavailable');const result=await this.whisper.transcribe({audioPath,signal:turn.abort.signal});this.check(turn);if(result.final!==true)throw new Error('Whisper final transcript required');text=result.text;turn.timing.transcription_ms=this.now()-turn.started;}
@@ -153,14 +159,17 @@ export class ConversationSession {
             turn.audienceAddress.target:parsed.actor;
       }else{
         turn.audienceAddress=identifyAudienceAddressee(text);
+        if(kind==='chat'&&turn.readChat)
+          turn.readActor=['SHANNY','REV'].includes(turn.audienceAddress.target)?
+            turn.audienceAddress.target:'SHANNY';
       }
       turn.text=text;
       this.lastAudienceAddress={target:turn.audienceAddress.target,
         basis:turn.audienceAddress.basis,
-        read_by:kind==='donation'?turn.readActor:null};
+        read_by:kind==='donation'||kind==='chat'&&turn.readChat?turn.readActor:null};
       // Public popup data is strictly whitelisted; never publish private
       // transaction IDs or invent donor/amount fields for hotmic turns.
-      turn.popup=preparePopupDetails({kind,donation,text});
+      turn.popup=preparePopupDetails({kind,donation,text,chatAuthor:turn.chatAuthor});
       turn.task=this.run(turn).catch(async error=>{
         if(this.current(turn)){this.error=error.message;await this.stop().catch(()=>{});}
       }).finally(()=>{turn.timing.total_ms=this.now()-turn.started;if(this.turn===turn)this.turn=null;});
@@ -222,7 +231,7 @@ export class ConversationSession {
   async run(turn){
     if(this.presentation)return this.runPresentation(turn);
     let prior;
-    if(turn.kind==='donation'){
+    if(turn.kind==='donation'||turn.kind==='chat'&&turn.readChat){
       const read=await this.gateway.speak({actor:turn.readActor||'SHANNY',text:turn.text,delivery:'queue',session_id:this.scope.session_id,epoch:this.scope.epoch});
       await this.wait(turn,'playback.started',read.request_id,120000);prior=read.request_id;
     }
@@ -230,6 +239,7 @@ export class ConversationSession {
     let preparation;
     const plan=await this.director.generate({kind:turn.kind,text:turn.text,history:this.history,
       hinges:this.hinges,readBy:turn.kind==='donation'?turn.readActor:null,
+      chatAuthor:turn.kind==='chat'?turn.chatAuthor:null,
       signal:turn.abort.signal,
       onFirstLine:line=>{
         this.check(turn);
@@ -259,11 +269,12 @@ export class ConversationSession {
     // The exact same voice/plan verification is shared by both paths.
     // Seated starts hidden until this finishes; RAIN starts on stage first,
     // while these fully held voices are prepared in parallel.
-    const read=turn.kind==='donation'?{actor:turn.readActor||'SHANNY',text:turn.text}:null;
+    const read=turn.kind==='donation'||turn.kind==='chat'&&turn.readChat?{actor:turn.readActor||'SHANNY',text:turn.text}:null;
     const readId=read?await this.queuePrepared(turn,read):null;
     const generatedAt=this.now();let early;
     const plan=await this.director.generate({kind:turn.kind,text:turn.text,history:this.history,
       hinges:this.hinges,readBy:turn.kind==='donation'?turn.readActor:null,
+      chatAuthor:turn.kind==='chat'?turn.chatAuthor:null,
       signal:turn.abort.signal,
       onFirstLine:line=>{this.check(turn);if(!early)early=this.queuePrepared(turn,line).then(id=>({id}),error=>({error}));}});
     this.check(turn);turn.timing.model_ms=this.now()-generatedAt;
