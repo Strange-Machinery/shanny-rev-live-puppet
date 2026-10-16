@@ -13,7 +13,7 @@ const scroller=createMessageScroller({viewport:$('message-viewport'),content:mes
 // Both approved painted flipbooks are served from the producer, not external
 // image hosts. If assets have not been installed, retain the basic HUD.
 const painted=new Set();
-const imageForKind=kind=>kind==='donation'||kind==='test'?'donation':'hotmic';
+const imageForKind=kind=>['donation','test','chat'].includes(kind)?'donation':'hotmic';
 if(typeof Image==='function'){
   for(const [mode,url] of [['donation','/popup-art.webp'],['hotmic','/popup-hotmic.webp']]){
     const image=new Image();
