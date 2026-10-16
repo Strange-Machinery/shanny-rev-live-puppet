@@ -64,7 +64,7 @@ test('ordinary viewer chat cannot use rain, or inject chat fields into paid requ
  const f=fixture();await f.session.initialize();const scope=await f.session.arm();
  await assert.rejects(
    f.session.submit({kind:'chat',chatAuthor:'Viewer',text:'hello',make_it_rain:true,...scope}),
-   /paired rain presentation|Make it rain/i);
+   /cannot authorize money rain|paired rain presentation|Make it rain/i);
  await assert.rejects(
    f.session.submit({kind:'donation',chatAuthor:'Viewer',text:'a payment',...scope}),
    /Chat metadata/);
