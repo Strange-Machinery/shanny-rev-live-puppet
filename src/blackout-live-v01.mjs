@@ -90,9 +90,26 @@ export function decorateBlackoutLiveV01(messages){
   if(turn?.kind!=='donation'&&turn?.kind!=='microphone')return messages;
   if(Object.hasOwn(turn,'blackout_live_v01'))
     throw Error('BLACKOUT_LIVE direction already present');
+  const arc=planBlackoutLiveV01(turn);
+  const relay=arc.relay;
+  // The baseline BUFF audience route says neither actor was addressed. For an
+  // actual host relay, replace that generic instruction ON V620 ONLY with the
+  // meaning of the requested onstage action, never another quote of the input.
+  const relayFields=relay?{
+    dialogue_route:relay.goal==='give_other_actor_room_to_speak'?
+      'The viewer asks the offstage host to have '+relay.recipient+' make room for '+
+      (relay.beneficiary||'the other character')+' to complete one real thought. '+
+      'The onstage actors address the issue as themselves; nobody impersonates the host.':
+      'The viewer asks the offstage host to pass a request to '+relay.recipient+'. '+
+      'The onstage characters address the actual request as themselves.',
+    focus_terms:relay.goal==='give_other_actor_room_to_speak'?
+      ['turn-taking','complete-thought']:
+      (Array.isArray(turn.focus_terms)?turn.focus_terms:[]).filter(x=>
+        !['buff','buffweeb','1buffweeb'].includes(x))
+  }:{};
   const result=[
     {...messages[0],content:messages[0].content+'\n'+INSTRUCTION},
-    {...messages[1],content:JSON.stringify({...turn,blackout_live_v01:planBlackoutLiveV01(turn)})}
+    {...messages[1],content:JSON.stringify({...turn,...relayFields,blackout_live_v01:arc})}
   ];
   if(JSON.stringify(result).length>12000)throw Error('BLACKOUT_LIVE prompt budget exceeded');
   return result;
