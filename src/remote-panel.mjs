@@ -45,7 +45,8 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
       // OBS Browser source must continue reacting while Buff's launcher is
       // closed. Live opt-in cannot be silently disabled by panel lease expiry.
       const state=await action({action:'donation-status'}).catch(()=>({}));
-      if(!state?.enabled)await halt();
+      const chat=await action({action:'chat-status'}).catch(()=>({}));
+      if(!state?.enabled&&!chat?.enabled)await halt();
     })().catch(()=>{});
   },1000);
   timer.unref();
@@ -79,7 +80,8 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
         return send(200,{mode:s.mode,whisper:s.whisper_available,qwen:s.qwen,speech:s.speech,
           busy:s.turn_busy||s.conversation_busy||s.active_audio>0,kind:'REMOTE_TESTING',production_ready:false,
             real_characters:Boolean(s.real_characters),history:s.history||[],error:s.error||'',latency:s.latency||null,
-              microdirector:s.microdirector||null,media:s.media||null,donations:s.donations||null});
+              microdirector:s.microdirector||null,media:s.media||null,donations:s.donations||null,
+              youtube_chat:s.youtube_chat||{enabled:false,configured:false}});
       }
       if(req.method!=='POST'||req.url!=='/api/action')return send(404,{error:'Unavailable.'});
       if(!String(req.headers['content-type']).startsWith('application/json'))return send(415,{error:'JSON required.'});
@@ -110,6 +112,10 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
         return send(200,await action({action:'donation-mode',make_it_rain:input.make_it_rain===true}));
       }
       if(requestRevision!==revision)return send(409,{error:'Cancelled.'});
+      if(input.action==='chat-enable'||input.action==='chat-disable'){
+        lease=Date.now()+15000;
+        return send(200,await action({action:input.action}));
+      }
       if(input.action==='animate') {
         const result=await action({action:'animate',id:input.id,target:input.target,context:input.context,catalogRevision:input.catalogRevision});
         if(requestRevision!==revision)return send(409,{error:'Cancelled.'});
