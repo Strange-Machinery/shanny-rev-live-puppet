@@ -80,3 +80,15 @@ test('bounded backlog, no raw chat in diagnostics, and structured stdout',async(
  assert.equal(f.chat.status().queue_depth,24);
  await f.chat.disable();
 });
+
+
+test('failed child process can reconnect and error+exit count only once',async()=>{
+ const f=fixture();await f.chat.enable();
+ const proc=f.processes[0];
+ proc.emit('error',new Error('ENOENT'));
+ assert.equal(f.chat.status().collector_running,false);
+ assert.equal(f.chat.status().counts.reconnects,1);
+ proc.emit('exit',1);
+ assert.equal(f.chat.status().counts.reconnects,1);
+ await f.chat.disable();
+});
