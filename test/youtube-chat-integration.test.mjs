@@ -39,6 +39,7 @@ test('chat React is never spoken as a donation; uses existing live director',asy
  const f=fixture();await f.session.initialize();const scope=await f.session.arm();
  await f.session.submit({kind:'chat',chatAuthor:'Viewer',text:'Shanny, why that bucket?',...scope});
  await until(()=>f.calls.length===1);
+ await until(()=>f.spoken.length===1);
  assert.equal(f.calls[0].kind,'chat');
  assert.equal(f.calls[0].chatAuthor,'Viewer');
  assert.equal(f.spoken.length>0,true);
