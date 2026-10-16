@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {planBlackoutLiveV01,decorateBlackoutLiveV01,withBlackoutLiveV01} from '../src/blackout-live-v01.mjs';
+import {detectBlackoutLiveRelay,planBlackoutLiveV01,decorateBlackoutLiveV01,assertBlackoutLiveSpeech,withBlackoutLiveV01} from '../src/blackout-live-v01.mjs';
 import {createQwenFailover} from '../src/providers/qwen-failover.mjs';
 
 const turn=(first='SHANNY',lane='direct_attack',input='Shanny, why are you blaming Rev?')=>({
@@ -110,4 +110,84 @@ test('STOP during profiled V620 completion never launches MSI or emits stale aud
   await assert.rejects(complete({messages:messages(),signal:controller.signal,
     onText:()=>early++}),/cancelled/);
   assert.equal(backup,0);assert.equal(early,0);
+});
+
+const producerMessage='buff, tell rev to let shanny finish her sentence.';
+const hostRelayTurn=()=>({...turn('SHANNY','direct_attack',producerMessage),
+  audience_address:{target:'BUFF',basis:'direct-vocative'}});
+const response=(shanny,rev)=>JSON.stringify({
+  hinge:'The viewer wants Rev to stop cutting Shanny off.',
+  first_SHANNY:{text:shanny,mood:'anger'},
+  second_REV:{text:rev,mood:'irritated'},
+  rev_reason:'Rev challenges Shanny or gives her space.'
+});
+
+test('producer regression: Buff request is a relay to Rev, not Buff speaking as a character',()=>{
+  assert.deepEqual(detectBlackoutLiveRelay(producerMessage,'BUFF'),{
+    kind:'host_relay',recipient:'REV',goal:'give_other_actor_room_to_speak',beneficiary:'SHANNY'
+  });
+  const arc=planBlackoutLiveV01(hostRelayTurn());
+  assert.deepEqual(arc.beats.map(x=>x.slot),['first_SHANNY','second_REV','third_SHANNY']);
+  assert.match(arc.beats[0].objective,/COMPLETE one actual thought/);
+  assert.match(arc.beats[1].objective,/grants speaking space/);
+  assert.equal(arc.relay.recipient,'REV');
+  assert.equal(arc.relay.beneficiary,'SHANNY');
+  assert.doesNotMatch(JSON.stringify(arc),/first_BUFF|second_BUFF/);
+});
+test('host-only question is not falsely classified as a relay and generic relays remain distinct',()=>{
+  assert.equal(detectBlackoutLiveRelay('Buff, what do you think?','BUFF'),null);
+  assert.equal(detectBlackoutLiveRelay('Rev, tell Buff to behave','REV'),null);
+  assert.deepEqual(detectBlackoutLiveRelay('Hey Buff, ask Shanny why she is upset','BUFF'),
+    {kind:'host_relay',recipient:'SHANNY',goal:'address_viewer_request'});
+});
+test('exact repeating words and echoed Buff phrases fail V620-only speech validation',()=>{
+  const relay=detectBlackoutLiveRelay(producerMessage,'BUFF');
+  assert.throws(()=>assertBlackoutLiveSpeech(response(
+    'Sentence sentence sentence!','You are a Buff, you are a Buff, a Buff.'),relay),/repetitive speech blocked/);
+  assert.throws(()=>assertBlackoutLiveSpeech(response(
+    'I am Buff and I am the host.','Please carry on.'),relay),/host identity confusion/);
+  assert.throws(()=>assertBlackoutLiveSpeech(response(
+    'I was trying to finish a real point.','I was trying to finish a real point.'),relay),/repeated dialogue/);
+});
+test('normal anger, natural short emphasis and a substantive response remain acceptable',()=>{
+  const relay=detectBlackoutLiveRelay(producerMessage,'BUFF');
+  assert.doesNotThrow(()=>assertBlackoutLiveSpeech(response(
+    'No, no, no. I want to explain why I am frustrated without Jason stepping on every word.',
+    'I disagree with your explanation, Shanny, but say the part you wanted to finish.'),relay));
+});
+test('producer repeating-V620 completion cannot prefetch voice; falls back to unchanged MSI once',async()=>{
+  const actual=messages(hostRelayTurn());const snapshot=JSON.stringify(actual);
+  let localCount=0,firstPrefetch=0,remoteCount=0,seenLocal;
+  const bad=response('Sentence sentence sentence!',"You're a Buff, you're a Buff, a Buff!");
+  const good=response('Rev, I am explaining why I need you to listen without cutting me off.',
+    'I think you talk over me too, but go on and finish your point.');
+  const complete=createQwenFailover({
+    probe:async()=>true,
+    primary:withBlackoutLiveV01(async({messages,onText})=>{
+      remoteCount++;assert.equal(onText,undefined);
+      assert.equal(JSON.parse(messages[1].content).blackout_live_v01.relay.recipient,'REV');
+      return bad;
+    }),
+    fallback:async args=>{localCount++;seenLocal=args.messages;return good;}
+  });
+  const director=createBlackoutMicrodirector({complete,notes:'Private cartoon acting direction'});
+  const plan=await director.generate({text:producerMessage,kind:'donation',
+    onFirstLine:()=>firstPrefetch++});
+  assert.deepEqual(plan.lines.map(x=>x.actor),['SHANNY','REV']);
+  assert.equal(remoteCount,1);assert.equal(localCount,1);
+  assert.equal(firstPrefetch,1,'only the accepted local result may enter held first-line preparation');
+  assert.equal(complete.status().last_route,'msi');
+  assert.equal(complete.status().last_reason,'remote-generation-failed');
+  assert.equal(JSON.stringify(actual),snapshot);
+  assert.ok(Array.isArray(seenLocal));
+  assert.equal(JSON.parse(seenLocal[1].content).blackout_live_v01,undefined);
+});
+test('V620-only repetition rejection does not affect silent startup warmup',async()=>{
+  const warmup=[{role:'system',content:'Be ready'},
+    {role:'user',content:'Silent startup check: return only {"ready":true}.'}];
+  const complete=withBlackoutLiveV01(async({messages})=>{
+    assert.equal(messages,warmup);
+    return '{"ready":true}';
+  });
+  assert.equal(await complete({messages:warmup}),'{"ready":true}');
 });
