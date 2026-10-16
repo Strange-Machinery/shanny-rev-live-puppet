@@ -112,3 +112,19 @@ test('chat public popup is not a donation or payment-capable payload',async t=>{
  assert.doesNotThrow(()=>stage.setPopup(details));
  assert.throws(()=>stage.setPopup({type:'chat',donor:'Viewer',message:'',amount:999}));
 });
+
+
+test('invalid untrusted chat plan clears held audio and safely re-arms without latching STOP',async()=>{
+ const f=fixture();
+ f.session.director.generate=async()=>{throw new Error('Rejected viewer plan');};
+ await f.session.initialize();const scope=await f.session.arm();
+ await f.session.submit({kind:'chat',chatAuthor:'Viewer',
+   text:'Rev, explain the bucket.',...scope});
+ await until(()=>f.session.revision>0);
+ await until(()=>f.session.mode==='live'&&!f.session.turn);
+ assert.equal(f.session.mode,'live');
+ assert.equal(f.released.length,0);
+ const previous=f.session.revision;
+ await f.session.stop();
+ assert.ok(f.session.revision>previous);
+});
