@@ -34,7 +34,6 @@ def watch(video_id):
         saw_text = False
         try:
             chat = pytchat.create(video_id=video_id)
-            retry = 1
             while chat.is_alive():
                 for message in chat.get().sync_items():
                     # Never turn a paid event into a plain chat reaction.
