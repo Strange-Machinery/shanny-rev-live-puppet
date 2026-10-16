@@ -53,7 +53,9 @@ function showChat(c){
    ' · '+(c.mode==='read'?'Read and react':'React')+
    ' · queued '+(Number(c.queue_depth)||0)+
    ' · accepted '+(Number(counts.accepted)||0)+
-   ' · ignored '+(Number(counts.ignored)||0);
+   ' · ignored '+(Number(counts.ignored)||0)+
+   (c.enabled?(c.collector_running?' · collector process running':' · collector restarting'):'')+
+   ' · reconnects '+(Number(counts.reconnects)||0);
  $('chat-enable').disabled=!online||!c.configured||c.enabled;
  $('chat-disable').disabled=!online||!c.enabled;
 }
