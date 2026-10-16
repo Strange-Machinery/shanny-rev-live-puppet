@@ -140,6 +140,7 @@ export class ConversationSession {
     if(kind!=='chat'&&(chatAuthor!==null||readChat!==false))
       throw new Error('Chat metadata is not allowed on paid or microphone turns');
     if(typeof make_it_rain!=='boolean')throw new Error('Make it rain must be a checkbox choice');
+    if(kind==='chat'&&make_it_rain)throw new Error('Live chat cannot authorize money rain');
     if(make_it_rain&&!this.presentation)throw new Error('The paired rain presentation is unavailable');
     const turn={id:randomUUID(),kind,text,make_it_rain,chatAuthor:kind==='chat'?chatAuthor:null,readChat:kind==='chat'&&readChat,revision:this.revision,abort:new AbortController(),events:[],started:this.now(),
       timing:{kind,target_ms:kind==='donation'?15000:8000,transcription_ms:0,model_ms:null,first_reply_ms:null,total_ms:null,within_target:null}};this.turn=turn;this.lastTiming=turn.timing;
