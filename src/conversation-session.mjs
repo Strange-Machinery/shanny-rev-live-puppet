@@ -172,7 +172,15 @@ export class ConversationSession {
       // transaction IDs or invent donor/amount fields for hotmic turns.
       turn.popup=preparePopupDetails({kind,donation,text,chatAuthor:turn.chatAuthor});
       turn.task=this.run(turn).catch(async error=>{
-        if(this.current(turn)){this.error=error.message;await this.stop().catch(()=>{});}
+        if(this.current(turn)){
+          this.error=error.message;
+          // An untrusted chat stimulus must never permanently STOP the show
+          // when Qwen rejects its plan. Quarantine that turn, clear its held
+          // audio, and re-arm the already-authorized producer session.
+          if(turn.kind==='chat')
+            await this.silence().catch(()=>this.stop().catch(()=>{}));
+          else await this.stop().catch(()=>{});
+        }
       }).finally(()=>{turn.timing.total_ms=this.now()-turn.started;if(this.turn===turn)this.turn=null;});
       return {status:'accepted',turn_id:turn.id,transcript:text,transcription_kind:audioPath?'LOCAL_WHISPER':'TEXT_REPLAY',kind:'REAL_CHARACTERS'};
     }catch(error){if(this.turn===turn)this.turn=null;throw error;}
