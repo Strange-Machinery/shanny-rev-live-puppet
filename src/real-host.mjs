@@ -177,8 +177,8 @@ export async function serveRealHost(config){
     let monitorBusy=false;
     monitor=setInterval(async()=>{
       if(closed||monitorBusy||session.mode!=='live')return;monitorBusy=true;
-      try {const {stage}=await gateway.metrics();if(!stage||Date.now()-stage.received_unix_ms>4000||player.exitCode!==null||model.exitCode!==null)await session.stop();}
-      catch {await session.stop().catch(()=>{});}finally{monitorBusy=false;}
+      try {const {stage}=await gateway.metrics();if(!stage||Date.now()-stage.received_unix_ms>4000||player.exitCode!==null||model.exitCode!==null){await chat?.disable();await session.stop();}}
+      catch {await chat?.disable().catch(()=>{});await session.stop().catch(()=>{});}finally{monitorBusy=false;}
     },1000);
     let manualRainArming=false;
     const action=async data=>{
