@@ -14,7 +14,7 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
   const assets=new Map();
   if(viewerKey!==undefined&&(typeof viewerKey!=='string'||!/^[a-f0-9]{64}$/.test(viewerKey)))throw new Error('Invalid private view-only OBS key');
   const viewToken=viewerKey||createHmac('sha256',token).update('buff-obs-view-v1').digest('hex');
-  for(const [route,file,type] of [['/','index.html','text/html'],['/stage','stage.html','text/html'],['/stage-player.js','stage-player.js','text/javascript'],['/stage-page.js','stage-page.js','text/javascript'],['/panel.js','panel.js','text/javascript'],['/mic-worklet.js','mic-worklet.js','text/javascript'],['/panel.css','panel.css','text/css'],['/stage.css','stage.css','text/css']])
+  for(const [route,file,type] of [['/','index.html','text/html'],['/stage','stage.html','text/html'],['/stage-player.js','stage-player.js','text/javascript'],['/stage-page.js','stage-page.js','text/javascript'],['/popup-view.js','popup-view.js','text/javascript'],['/panel.js','panel.js','text/javascript'],['/mic-worklet.js','mic-worklet.js','text/javascript'],['/panel.css','panel.css','text/css'],['/stage.css','stage.css','text/css']])
     assets.set(route,{body:await readFile(new URL('./remote-web/'+file,import.meta.url)),type});
   // Source-painted transparent 12-cel assets are producer-installed, not
   // external URLs. Missing artwork leaves the existing simple HUD operational.
