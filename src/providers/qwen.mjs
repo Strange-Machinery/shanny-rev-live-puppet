@@ -58,11 +58,21 @@ export function createQwenCompletion({ endpoint, model, apiKey = '', timeoutMs =
             : { type:'json_object', ...(responseSchema?{schema:responseSchema}:{}) },
           chat_template_kwargs: { enable_thinking: false } })
       });
+      // Header arrival is not TTFT for a non-streaming endpoint.
+      // It is recorded separately to distinguish request/server work
+      // from response-body transfer without exposing any prompt or text.
+      const responseHeadersMs=performance.now()-start;
       // Do not echo remote errors: they may contain private prompt text.
       if (!reply.ok) { await reply.body?.cancel(); throw new Error('Qwen HTTP ' + reply.status); }
       if(streaming){
-        const content=await readQwenStream(reply,combined,onText);
-        onTiming({model,completion_ms:performance.now()-start,status:'ok'});return content;
+        let firstContentMs=null;
+        const content=await readQwenStream(reply,combined,raw=>{
+          if(firstContentMs===null&&raw.length>0)firstContentMs=performance.now()-start;
+          onText(raw);
+        });
+        onTiming({model,completion_ms:performance.now()-start,
+          response_headers_ms:responseHeadersMs,first_content_ms:firstContentMs,status:'ok'});
+        return content;
       }
       const value = await readJson(reply, 16_000);
       combined.throwIfAborted();
@@ -73,7 +83,14 @@ export function createQwenCompletion({ endpoint, model, apiKey = '', timeoutMs =
           /<\/?think>/i.test(choice.message.content)) {
         throw new Error('Qwen output truncated, thinking, or malformed');
       }
-      onTiming({ model, completion_ms: performance.now() - start, status:'ok' });
+      // Token counts are provided by the serving backend only when known.
+      // This is a total request duration, not decode-only tokens/second.
+      const usage=value.usage||{};
+      onTiming({model,completion_ms:performance.now()-start,
+        response_headers_ms:responseHeadersMs,
+        ...(Number.isSafeInteger(usage.prompt_tokens)&&usage.prompt_tokens>=0?{prompt_tokens:usage.prompt_tokens}:{}),
+        ...(Number.isSafeInteger(usage.completion_tokens)&&usage.completion_tokens>=0?{completion_tokens:usage.completion_tokens}:{}),
+        status:'ok'});
       // Remote LM Studio is non-streaming; never expose unvalidated partial
       // remote text to TTS's speculative voice-preparation callback.
       if (typeof onText === 'function') onText(choice.message.content);
@@ -85,6 +102,8 @@ export function createQwenCompletion({ endpoint, model, apiKey = '', timeoutMs =
         onTiming({model,completion_ms:performance.now()-start,status:'timeout'});
         throw new Error('Qwen '+(placement==='off-device'?'remote':'CPU')+' timeout after '+timeoutMs+' ms');
       }
+      onTiming({model,completion_ms:performance.now()-start,
+        status:signal?.aborted?'cancelled':'error'});
       throw error;
     } finally { busy = false; }
   };
