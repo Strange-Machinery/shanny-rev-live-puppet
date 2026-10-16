@@ -110,7 +110,7 @@ test('chat public popup is not a donation or payment-capable payload',async t=>{
  const stage=await createStageMedia({token:'read-only-test-token-12345678901234567890'});
  t.after(()=>stage.close());
  assert.doesNotThrow(()=>stage.setPopup(details));
- assert.throws(()=>stage.setPopup({type:'chat',donor:'Viewer',message:'',amount:999}));
+ assert.throws(()=>stage.setPopup({type:'chat',donor:'Viewer',message:'hello',amount:999}));
 });
 
 
