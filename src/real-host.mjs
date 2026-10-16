@@ -22,6 +22,7 @@ import {waitForVoiceMemory} from './gpu-readiness.mjs';
 import {createStageMedia} from './stage-media.mjs';
 import {serveRemotePanel} from './remote-panel.mjs';
 import {LiveDonations} from './donations/live-donations.mjs';
+import {createYouTubeChatBridge} from './youtube-chat-bridge.mjs';
 import {loadOrCreateViewerKey} from './obs-viewer-key.mjs';
 import {createCameraFlipGate} from './audience-reactions.mjs';
 
@@ -47,10 +48,11 @@ export async function serveRealHost(config){
     await unlink(lockPath);lock=await open(lockPath,'wx');
   }
   await lock.writeFile(JSON.stringify({pid:process.pid}));
-  const children=[],logs=[];let live,session,http,voice,whisper,monitor,media,preview,donations,closed=false;
+  const children=[],logs=[];let live,session,http,voice,whisper,monitor,media,preview,donations,chat,closed=false;
   const stopChildren=()=>{for(const child of children)if(child.exitCode===null)child.kill();};
   const close=async()=>{
     if(closed)return;closed=true;clearInterval(monitor);
+    await chat?.disable().catch(()=>{});
     await preview?.close();await donations?.close().catch(()=>{});
     await session?.stop().catch(()=>{});stopChildren();
     await whisper?.close();
@@ -203,6 +205,7 @@ export async function serveRealHost(config){
           source_echo_flags:director.audit({history:session.history})}:{enabled:false},
         media:media?.info()||null,
         presentation_visible:media?.info().presentation_visible||false,donations:donations?.status()||null,
+        youtube_chat:chat?.status()||{enabled:false,configured:false},
         preview_url:preview?'http://127.0.0.1:'+preview.port+'/#key='+preview.token:null};
       if(data.action?.startsWith('media-')){if(!media)throw new Error('Stage feed not configured');return media.viewer(data);}
       if(data.action==='animations')return animations.menu();
@@ -228,6 +231,15 @@ export async function serveRealHost(config){
           return session.startRainNow();
         }finally{manualRainArming=false;}
       }
+      if(data.action==='chat-status')return chat.status();
+      if(data.action==='chat-enable'){
+        if(!microdirectorEnabled)throw new Error('YouTube chat requires the opt-in Microdirector');
+        if(!media?.info().available)throw new Error('Connect the paired character stage before enabling live chat');
+        if(session.turn)throw new Error('The current character turn is still running');
+        if(session.mode!=='live')await session.arm();
+        return chat.enable();
+      }
+      if(data.action==='chat-disable')return chat.disable();
       if(data.action==='donation-status')return donations.status();
       if(data.action==='donation-enable'){
         const ready=media?.info();
@@ -238,8 +250,12 @@ export async function serveRealHost(config){
       }
       if(data.action==='donation-mode')return donations.setMode(data.make_it_rain);
       if(data.action==='donation-stop')return donations.stop();
-      if(data.action==='silence')return donations.queue.enabled?donations.silence():session.silence();
-      if(data.action==='stop'){animations.stop();
+      if(data.action==='silence'){
+        // Do not allow a new viewer chat line to undo Buff's Shut up command.
+        await chat.disable();
+        return donations.queue.enabled?donations.silence():session.silence();
+      }
+      if(data.action==='stop'){await chat.disable();animations.stop();
         if(donations)await donations.stop();else await session.stop();
         return {stopped:true};}
       if(data.action==='arm'){
@@ -265,8 +281,17 @@ export async function serveRealHost(config){
       catch(error){if(error.code!=='ENOENT')throw error;}
     }
     donations=new LiveDonations({directory:join(root,'donation-intake'),config:donationConfig,
-      host:async data=>data.action==='stop'?(await session.stop(),{stopped:true}):
-        data.action==='silence'?session.silence():action(data)});
+      host:async data=>data.action==='stop'?(await chat?.disable(),await session.stop(),{stopped:true}):
+        data.action==='silence'?(await chat?.disable(),session.silence()):action(data)});
+    // Separate low-priority, non-payment reader. Source is OFF until trusted
+    // producer explicitly enables it. Paid authority and rain ledger untouched.
+    const chatCfg=config.youtubeChat||{};
+    chat=createYouTubeChatBridge({session,
+      paidBusy:()=>{const q=donations.queue,state=q.status();
+        return Boolean(q.enabled&&(state.pending>0||state.inflight>0||q.task));},
+      videoId:chatCfg.videoId||'',fixture:chatCfg.fixture||'',
+      python:chatCfg.python||config.omnivoice?.python||'python',
+      mode:chatCfg.mode||'react',minGapMs:chatCfg.minGapMs??12000});
     if(media)preview=await serveRemotePanel({action,publicOrigin:'http://127.0.0.1',
       allowLocalPreview:true,scratch:join(root,'preview'),
       viewerKey:loadOrCreateViewerKey(join(root,'obs-viewer-key.local.json'))});
