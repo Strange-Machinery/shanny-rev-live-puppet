@@ -203,7 +203,9 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
         throw new Error('Invalid public popup message');
       if(details.type==='test'){popup={type:'test',message:details.message};return;}
       if(details.type==='chat'){
-        if(!details.message.trim()||details.message.length>450||
+        // A chat event cannot smuggle amount, currency or trusted paid fields.
+        if(Object.keys(details).sort().join(',')!=='donor,message,type'||
+           !details.message.trim()||details.message.length>450||
            typeof details.donor!=='string'||details.donor.length>60||
            /[\x00-\x1f\x7f]/.test(details.donor))
           throw new Error('Invalid public chat display fields');
