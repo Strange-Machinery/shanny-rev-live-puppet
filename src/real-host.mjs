@@ -72,10 +72,13 @@ export async function serveRealHost(config){
     await waitUntil(async()=>{if(model.exitCode!==null)throw new Error('Local Qwen exited; inspect producer diagnostics');try{return (await fetch('http://127.0.0.1:'+port+'/health',{signal:AbortSignal.timeout(1500)})).ok;}catch{return false;}},120000);
     const notes=await readFile(config.characterNotes,'utf8');
     const examples=config.approvedExamples?JSON.parse(await readFile(config.approvedExamples,'utf8')):[];
+    // Content-free per-writer last-completion diagnostics; private panel only.
+    const qwenDiagnostics={msi:null,v620:null};
     const localComplete=createQwenCompletion({endpoint:'http://127.0.0.1:'+port+'/v1/chat/completions',model:modelName,apiKey:qwenKey,placement:'cpu',
       // Preserve the exact warm local CPU Qwen fallback and legacy behavior.
       timeoutMs:microdirectorEnabled?24000:12000,
       maxTokens:microdirectorEnabled?384:240,
+      onTiming:timing=>{qwenDiagnostics.msi=timing;},
       ...(microdirectorEnabled?{temperature:0.7,topP:0.9}:{})});
     // V620 routing is opt-in, in the isolated Microdirector profile only.
     // No provider credentials, native Unity, or approved OmniVoice settings
@@ -89,7 +92,8 @@ export async function serveRealHost(config){
         endpoint:'http://'+v620Host+':1234/v1/chat/completions',
         model:v620Model,placement:'off-device',responseFormat:'lmstudio',
         trustedTailnetHost:v620Host,
-        timeoutMs:30000,maxTokens:512,temperature:0.7,topP:0.9
+        timeoutMs:30000,maxTokens:512,temperature:0.7,topP:0.9,
+        onTiming:timing=>{qwenDiagnostics.v620=timing;}
       });
       const probe=createV620ModelProbe({host:v620Host,model:v620Model,timeoutMs:1500});
       complete=createQwenFailover({primary:remote,fallback:localComplete,probe,cooldownMs:10000});
@@ -125,6 +129,7 @@ export async function serveRealHost(config){
     // Per-producer/actor performance gate, not an audience-controlled stage command.
     const cameraFlipGate=createCameraFlipGate();
     session=new ConversationSession({gateway,director,whisper,
+      fastSeatedPlayback:microdirectorEnabled&&config.microdirector?.fastSeatedPlayback===true,
       onChange:event=>{
         if(!media)return;
         if(event.type==='line.started'){
@@ -197,6 +202,8 @@ export async function serveRealHost(config){
             lanes:['direct_attack','disgust_contempt','wounded_victim','insular_crying','contained_blackout']},
           audience_roles:'viewer-address-v1',topic_focus:'superchat-only-v1',
           background_notes_in_qwen_prompt:false,offtopic_voice_prefetch_blocked:true,
+          latency_rnd:{fast_seated_synthetic_only:session.fastSeatedPlayback,
+            provider_timings:qwenDiagnostics},
           lore_index:liveLoreStats(),
           available_delivery_codes:voice.availableEpisodeCodes,
           qualified_samples_by_code:voice.availableEpisodeCounts,
