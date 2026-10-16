@@ -7,7 +7,7 @@ export function createQwenCompletion({ endpoint, model, apiKey = '', timeoutMs =
   maxTokens = 192, temperature = 1, topP = 1,
   placement, resourceHeadroomVerified = false, request = fetch,
   responseFormat = 'llamacpp', trustedTailnetHost = null,
-  onTiming = () => {} } = {}) {
+  diagnosticRemoteSse = false, onTiming = () => {} } = {}) {
   const url = new URL(endpoint);
   const loopback = ['127.0.0.1', '[::1]', 'localhost'].includes(url.hostname);
   // A deliberate, exact private Tailscale HTTP peer is permitted only when
@@ -29,6 +29,8 @@ export function createQwenCompletion({ endpoint, model, apiKey = '', timeoutMs =
     throw new Error('Declare Qwen placement; local GPU requires verified resource headroom');
   }
   if (!['llamacpp','lmstudio'].includes(responseFormat) ||
+      typeof diagnosticRemoteSse!=='boolean' ||
+      (diagnosticRemoteSse && !(responseFormat==='lmstudio' && placement==='off-device')) ||
       (responseFormat === 'lmstudio' && placement !== 'off-device') ||
       (responseFormat === 'llamacpp' && tailnet) ||
       typeof model !== 'string' || !model.trim() || model.length > 200 ||
@@ -47,7 +49,10 @@ export function createQwenCompletion({ endpoint, model, apiKey = '', timeoutMs =
     const start = performance.now();
     const combined = AbortSignal.any([AbortSignal.timeout(timeoutMs), ...(signal ? [signal] : [])]);
     try {
-      const streaming = responseFormat === 'llamacpp' && typeof onText === 'function';
+      // V620 SSE is diagnostic-only. Production failover continues to
+      // suppress remote onText, preventing unapproved speculative TTS.
+      const streaming = typeof onText === 'function' &&
+        (responseFormat === 'llamacpp' || diagnosticRemoteSse);
       const reply = await request(url.href, {
         method: 'POST', redirect: 'error', signal: combined,
         headers: { 'Content-Type': 'application/json', ...(apiKey ? { Authorization: 'Bearer ' + apiKey } : {}) },
