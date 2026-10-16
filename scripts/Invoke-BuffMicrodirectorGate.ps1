@@ -4,7 +4,7 @@
 param([switch]$SkipFullSuite)
 $ErrorActionPreference='Stop'
 $PSNativeCommandUseErrorActionPreference=$false
-$branch='rd/buff-natural-voice-qwen-audit-20261014'
+$branch='rd/v620-msi-blackout-gold-v01-20261016'
 $repo='https://github.com/Strange-Machinery/shanny-rev-live-puppet.git'
 $checkout=Join-Path $env:TEMP ('buff-directed-voice-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+(Get-Random -Minimum 100 -Maximum 999))
 foreach($name in @('git','node','npm','python')){
@@ -61,7 +61,7 @@ try{
    'src/blackout-microdirector-director.mjs','src/live-lore-index.mjs',
    'src/live-lore-catalog.v2.mjs','src/live-lore-extras-a.mjs','src/live-lore-extras-b.mjs',
    'src/live-lore-extras-c.mjs','src/live-topic-focus.mjs',
-   'src/audience-addressee.mjs','src/blackout-shanny-heat.mjs','src/live-server.mjs',
+   'src/audience-addressee.mjs','src/blackout-shanny-heat.mjs','src/msi-blackout-gold.mjs','src/live-server.mjs',
    'src/conversation-session.mjs','src/providers/qwen.mjs','src/providers/qwen-failover.mjs',
    'src/providers/omnivoice.mjs','src/donations/parse.mjs','src/real-host.mjs')){
     Gate ('parse-'+[IO.Path]::GetFileName($path)) 'node' @('--check',$path)
@@ -71,6 +71,7 @@ try{
   'test/live-topic-focus.test.mjs','test/qwen-topic-drift.test.mjs',
   'test/audience-addressee.test.mjs','test/blackout-shanny-heat.test.mjs',
   'test/conversation-session.test.mjs','test/qwen.test.mjs','test/qwen-failover.test.mjs',
+  'test/msi-blackout-gold.test.mjs',
   'test/qwen-character-identity.test.mjs')
  Gate 'indexed_lore_30ms_budget' 'node' @('scripts/Benchmark-BuffLore.mjs')
  Gate 'python_episode_reference_selection' 'python' @('-m','unittest','discover',
