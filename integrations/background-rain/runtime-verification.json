@@ -1,0 +1,57 @@
+{
+  "status": "PASS",
+  "checked_at": "2026-10-18T02:55:59.0456770Z",
+  "duration_ms": 26692.0,
+  "first_rain_ms": 274.0,
+  "music_playing_ms": 403.0,
+  "ended_receipt_observed": true,
+  "obs_closed": true,
+  "output_owner": "browser",
+  "writer_calls": 0,
+  "final_error": "",
+  "dyad_enabled": true,
+  "trace": [
+    {
+      "elapsed_ms": 30.0,
+      "busy": true,
+      "visible": false,
+      "mode": "seated",
+      "rain_audio": null
+    },
+    {
+      "elapsed_ms": 273.0,
+      "busy": true,
+      "visible": true,
+      "mode": "rain",
+      "rain_audio": "pending"
+    },
+    {
+      "elapsed_ms": 403.0,
+      "busy": true,
+      "visible": true,
+      "mode": "rain",
+      "rain_audio": "playing"
+    },
+    {
+      "elapsed_ms": 24371.0,
+      "busy": true,
+      "visible": true,
+      "mode": "rain",
+      "rain_audio": "ended"
+    },
+    {
+      "elapsed_ms": 26363.0,
+      "busy": true,
+      "visible": true,
+      "mode": "seated",
+      "rain_audio": null
+    },
+    {
+      "elapsed_ms": 26692.0,
+      "busy": false,
+      "visible": false,
+      "mode": "seated",
+      "rain_audio": null
+    }
+  ]
+}

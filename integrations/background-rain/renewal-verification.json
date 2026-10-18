@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "checked_at": "2026-10-18T03:18:25.6264821Z",
+  "renewal_ms": 15908,
+  "checks": {
+    "new_address": true,
+    "same_host": true,
+    "same_child_processes": true,
+    "output_mode_preserved": true,
+    "dyad_preserved": true,
+    "https_controls": true,
+    "remote_renewal_denied": true,
+    "producer_buttons_served": true,
+    "gold_unchanged": true
+  }
+}
