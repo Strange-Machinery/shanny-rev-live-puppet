@@ -1,0 +1,238 @@
+--- a/src/real-host.mjs
++++ b/src/real-host.mjs
+@@ -16,7 +16,7 @@
+ import {PersistentWhisper} from './providers/whisper.mjs';
+ import {createConversationDirector} from './conversation-director.mjs';
+ import {createArgumentDirector} from './argue-director.mjs';
+-import {createDyadCompletion,createDyadDirector,routeDyad} from './dyad-director.mjs';
++import {createVoiceDyadControl} from './voice-dyad-control.mjs';
+ import {moneyOnlyDirection} from './donations/announcement.mjs';
+ import {createBlackoutMicrodirector} from './blackout-microdirector-director.mjs';
+ import {liveLoreStats} from './live-lore-index.mjs';
+@@ -131,20 +131,21 @@
+       // character treatment, approved examples and brief 8–16-word lines.
+       withGoldChat(createConversationDirector({complete,notes,examples}),
+         config.sharpChatHeckles?createConversationDirector({complete:withChatHeckles(complete),notes,examples}):undefined);
+-    const dyad=preferV620?createDyadDirector({notes,complete:createDyadCompletion(config.microdirector.v620)}):null;
+-    const useDyad=()=>Boolean(dyad)&&config.dyadEnabled!==false;
++    const dyad=createVoiceDyadControl({config,eligible:msiBlackoutGold&&config.omnivoice?.approvedDelivery===true,
++      getCodes:()=>voice?.availableEpisodeCodes||{},getTurn:()=>session?.turn,
++      isBusy:()=>Boolean(session?.turn||session?.argumentArming||manualRainArming||voice?.busy)});
+     const moneyGold=createConversationDirector({complete,notes:notes+'\n\nCURRENT PRODUCER MONEY-ONLY DIRECTION:\n'+moneyOnlyDirection,examples});
+     const goldWithMoney={warmup:()=>goldDirector.warmup(),generate:args=>args.kind==='donation'&&args.donationNoMessage?moneyGold.generate(args):goldDirector.generate(args)};
+-    const routed=dyad?routeDyad({gold:goldWithMoney,argument:argumentDirector,dyad,enabled:useDyad}):null;
+-    const director=routed?.director||goldWithMoney;
+-    if(routed)argumentDirector=routed.argumentDirector;
++    // Dyad now selects saved voices only. The existing GOLD/chat/money and
++    // ARGUE writers retain their original prompts, budgets and cancellation.
++    const director=goldWithMoney;
+     progress('Checking room for the character voices...');
+     await waitForVoiceMemory({progress,readFreeMiB:async()=>{
+       const gpu=await promisify(execFile)('nvidia-smi',['--query-gpu=memory.free','--format=csv,noheader,nounits'],{windowsHide:true,timeout:5000});
+       return gpu.stdout.trim().split('\n')[0];
+     }});
+     progress('Loading the character voices...');
+-    voice=new OmniVoiceProvider(config.omnivoice);await voice.warmup();
++    voice=new OmniVoiceProvider({...config.omnivoice,getVoiceDyadLite:()=>dyad.forTurn()});await voice.warmup();
+     // Absorb first-synthesis work before Ready; warmup audio is never published.
+     progress('Warming Shanny voice - microphone remains off...');
+     await voice.generate({actor:'SHANNY',text:'The microphone stays off until you press the button.'});
+@@ -228,7 +229,7 @@
+     let manualRainArming=false;
+     const action=async data=>{
+       if(data.action==='status')return {...session.status(),
+-        dyad:{enabled:useDyad(),available:Boolean(dyad),...dyad?.status()},
++        dyad:dyad.status(),
+         argument:argumentDirector?.status()||null,
+         qwen:preferV620?v620Model+' (V620 primary; MSI CPU backup)':modelName+' (local CPU)',
+         qwen_backend:preferV620?complete.status():{preferred:'msi',last_route:'msi',last_reason:'none'},
+@@ -273,12 +274,7 @@
+       if(data.action==='animations')return animations.menu();
+       if(data.action==='reset-grievances')return session.resetGrievances();
+       if(data.action==='dyad-config'){
+-        if(typeof data.enabled!=='boolean')throw Error('Dyad requires an on/off choice.');
+-        if(!dyad)throw Error('V620 dyad unavailable.');
+-        if(session.turn||session.argumentArming||manualRainArming)throw Error('Finish the exchange or press STOP before changing Dyad.');
+-        const previous=config.dyadEnabled;config.dyadEnabled=data.enabled;
+-        try{await config.save?.();}catch(error){config.dyadEnabled=previous;throw error;}
+-        return {enabled:useDyad(),message:useDyad()?'Dyad on · next response uses full context.':'Dyad off · original GOLD route restored.'};
++        return dyad.setEnabled(data.enabled);
+       }
+       if(data.action==='argue-now'){
+         if(!media?.info().available)throw Error('The stage is not ready.');
+--- a/src/providers/omnivoice.mjs
++++ b/src/providers/omnivoice.mjs
+@@ -6,7 +6,8 @@
+ import { performance } from 'node:perf_hooks';
+ import {liveMood,actorMoods} from '../live-moods.mjs';
+ import {requestedEpisodeCodes,availableEpisodeCodes} from '../approved-delivery.mjs';
+-import {sampleLedShannyInput} from '../sample-led-voice.mjs';
++import {voiceDyadLiteInput} from '../voice-dyad-lite.mjs';
++import {sampleLedShannyInput} from '../dyad/sample-led-voice.mjs';
+ 
+ /**
+  * Thin client for the EXISTING /LIVE/python/omnivoice_live_worker.py protocol.
+@@ -33,8 +34,11 @@
+       throw new Error('OmniVoice cpuThreads must be an integer from 1 to 8');
+     }
+     if(config.approvedDelivery!==undefined&&typeof config.approvedDelivery!=='boolean')throw new Error('approvedDelivery must be a boolean');
++    if(config.voiceDyadLite!==undefined&&typeof config.voiceDyadLite!=='boolean')throw new Error('voiceDyadLite must be a boolean');
++    if(config.voiceDyadLite&&!config.approvedDelivery)throw new Error('Voice-dyad-lite requires the approved episode library');
+     if(config.sampleLedShanny!==undefined&&typeof config.sampleLedShanny!=='boolean')throw new Error('sampleLedShanny must be a boolean');
+     if(config.sampleLedShanny&&!config.approvedDelivery)throw new Error('Sample-led Shanny requires the approved episode library');
++    if(config.getVoiceDyadLite!==undefined&&typeof config.getVoiceDyadLite!=='function')throw new Error('getVoiceDyadLite must be a function');
+     this.availableEpisodeCodes={};
+     this.availableEpisodeCounts={};
+     this.config = { ...config, startupMs: config.startupMs || 180_000,
+@@ -178,15 +182,23 @@
+   async generate({ actor, text, mood, voiceCode }) {
+     if (!['SHANNY', 'REV'].includes(actor)) throw new Error('Unknown actor');
+     if(mood!==undefined)liveMood(actor,mood);
+-    if(this.config.sampleLedShanny){
+-      await this.#ensureWorker();
+-      ({text,voiceCode}=sampleLedShannyInput({actor,text,mood,voiceCode},this.availableEpisodeCodes));
+-    }
+-    if(voiceCode!==undefined&&(!this.config.approvedDelivery||!this.availableEpisodeCodes[actor]?.includes(voiceCode)))
+-      throw new Error('Unqualified episode voice delivery');
+     if (this.busy) throw new Error('OmniVoice worker is busy');
+     this.busy = true;
+-    try { return await this.#generate(actor, text, mood, voiceCode); }
++    try {
++      const lite=this.config.getVoiceDyadLite?this.config.getVoiceDyadLite():this.config.voiceDyadLite===true;
++      if(typeof lite!=='boolean')throw new Error('Voice-dyad-lite selector must return a boolean');
++      if(lite&&!this.config.approvedDelivery)throw new Error('Voice-dyad-lite requires the approved episode library');
++      if(lite||this.config.sampleLedShanny){
++        // Acquire the busy gate before startup; concurrent cold calls must not
++        // queue behind READY and accidentally synthesize two requests.
++        await this.#ensureWorker();
++        const route=lite?voiceDyadLiteInput:sampleLedShannyInput;
++        ({text,voiceCode}=route({actor,text,mood,voiceCode},this.availableEpisodeCodes));
++      }
++      if(voiceCode!==undefined&&(!this.config.approvedDelivery||!this.availableEpisodeCodes[actor]?.includes(voiceCode)))
++        throw new Error('Unqualified episode voice delivery');
++      return await this.#generate(actor, text, mood, voiceCode);
++    }
+     finally { this.busy = false; }
+   }
+ 
+--- a/src/remote-web/index.html
++++ b/src/remote-web/index.html
+@@ -1,8 +1,8 @@
+ <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>STANK TANK — Producer</title><link rel="stylesheet" href="/panel.css"><script type="module" src="/panel.js"></script></head><body><main>
+ <p class="eyebrow">PRIVATE PRODUCER PANEL</p><h1>STANK TANK</h1><p id="status">Connecting…</p>
+ <button id="stop" class="stop">STOP — silence, hide, disable chat</button>
+-<section><label><input type="checkbox" id="dyad" checked> Dyad</label><p>Full character and conversation context for chat, private replies and ARGUE. Ordinary replies stay short; contextual rage can earn 6–8 sentences. Turn off to use GOLD. Change while idle.</p><p id="dyad-status" role="status"></p><button id="reset-grievances">Reset current grievances</button><p>Starts a fresh round by clearing recent arguments. Their identity, established lore, behavior and voices stay the same.</p></section>
+-<section><h2>Start an argument</h2><button id="argue-now" class="rain-now">ARGUE</button><p>Interrupt with an argument from their lore. Dyad allows 6–8 rage sentences; GOLD uses 4–6 lines. Shanny rages; Rev argues back in his own way. Sometimes one cries. Pauses YouTube chat. V620 only.</p><p id="argue-status" role="status"></p></section>
++<section><label><input type="checkbox" id="dyad" checked> Dyad</label><p>Enhanced saved voices for Shanny and Rev. GOLD writes their replies, with no extra writing pass. Turn off for standard voice selection. Change while idle.</p><p id="dyad-status" role="status"></p><button id="reset-grievances">Reset current grievances</button><p>Starts a fresh round by clearing recent arguments. Their identity, established lore, behavior and voices stay the same.</p></section>
++<section><h2>Start an argument</h2><button id="argue-now" class="rain-now">ARGUE</button><p>Start a 4–6-line argument from their lore. Shanny rages; Rev argues back in his own way. Sometimes one cries. Pauses YouTube chat. V620 only.</p><p id="argue-status" role="status"></p></section>
+ <section><h2>Output</h2><p id="output-status"></p><div class="buttons"><button id="live-mode">Live Show · browser sound</button><button id="obs-mode">OBS Reactive · OBS sound</button></div><button id="open-live">Open Live Show</button><button id="copy-obs">Copy private OBS link</button><input id="obs-link" readonly hidden><p>Mode changes require an idle stage. The producer panel is always silent. Microphone capture and real paid intake are off.</p></section>
+ <section><h2>YouTube chat</h2><label for="source">Your broadcast URL or video ID</label><input id="source" value="nfDaihVwvoQ"><label for="chat-mode">Response</label><select id="chat-mode"><option value="react">React</option><option value="read">Read + React</option></select><button id="save-chat">Save source and mode</button><div class="buttons"><button id="chat-enable">Enable YouTube chat</button><button id="chat-disable">Disable YouTube chat</button></div><p id="chat-status" role="status"></p></section>
+ <section><h2>Private tests</h2><label for="text">Synthetic audience comment</label><textarea id="text" rows="3" maxlength="450">Rev, why are you blaming Shanny for that empty bucket?</textarea><div class="buttons"><button id="react-test">Test React</button><button id="read-test">Test Read + React</button></div><button id="message-donation">Test $1 donation · with message</button><button id="empty-donation">Test $1 donation · no message</button><button id="rain-now" class="rain-now">MAKE IT RAIN</button><p id="result" role="status"></p><pre id="dialogue"></pre></section>
+--- a/src/remote-web/panel.js
++++ b/src/remote-web/panel.js
+@@ -26,12 +26,12 @@
+  $('chat-status').textContent=(c.enabled?'ENABLED':'DISABLED')+' · '+(c.title||c.video_id||'No source')+' · '+(c.video_id||'')+' · '+(c.mode==='read'?'Read + React':'React')+' · fresh messages '+(c.counts?.eligible||0)+' · responses '+(c.counts?.accepted||0)+' · queued '+(c.queue_depth||0)+(c.error?' · '+c.error:c.enabled&&!c.last_message_at?' · Waiting for a fresh ordinary message; reception not yet verified.':'');
+  if(first&&c.video_id){$('source').value=c.video_id;$('chat-mode').value=c.mode;first=false;}
+  $('chat-enable').disabled=c.enabled||!c.configured||s.busy;$('chat-disable').disabled=!c.enabled;
+- const d=s.dyad||{};$('dyad').checked=d.enabled===true;$('dyad').disabled=!d.available||s.busy;
++ const d=s.dyad||{};$('dyad').checked=d.enabled===true;$('dyad').disabled=!d.available||d.changing||s.busy;
+  $('reset-grievances').disabled=s.busy;
+- $('dyad-status').textContent=d.enabled?'Dyad on · '+(d.state||'idle')+(d.last_ms!==null&&d.last_ms!==undefined?' · last writing '+(d.last_ms/1000).toFixed(1)+' s':'')+(d.error?' · '+d.error:''):'Dyad off · GOLD selected.';
+- $('writer').textContent=d.enabled?'FULL DYAD · V620 qwen3.8-27b · '+(d.state||'idle'):'ORIGINAL MSI BLACKOUT GOLD · V620 preferred · actual last GOLD writer: '+(b.last_route||'not yet used')+' · '+(b.last_reason||'');
++ $('dyad-status').textContent=d.changing?'Saving voice choice…':d.error?'Dyad unavailable · '+d.error:d.enabled?'Dyad on · enhanced saved voices · GOLD dialogue.':'Dyad off · standard voices · GOLD dialogue.';
++ $('writer').textContent='ORIGINAL MSI BLACKOUT GOLD · V620 preferred · actual last GOLD writer: '+(b.last_route||'not yet used')+' · '+(b.last_reason||'');
+  const a=s.argument;
+- $('argue-status').textContent=d.enabled&&!a?.subject?'ARGUE uses Dyad · V620 only':a?'Argue · V620 only · '+a.state+(a.subject?' · '+a.subject:'')+(a.line_count?' · '+a.line_count+' lines':'')+(a.crying_actor?' · '+(a.crying_actor==='SHANNY'?'Shanny':'Rev')+' crying beat':'')+(a.error?' · '+a.error:''):'Argue writer unavailable.';
++ $('argue-status').textContent=a?'Argue · V620 only · '+a.state+(a.subject?' · '+a.subject:'')+(a.line_count?' · '+a.line_count+' lines':'')+(a.crying_actor?' · '+(a.crying_actor==='SHANNY'?'Shanny':'Rev')+' crying beat':'')+(a.error?' · '+a.error:''):'Argue writer unavailable.';
+  $('media').textContent=(m.available?'Native camera ready':'Native camera unavailable')+' · '+(m.presentation_visible?'PRESENTING':'IDLE / reactive hidden')+' · '+(m.width||1920)+' × '+(m.height||1080)+' / '+(m.fps||30)+' fps';
+  $('timing').textContent=s.latency?'Last model '+s.latency.model_ms+' ms · first reply '+s.latency.first_reply_ms+' ms · total '+s.latency.total_ms+' ms':'';
+  $('dialogue').textContent=(s.history||[]).map(x=>x.actor+': '+x.text).join('\n\n');$('error').textContent=s.error||'';
+--- /dev/null
++++ b/src/voice-dyad-lite.mjs
+@@ -0,0 +1,29 @@
++import {actorMoods,liveMood} from './live-moods.mjs';
++import {verifyEpisodeCode} from './approved-delivery.mjs';
++import {sampleLedShannyInput} from './dyad/sample-led-voice.mjs';
++
++// GOLD already chooses these moods. Voice routing needs no additional writer,
++// prompt, lore lookup or emotion classifier. The worker chooses the recording.
++export const voiceDyadLiteCodes=Object.freeze({
++  SHANNY:Object.freeze({anger:'S06',rage:'S06',crying:'S04',smug:'S10',surprised:'S12'}),
++  REV:Object.freeze({pacifying:'R03',irritated:'R10',rage:'R13',skeptical:'R09',surprised:'R23'})
++});
++
++/** Provider input only: do not replace authored session/history/caption rows. */
++export function voiceDyadLiteInput(input,available){
++  if(!input||!Object.hasOwn(actorMoods,input.actor))throw Error('Unknown voice-dyad-lite actor');
++  const {actor,mood,voiceCode}=input;
++  if(typeof input.text!=='string'||!input.text.trim())throw Error('Voice-dyad-lite needs spoken text');
++  if(mood!==undefined)liveMood(actor,mood);
++  const qualified=code=>verifyEpisodeCode(actor,code)&&available?.[actor]?.includes(code)===true;
++  if(voiceCode!==undefined&&!qualified(voiceCode))throw Error('Unqualified explicit voice-dyad-lite delivery');
++  const result=sampleLedShannyInput(input,available);
++  // Preserve explicit qualified direction except that rage must use full rage.
++  if(actor==='REV'&&mood==='rage')result.voiceCode='R13';
++  else if(result.voiceCode===undefined&&mood!==undefined)result.voiceCode=voiceDyadLiteCodes[actor][mood];
++  if(result.voiceCode!==undefined&&!qualified(result.voiceCode))
++    throw Error('Required voice-dyad-lite recording category unavailable: '+actor+'/'+result.voiceCode);
++  // Untagged provider warmup keeps its configured saved reference. Normal
++  // gateway requests already receive the gateway's existing default mood.
++  return result;
++}
+--- /dev/null
++++ b/src/voice-dyad-control.mjs
+@@ -0,0 +1,36 @@
++import {voiceDyadLiteCodes} from './voice-dyad-lite.mjs';
++
++/** Producer switch for saved voices only. Never selects a dialogue writer. */
++export function createVoiceDyadControl({config,getCodes,eligible=true,isBusy=()=>false,getTurn=()=>null}){
++  let active=config.dyadEnabled!==false,changing=false;
++  const turns=new WeakMap();
++  const available=()=>eligible&&Object.entries(voiceDyadLiteCodes).every(([actor,moods])=>
++    [...new Set(Object.values(moods))].every(code=>getCodes()?.[actor]?.includes(code)));
++  const enabled=()=>active&&available();
++  const status=()=>({kind:'voice-dyad-lite',enabled:enabled(),available:available(),changing,
++    state:changing?'saving':enabled()?'ready':'off',writer:'gold',extra_model_calls:0,
++    error:active&&!available()?'Required saved voice categories are unavailable.':''});
++  return {status,
++    forTurn(){
++      const turn=getTurn();
++      if(!turn)return enabled();
++      // A new response may enter while persistence is awaiting disk I/O.
++      // Keep its first voice choice for the whole response, including read rows.
++      if(!turns.has(turn))turns.set(turn,enabled());
++      return turns.get(turn);
++    },
++    async setEnabled(value){
++      if(typeof value!=='boolean')throw Error('Dyad requires an on/off choice.');
++      if(!available())throw Error('Dyad saved voices are unavailable.');
++      if(changing||isBusy())throw Error('Finish the exchange or press STOP before changing Dyad.');
++      const previous=config.dyadEnabled;changing=true;config.dyadEnabled=value;
++      try{
++        await config.save?.();active=value;changing=false;
++        return {...status(),message:value?'Dyad on · enhanced saved voices; GOLD dialogue.':'Dyad off · standard voices; GOLD dialogue.'};
++      }catch(error){
++        if(previous===undefined)delete config.dyadEnabled;else config.dyadEnabled=previous;
++        throw error;
++      }finally{changing=false;}
++    }
++  };
++}
+--- /dev/null
++++ b/src/dyad/sample-led-voice.mjs
+@@ -0,0 +1,15 @@
++/** Voice-side parity with the approved episode system; never edits GOLD plans. */
++export function sampleLedShannyInput(input,available){
++  if(input.actor!=='SHANNY')return {...input};
++  const result={...input,text:input.text.toLowerCase()};
++  // Episode SPECIAL_SELECTIONS: S06/full for rage, S06/medium for
++  // moderate anger. The existing worker filters actual source intensity.
++  // Incensed rage cannot be downgraded by a low-energy delivery code.
++  // Other explicit qualified deliveries (including crying) keep their identity.
++  if(result.mood==='rage'||!result.voiceCode&&result.mood==='anger'){
++    if(!available?.SHANNY?.includes('S06'))
++      throw Error('Approved Shanny S06 recordings are unavailable; refusing a generic anger substitute.');
++    result.voiceCode='S06';
++  }
++  return result;
++}

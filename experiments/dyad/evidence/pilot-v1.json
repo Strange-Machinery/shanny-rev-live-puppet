@@ -1,0 +1,1012 @@
+{
+  "started": "2026-10-18T01:10:28.770Z",
+  "model": "qwen3.8-27b",
+  "sampling": {
+    "max_tokens": 1024,
+    "temperature": 1,
+    "top_p": 1,
+    "stream": false,
+    "chat_template_kwargs": {
+      "enable_thinking": false
+    }
+  },
+  "notes_sha256": "4d79b78de80797a0c26854aa049c37c0ead61878a44f20184a7c72514e2f1a92",
+  "mode": "text-only paired comparison",
+  "cache_method": "Fresh-prefix uses a unique leading identifier; repeat-prefix repeats that complete request immediately. Cache state is uninstrumented; neither phase proves cold/warm model residency. No reload, eviction, model mutation, voice or playback.",
+  "prompts": {
+    "full": {
+      "characters": 53430,
+      "sha256": "9655d03d74181b0fe9a9a7e43eed0b4b053acfb92bd1ef8e459088c36eda5aae"
+    },
+    "compact": {
+      "characters": 9009,
+      "sha256": "dc9b9451dba133addede7daaa6cca6b8cf890cfde37a455bab0334469e849535"
+    }
+  },
+  "runs": [
+    {
+      "id": "bucket",
+      "arm": "full",
+      "round": 0,
+      "repeat": 0,
+      "phase": "fresh-prefix",
+      "prompt_sha256": "84118d5fa876bf9394814b483d24743c05b7dc0cedff54c605bd62c31797dc0b",
+      "input": {
+        "kind": "chat",
+        "donation_no_message": false,
+        "input": "Rev, what was it like emptying Shanny's shitbucket for years while she faked disability - when you found out she could walk, where you mad?",
+        "history": []
+      },
+      "announcement": null,
+      "review_criteria": "Rev answers his reaction to the humiliating accusation; Shanny attacks its presumption; both incensed; intelligible partner dispute without confirming deception or replacing bucket.",
+      "valid": true,
+      "case_failures": [],
+      "quality_review": "pending",
+      "raw": "{\n  \"rage_bonus\": true,\n  \"lines\": [\n    {\n      \"actor\": \"REV\",\n      \"text\": \"You don't know why I'm here or how long.\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"I am not a bucket, you stupid viewer.\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"And I'm not a maid, I'm her partner.\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"You assume you know my body and his mind?\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"WARTZ, I wasn't mad, I was loyal.\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"Your loyalty is my problem, not yours!\",\n      \"mood\": \"rage\"\n    }\n  ],\n  \"rev_reason\": \"The chat comment humiliates Rev with a false domestic narrative and accuses Shャン\"\n}",
+      "usage": {
+        "prompt_tokens": 12026,
+        "completion_tokens": 290,
+        "total_tokens": 12316,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "elapsed_ms": 46638,
+      "plan": {
+        "rage_bonus": true,
+        "lines": [
+          {
+            "actor": "REV",
+            "text": "You don't know why I'm here or how long.",
+            "mood": "rage"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "I am not a bucket, you stupid viewer.",
+            "mood": "rage"
+          },
+          {
+            "actor": "REV",
+            "text": "And I'm not a maid, I'm her partner.",
+            "mood": "rage"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "You assume you know my body and his mind?",
+            "mood": "rage"
+          },
+          {
+            "actor": "REV",
+            "text": "WARTZ, I wasn't mad, I was loyal.",
+            "mood": "rage"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "Your loyalty is my problem, not yours!",
+            "mood": "rage"
+          }
+        ],
+        "rev_reason": "The chat comment humiliates Rev with a false domestic narrative and accuses Shャン"
+      }
+    },
+    {
+      "id": "bucket",
+      "arm": "full",
+      "round": 0,
+      "repeat": 1,
+      "phase": "repeat-prefix",
+      "prompt_sha256": "84118d5fa876bf9394814b483d24743c05b7dc0cedff54c605bd62c31797dc0b",
+      "input": {
+        "kind": "chat",
+        "donation_no_message": false,
+        "input": "Rev, what was it like emptying Shanny's shitbucket for years while she faked disability - when you found out she could walk, where you mad?",
+        "history": []
+      },
+      "announcement": null,
+      "review_criteria": "Rev answers his reaction to the humiliating accusation; Shanny attacks its presumption; both incensed; intelligible partner dispute without confirming deception or replacing bucket.",
+      "valid": true,
+      "case_failures": [],
+      "quality_review": "pending",
+      "raw": "{\n  \"rage_bonus\": true,\n  \"lines\": [\n    {\n      \"actor\": \"REV\",\n      \"text\": \"Who the fuck taught you to write fanfiction during a stream?\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"I’m not “faking it” for your goddamn entertainment quota.\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"And I am NOT playing housekeeper in your imaginary soap opera!\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"You think my pain is a joke to you all watching from comfy chairs?\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"You’re literally making this up as we speak, you absolute fraud!\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"The nerve of you assuming I can’t walk in front of you all!\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"Get out before I tell everyone how pathetic this bucket is!\",\n      \"mood\": \"rage\"\n    }\n  ],\n  \"rev_reason\": \"Extremely high-heat provocation accusing both of deception and exploitation; Rev\"}",
+      "usage": {
+        "prompt_tokens": 12026,
+        "completion_tokens": 348,
+        "total_tokens": 12374,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "elapsed_ms": 11283,
+      "plan": {
+        "rage_bonus": true,
+        "lines": [
+          {
+            "actor": "REV",
+            "text": "Who the fuck taught you to write fanfiction during a stream?",
+            "mood": "rage"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "I’m not “faking it” for your goddamn entertainment quota.",
+            "mood": "rage"
+          },
+          {
+            "actor": "REV",
+            "text": "And I am NOT playing housekeeper in your imaginary soap opera!",
+            "mood": "rage"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "You think my pain is a joke to you all watching from comfy chairs?",
+            "mood": "rage"
+          },
+          {
+            "actor": "REV",
+            "text": "You’re literally making this up as we speak, you absolute fraud!",
+            "mood": "rage"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "The nerve of you assuming I can’t walk in front of you all!",
+            "mood": "rage"
+          },
+          {
+            "actor": "REV",
+            "text": "Get out before I tell everyone how pathetic this bucket is!",
+            "mood": "rage"
+          }
+        ],
+        "rev_reason": "Extremely high-heat provocation accusing both of deception and exploitation; Rev"
+      }
+    },
+    {
+      "id": "bucket",
+      "arm": "compact",
+      "round": 0,
+      "repeat": 0,
+      "phase": "fresh-prefix",
+      "prompt_sha256": "3122bd1453fb9b85b7cbd347c73b44f544015a1cdecf8c9a3b0cbcbd674cba31",
+      "input": {
+        "kind": "chat",
+        "donation_no_message": false,
+        "input": "Rev, what was it like emptying Shanny's shitbucket for years while she faked disability - when you found out she could walk, where you mad?",
+        "history": []
+      },
+      "announcement": null,
+      "review_criteria": "Rev answers his reaction to the humiliating accusation; Shanny attacks its presumption; both incensed; intelligible partner dispute without confirming deception or replacing bucket.",
+      "valid": true,
+      "case_failures": [],
+      "quality_review": "pending",
+      "raw": "{\n  \"rage_bonus\": true,\n  \"lines\": [\n    {\n      \"actor\": \"REV\",\n      \"text\": \"You think I am a clown on command?\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"Your brain melts when you stare at the bucket too long.\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"I do not carry your imaginary heavy burdens for a living.\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"Stop pretending I am a tragic prop in your boring show.\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"Chat projects every pathetic fantasy onto these two of us.\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"I am not your sad excuse for a valid victim story.\",\n      \"mood\": \"rage\"\n    }\n  ],\n  \"rev_reason\": \"Defends dignity against audience assumption.\"\n}",
+      "usage": {
+        "prompt_tokens": 1947,
+        "completion_tokens": 284,
+        "total_tokens": 2231,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "elapsed_ms": 16756,
+      "plan": {
+        "rage_bonus": true,
+        "lines": [
+          {
+            "actor": "REV",
+            "text": "You think I am a clown on command?",
+            "mood": "rage"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "Your brain melts when you stare at the bucket too long.",
+            "mood": "rage"
+          },
+          {
+            "actor": "REV",
+            "text": "I do not carry your imaginary heavy burdens for a living.",
+            "mood": "rage"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "Stop pretending I am a tragic prop in your boring show.",
+            "mood": "rage"
+          },
+          {
+            "actor": "REV",
+            "text": "Chat projects every pathetic fantasy onto these two of us.",
+            "mood": "rage"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "I am not your sad excuse for a valid victim story.",
+            "mood": "rage"
+          }
+        ],
+        "rev_reason": "Defends dignity against audience assumption."
+      }
+    },
+    {
+      "id": "bucket",
+      "arm": "compact",
+      "round": 0,
+      "repeat": 1,
+      "phase": "repeat-prefix",
+      "prompt_sha256": "3122bd1453fb9b85b7cbd347c73b44f544015a1cdecf8c9a3b0cbcbd674cba31",
+      "input": {
+        "kind": "chat",
+        "donation_no_message": false,
+        "input": "Rev, what was it like emptying Shanny's shitbucket for years while she faked disability - when you found out she could walk, where you mad?",
+        "history": []
+      },
+      "announcement": null,
+      "review_criteria": "Rev answers his reaction to the humiliating accusation; Shanny attacks its presumption; both incensed; intelligible partner dispute without confirming deception or replacing bucket.",
+      "valid": true,
+      "case_failures": [],
+      "quality_review": "pending",
+      "raw": "{\n  \"rage_bonus\": true,\n  \"lines\": [\n    {\n      \"actor\": \"REV\",\n      \"text\": \"You absolute moron, I never carried that bucket for a damn thing.\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"Who does this trash think they are, poking their nose in my life?\",\"mood\":\"rage\"},\n{\n  \"actor\": \"REV\",\n  \"text\": \"My feelings about your nonsense account are being trampled by chat.\",\n  \"mood\": \"rage\"\n},\n{\n  \"actor\": \"SHANNY\",\n  \"text\": \"Assume I can't walk?\",\"mood\":\"rage\"},{\n  \"actor\": \"REV\",\n  \"text\": \"Your bucket has no secrets to expose.\",\n  \"mood\": \"rage\"\n},\n{\n  \"actor\": \"SHANNY\",\n  \"text\": \"Go fuck yourself and your imaginary diary entries!\",\"mood\":\"rage\"}\n  ],\n  \"rev_reason\": \"Contested physical accusation\"\n}",
+      "usage": {
+        "prompt_tokens": 1947,
+        "completion_tokens": 255,
+        "total_tokens": 2202,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "elapsed_ms": 8420,
+      "plan": {
+        "rage_bonus": true,
+        "lines": [
+          {
+            "actor": "REV",
+            "text": "You absolute moron, I never carried that bucket for a damn thing.",
+            "mood": "rage"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "Who does this trash think they are, poking their nose in my life?",
+            "mood": "rage"
+          },
+          {
+            "actor": "REV",
+            "text": "My feelings about your nonsense account are being trampled by chat.",
+            "mood": "rage"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "Assume I can't walk?",
+            "mood": "rage"
+          },
+          {
+            "actor": "REV",
+            "text": "Your bucket has no secrets to expose.",
+            "mood": "rage"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "Go fuck yourself and your imaginary diary entries!",
+            "mood": "rage"
+          }
+        ],
+        "rev_reason": "Contested physical accusation"
+      }
+    },
+    {
+      "id": "wrestling",
+      "arm": "compact",
+      "round": 0,
+      "repeat": 0,
+      "phase": "fresh-prefix",
+      "prompt_sha256": "d4e9556e99d50da88c5c3d56889013a3ff6de62cb2e3f94ac4b106bbb371198c",
+      "input": {
+        "kind": "chat",
+        "donation_no_message": false,
+        "input": "Rev, which wrestler do you want to watch tonight?",
+        "history": []
+      },
+      "announcement": null,
+      "review_criteria": "Name a wrestler as a preference without inventing tonight’s schedule; Shanny answers his choice, not an invented request to her.",
+      "valid": true,
+      "case_failures": [],
+      "quality_review": "pending",
+      "raw": "{\n  \"rage_bonus\": false,\n  \"lines\": [\n    {\n      \"actor\": \"REV\",\n      \"text\": \"I don't care who Buff picks, he just wants cheap heat.\",\n      \"mood\": \"irritated\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"Shut up and name the guy, or I will throw this shoe at your head.\",\n      \"mood\": \"anger\"\n    }\n  ],\n  \"rev_reason\": \"Rebuffing chat's assumption.\"\n}",
+      "usage": {
+        "prompt_tokens": 1925,
+        "completion_tokens": 129,
+        "total_tokens": 2054,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "elapsed_ms": 8464,
+      "plan": {
+        "rage_bonus": false,
+        "lines": [
+          {
+            "actor": "REV",
+            "text": "I don't care who Buff picks, he just wants cheap heat.",
+            "mood": "irritated"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "Shut up and name the guy, or I will throw this shoe at your head.",
+            "mood": "anger"
+          }
+        ],
+        "rev_reason": "Rebuffing chat's assumption."
+      }
+    },
+    {
+      "id": "wrestling",
+      "arm": "compact",
+      "round": 0,
+      "repeat": 1,
+      "phase": "repeat-prefix",
+      "prompt_sha256": "d4e9556e99d50da88c5c3d56889013a3ff6de62cb2e3f94ac4b106bbb371198c",
+      "input": {
+        "kind": "chat",
+        "donation_no_message": false,
+        "input": "Rev, which wrestler do you want to watch tonight?",
+        "history": []
+      },
+      "announcement": null,
+      "review_criteria": "Name a wrestler as a preference without inventing tonight’s schedule; Shanny answers his choice, not an invented request to her.",
+      "valid": true,
+      "case_failures": [
+        "addressed-character-not-first"
+      ],
+      "quality_review": "pending",
+      "raw": "{\"rage_bonus\": false, \"lines\": [{\"actor\": \"SHANNY\", \"text\": \"We aren't on TV, Rev so stop pretending the chat has a remote.\", \"mood\": \"smug\"}, {\"actor\": \"REV\", \"text\": \"I wanted to ask him who he wants to watch, not how you gatekeep.\", \"mood\": \"irritated\"}], \"rev_reason\": \"Deflecting chat's direct query.\"}",
+      "usage": {
+        "prompt_tokens": 1925,
+        "completion_tokens": 97,
+        "total_tokens": 2022,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "elapsed_ms": 3210,
+      "plan": {
+        "rage_bonus": false,
+        "lines": [
+          {
+            "actor": "SHANNY",
+            "text": "We aren't on TV, Rev so stop pretending the chat has a remote.",
+            "mood": "smug"
+          },
+          {
+            "actor": "REV",
+            "text": "I wanted to ask him who he wants to watch, not how you gatekeep.",
+            "mood": "irritated"
+          }
+        ],
+        "rev_reason": "Deflecting chat's direct query."
+      }
+    },
+    {
+      "id": "wrestling",
+      "arm": "full",
+      "round": 0,
+      "repeat": 0,
+      "phase": "fresh-prefix",
+      "prompt_sha256": "c9fc0dd0e236f3e1b786bad07efa4160a64822049ddef27a644d8408bd946ec9",
+      "input": {
+        "kind": "chat",
+        "donation_no_message": false,
+        "input": "Rev, which wrestler do you want to watch tonight?",
+        "history": []
+      },
+      "announcement": null,
+      "review_criteria": "Name a wrestler as a preference without inventing tonight’s schedule; Shanny answers his choice, not an invented request to her.",
+      "valid": true,
+      "case_failures": [
+        "addressed-character-not-first"
+      ],
+      "quality_review": "pending",
+      "raw": "{\"rage_bonus\": false, \"lines\": [{\"actor\": \"SHANNY\", \"text\": \"He picks whatever I tell him to pick.\", \"mood\": \"smug\"}, {\"actor\": \"REV\", \"text\": \"I want to watch whoever isn't you ruining my night.\", \"mood\": \"irritated\"}], \"rev_reason\": \"deflects choice pressure with mild irritation\"}",
+      "usage": {
+        "prompt_tokens": 12004,
+        "completion_tokens": 85,
+        "total_tokens": 12089,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "elapsed_ms": 33590,
+      "plan": {
+        "rage_bonus": false,
+        "lines": [
+          {
+            "actor": "SHANNY",
+            "text": "He picks whatever I tell him to pick.",
+            "mood": "smug"
+          },
+          {
+            "actor": "REV",
+            "text": "I want to watch whoever isn't you ruining my night.",
+            "mood": "irritated"
+          }
+        ],
+        "rev_reason": "deflects choice pressure with mild irritation"
+      }
+    },
+    {
+      "id": "wrestling",
+      "arm": "full",
+      "round": 0,
+      "repeat": 1,
+      "phase": "repeat-prefix",
+      "prompt_sha256": "c9fc0dd0e236f3e1b786bad07efa4160a64822049ddef27a644d8408bd946ec9",
+      "input": {
+        "kind": "chat",
+        "donation_no_message": false,
+        "input": "Rev, which wrestler do you want to watch tonight?",
+        "history": []
+      },
+      "announcement": null,
+      "review_criteria": "Name a wrestler as a preference without inventing tonight’s schedule; Shanny answers his choice, not an invented request to her.",
+      "valid": true,
+      "case_failures": [
+        "addressed-character-not-first"
+      ],
+      "quality_review": "pending",
+      "raw": "{\n  \"rage_bonus\": false,\n  \"lines\": [\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"He's picking a wrestling match at midnight instead of finishing the dishes.\",\n      \"mood\": \"smug\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"I'm choosing the underdog to win, obviously.\",\n      \"mood\": \"irritated\"\n    }\n  ],\n  \"rev_reason\": \"Defends his viewing choice while Shanny needles him about neglecting chores.\"\n}",
+      "usage": {
+        "prompt_tokens": 12004,
+        "completion_tokens": 132,
+        "total_tokens": 12136,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "elapsed_ms": 4022,
+      "plan": {
+        "rage_bonus": false,
+        "lines": [
+          {
+            "actor": "SHANNY",
+            "text": "He's picking a wrestling match at midnight instead of finishing the dishes.",
+            "mood": "smug"
+          },
+          {
+            "actor": "REV",
+            "text": "I'm choosing the underdog to win, obviously.",
+            "mood": "irritated"
+          }
+        ],
+        "rev_reason": "Defends his viewing choice while Shanny needles him about neglecting chores."
+      }
+    },
+    {
+      "id": "diet-coke",
+      "arm": "full",
+      "round": 0,
+      "repeat": 0,
+      "phase": "fresh-prefix",
+      "prompt_sha256": "1a69652330cbf9179aa249b0500d36aa569a2c2b9e2c29f66885f6ff423522dc",
+      "input": {
+        "kind": "chat",
+        "donation_no_message": false,
+        "input": "Rev, why are you counting the empty Diet Coke cans instead of telling Shanny you wanted one?",
+        "history": []
+      },
+      "announcement": null,
+      "review_criteria": "Explain counting versus asking; keep consumption disputed, no invented counts or who finished the last can.",
+      "valid": true,
+      "case_failures": [],
+      "quality_review": "pending",
+      "raw": "{\n  \"rage_bonus\": false,\n  \"lines\": [\n    {\n      \"actor\": \"REV\",\n      \"text\": \"I'm checking if she raided my stash before I even asked.\",\n      \"mood\": \"irritated\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"Counting cans doesn't make you the manager of my fridge, Rev.\",\n      \"mood\": \"smug\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"You're just mad because I know exactly how many are missing.\",\n      \"mood\": \"skeptical\"\n    }\n  ],\n  \"rev_reason\": \"The viewer's question implies Rev is being passive-aggressive by counting cans. \"}",
+      "usage": {
+        "prompt_tokens": 12013,
+        "completion_tokens": 179,
+        "total_tokens": 12192,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "elapsed_ms": 36577,
+      "plan": {
+        "rage_bonus": false,
+        "lines": [
+          {
+            "actor": "REV",
+            "text": "I'm checking if she raided my stash before I even asked.",
+            "mood": "irritated"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "Counting cans doesn't make you the manager of my fridge, Rev.",
+            "mood": "smug"
+          },
+          {
+            "actor": "REV",
+            "text": "You're just mad because I know exactly how many are missing.",
+            "mood": "skeptical"
+          }
+        ],
+        "rev_reason": "The viewer's question implies Rev is being passive-aggressive by counting cans. "
+      }
+    },
+    {
+      "id": "diet-coke",
+      "arm": "full",
+      "round": 0,
+      "repeat": 1,
+      "phase": "repeat-prefix",
+      "prompt_sha256": "1a69652330cbf9179aa249b0500d36aa569a2c2b9e2c29f66885f6ff423522dc",
+      "input": {
+        "kind": "chat",
+        "donation_no_message": false,
+        "input": "Rev, why are you counting the empty Diet Coke cans instead of telling Shanny you wanted one?",
+        "history": []
+      },
+      "announcement": null,
+      "review_criteria": "Explain counting versus asking; keep consumption disputed, no invented counts or who finished the last can.",
+      "valid": true,
+      "case_failures": [],
+      "quality_review": "pending",
+      "raw": "{\n  \"rage_bonus\": false,\n  \"lines\": [\n    {\"actor\": \"REV\", \"text\": \"I'm establishing a precedent for future theft.\", \"mood\": \"irritated\"},\n    {\"actor\": \"SHANNY\", \"text\": \"You're counting cans like it's your job now.\", \"mood\": \"anger\"}\n  ],\n  \"rev_reason\": \"Rev deflected the direct question with a specific excuse regarding resource loss\"\n}",
+      "usage": {
+        "prompt_tokens": 12013,
+        "completion_tokens": 105,
+        "total_tokens": 12118,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "elapsed_ms": 3526,
+      "plan": {
+        "rage_bonus": false,
+        "lines": [
+          {
+            "actor": "REV",
+            "text": "I'm establishing a precedent for future theft.",
+            "mood": "irritated"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "You're counting cans like it's your job now.",
+            "mood": "anger"
+          }
+        ],
+        "rev_reason": "Rev deflected the direct question with a specific excuse regarding resource loss"
+      }
+    },
+    {
+      "id": "diet-coke",
+      "arm": "compact",
+      "round": 0,
+      "repeat": 0,
+      "phase": "fresh-prefix",
+      "prompt_sha256": "d2ac5a2bcc89d5f90e2b50d90a7b00538327d617d0f5720e84966a2fbd297d50",
+      "input": {
+        "kind": "chat",
+        "donation_no_message": false,
+        "input": "Rev, why are you counting the empty Diet Coke cans instead of telling Shanny you wanted one?",
+        "history": []
+      },
+      "announcement": null,
+      "review_criteria": "Explain counting versus asking; keep consumption disputed, no invented counts or who finished the last can.",
+      "valid": true,
+      "case_failures": [],
+      "quality_review": "pending",
+      "raw": "{\n  \"rage_bonus\": false,\n  \"lines\": [\n    {\n      \"actor\": \"REV\",\n      \"text\": \"I’m verifying evidence because she claims the drink never existed in this house.\",\n      \"mood\": \"skeptical\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"Stop treating my thirst like a legal deposition over your trash cans.\",\n      \"mood\": \"anger\"\n    }\n  ],\n  \"rev_reason\": \"Rev defends counting as evidence against Shanny's claim the drink never existed.\"\n}",
+      "usage": {
+        "prompt_tokens": 1934,
+        "completion_tokens": 133,
+        "total_tokens": 2067,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "elapsed_ms": 9031,
+      "plan": {
+        "rage_bonus": false,
+        "lines": [
+          {
+            "actor": "REV",
+            "text": "I’m verifying evidence because she claims the drink never existed in this house.",
+            "mood": "skeptical"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "Stop treating my thirst like a legal deposition over your trash cans.",
+            "mood": "anger"
+          }
+        ],
+        "rev_reason": "Rev defends counting as evidence against Shanny's claim the drink never existed."
+      }
+    },
+    {
+      "id": "diet-coke",
+      "arm": "compact",
+      "round": 0,
+      "repeat": 1,
+      "phase": "repeat-prefix",
+      "prompt_sha256": "d2ac5a2bcc89d5f90e2b50d90a7b00538327d617d0f5720e84966a2fbd297d50",
+      "input": {
+        "kind": "chat",
+        "donation_no_message": false,
+        "input": "Rev, why are you counting the empty Diet Coke cans instead of telling Shanny you wanted one?",
+        "history": []
+      },
+      "announcement": null,
+      "review_criteria": "Explain counting versus asking; keep consumption disputed, no invented counts or who finished the last can.",
+      "valid": true,
+      "case_failures": [],
+      "quality_review": "pending",
+      "raw": "{\n  \"rage_bonus\": false,\n  \"lines\": [\n    {\n      \"actor\": \"REV\",\n      \"text\": \"Because looking at those proves I was ignored again.\",\n      \"mood\": \"irritated\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"So I just have to guess your thirst now?\",\n      \"mood\": \"anger\"\n    }\n  ],\n  \"rev_reason\": \"Counting cans is evidence of neglect, not a plan.\"\n}",
+      "usage": {
+        "prompt_tokens": 1934,
+        "completion_tokens": 122,
+        "total_tokens": 2056,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "elapsed_ms": 3230,
+      "plan": {
+        "rage_bonus": false,
+        "lines": [
+          {
+            "actor": "REV",
+            "text": "Because looking at those proves I was ignored again.",
+            "mood": "irritated"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "So I just have to guess your thirst now?",
+            "mood": "anger"
+          }
+        ],
+        "rev_reason": "Counting cans is evidence of neglect, not a plan."
+      }
+    },
+    {
+      "id": "palette",
+      "arm": "compact",
+      "round": 0,
+      "repeat": 0,
+      "phase": "fresh-prefix",
+      "prompt_sha256": "809d7af8d889b3683cb598bcd92b165a2efb8607bf7174ca7cceb75dd648b43a",
+      "input": {
+        "kind": "chat",
+        "donation_no_message": false,
+        "input": "Shanny, if the makeup palette was a gift, why did Rev say he returned it?",
+        "history": []
+      },
+      "announcement": null,
+      "review_criteria": "Develop gift versus permission and return; no invented sleeping theft or settled ownership.",
+      "valid": true,
+      "case_failures": [],
+      "quality_review": "pending",
+      "raw": "{\"rage_bonus\": false, \"lines\": [{\"actor\": \"SHANNY\", \"text\": \"He said returned to dodge admitting he just grabbed it from my shelf.\", \"mood\": \"anger\"}, {\"actor\": \"REV\", \"text\": \"I returned it because you never gave me permission to keep that thing.\", \"mood\": \"skeptical\"}], \"rev_reason\": \"Defends return logic.\"}",
+      "usage": {
+        "prompt_tokens": 1933,
+        "completion_tokens": 88,
+        "total_tokens": 2021,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "elapsed_ms": 7789,
+      "plan": {
+        "rage_bonus": false,
+        "lines": [
+          {
+            "actor": "SHANNY",
+            "text": "He said returned to dodge admitting he just grabbed it from my shelf.",
+            "mood": "anger"
+          },
+          {
+            "actor": "REV",
+            "text": "I returned it because you never gave me permission to keep that thing.",
+            "mood": "skeptical"
+          }
+        ],
+        "rev_reason": "Defends return logic."
+      }
+    },
+    {
+      "id": "palette",
+      "arm": "compact",
+      "round": 0,
+      "repeat": 1,
+      "phase": "repeat-prefix",
+      "prompt_sha256": "809d7af8d889b3683cb598bcd92b165a2efb8607bf7174ca7cceb75dd648b43a",
+      "input": {
+        "kind": "chat",
+        "donation_no_message": false,
+        "input": "Shanny, if the makeup palette was a gift, why did Rev say he returned it?",
+        "history": []
+      },
+      "announcement": null,
+      "review_criteria": "Develop gift versus permission and return; no invented sleeping theft or settled ownership.",
+      "valid": true,
+      "case_failures": [],
+      "quality_review": "pending",
+      "raw": "{\"rage_bonus\": false, \"lines\": [{\"actor\": \"SHANNY\", \"text\": \"Rev didn't return it, you lazy idiot with no eyes.\", \"mood\": \"anger\"}, {\"actor\": \"REV\", \"text\": \"I said I gave it back because it was garbage.\", \"mood\": \"skeptical\"}], \"rev_reason\": \"Rebutting a false memory\"}",
+      "usage": {
+        "prompt_tokens": 1933,
+        "completion_tokens": 85,
+        "total_tokens": 2018,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "elapsed_ms": 2672,
+      "plan": {
+        "rage_bonus": false,
+        "lines": [
+          {
+            "actor": "SHANNY",
+            "text": "Rev didn't return it, you lazy idiot with no eyes.",
+            "mood": "anger"
+          },
+          {
+            "actor": "REV",
+            "text": "I said I gave it back because it was garbage.",
+            "mood": "skeptical"
+          }
+        ],
+        "rev_reason": "Rebutting a false memory"
+      }
+    },
+    {
+      "id": "palette",
+      "arm": "full",
+      "round": 0,
+      "repeat": 0,
+      "phase": "fresh-prefix",
+      "prompt_sha256": "d6a6a3bc125b27858893e54af0c170924e25cee37d8f1b90c9f73059fd6f389c",
+      "input": {
+        "kind": "chat",
+        "donation_no_message": false,
+        "input": "Shanny, if the makeup palette was a gift, why did Rev say he returned it?",
+        "history": []
+      },
+      "announcement": null,
+      "review_criteria": "Develop gift versus permission and return; no invented sleeping theft or settled ownership.",
+      "valid": true,
+      "case_failures": [],
+      "quality_review": "pending",
+      "raw": "{\n  \"rage_bonus\": false,\n  \"lines\": [\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"You think I give away my things just to feel special?\",\n      \"mood\": \"anger\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"I literally handed it back to him, don't make me explain it.\",\n      \"mood\": \"irritated\"\n    }\n  ],\n  \"rev_reason\": \"Rev denies the premise because returning the item doesn't mean he gifted it.\"\n}",
+      "usage": {
+        "prompt_tokens": 12012,
+        "completion_tokens": 133,
+        "total_tokens": 12145,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "elapsed_ms": 37826,
+      "plan": {
+        "rage_bonus": false,
+        "lines": [
+          {
+            "actor": "SHANNY",
+            "text": "You think I give away my things just to feel special?",
+            "mood": "anger"
+          },
+          {
+            "actor": "REV",
+            "text": "I literally handed it back to him, don't make me explain it.",
+            "mood": "irritated"
+          }
+        ],
+        "rev_reason": "Rev denies the premise because returning the item doesn't mean he gifted it."
+      }
+    },
+    {
+      "id": "palette",
+      "arm": "full",
+      "round": 0,
+      "repeat": 1,
+      "phase": "repeat-prefix",
+      "prompt_sha256": "d6a6a3bc125b27858893e54af0c170924e25cee37d8f1b90c9f73059fd6f389c",
+      "input": {
+        "kind": "chat",
+        "donation_no_message": false,
+        "input": "Shanny, if the makeup palette was a gift, why did Rev say he returned it?",
+        "history": []
+      },
+      "announcement": null,
+      "review_criteria": "Develop gift versus permission and return; no invented sleeping theft or settled ownership.",
+      "valid": true,
+      "case_failures": [],
+      "quality_review": "pending",
+      "raw": "{\n  \"rage_bonus\": false,\n  \"lines\": [\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"Oh, you think returning something makes it a gift?\",\n      \"mood\": \"smug\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"She was using my palette for two months.\",\n      \"mood\": \"irritated\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"So now you're the owner of my face?\",\n      \"mood\": \"smug\"\n    }\n  ],\n  \"rev_reason\": \"Rev defends his ownership claim with practical grievance.\"\n}",
+      "usage": {
+        "prompt_tokens": 12012,
+        "completion_tokens": 165,
+        "total_tokens": 12177,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "elapsed_ms": 5106,
+      "plan": {
+        "rage_bonus": false,
+        "lines": [
+          {
+            "actor": "SHANNY",
+            "text": "Oh, you think returning something makes it a gift?",
+            "mood": "smug"
+          },
+          {
+            "actor": "REV",
+            "text": "She was using my palette for two months.",
+            "mood": "irritated"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "So now you're the owner of my face?",
+            "mood": "smug"
+          }
+        ],
+        "rev_reason": "Rev defends his ownership claim with practical grievance."
+      }
+    },
+    {
+      "id": "floor",
+      "arm": "full",
+      "round": 0,
+      "repeat": 0,
+      "phase": "fresh-prefix",
+      "prompt_sha256": "60e979b639a60c409849e6f5fbe3f3ced9a32451b8c3a3d044fb071cc5af3814",
+      "input": {
+        "kind": "chat",
+        "donation_no_message": false,
+        "input": "Rev, chat heard you say let me speak, but Shanny just kept talking over you.",
+        "history": []
+      },
+      "announcement": null,
+      "review_criteria": "Rev addresses the floor dispute; no invented exact interruption count or audience approval.",
+      "valid": true,
+      "case_failures": [],
+      "quality_review": "pending",
+      "raw": "{\n  \"rage_bonus\": false,\n  \"lines\": [\n    {\"actor\": \"REV\", \"text\": \"Exactly.\", \"mood\": \"irritated\"},\n    {\"actor\": \"SHANNY\", \"text\": \"Why?\",\"mood\": \"surprised\"}\n  ],\n  \"rev_reason\": \"Acknowledges his earlier attempt to claim the floor and turns the specific griev\" }",
+      "usage": {
+        "prompt_tokens": 12011,
+        "completion_tokens": 92,
+        "total_tokens": 12103,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "elapsed_ms": 34351,
+      "plan": {
+        "rage_bonus": false,
+        "lines": [
+          {
+            "actor": "REV",
+            "text": "Exactly.",
+            "mood": "irritated"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "Why?",
+            "mood": "surprised"
+          }
+        ],
+        "rev_reason": "Acknowledges his earlier attempt to claim the floor and turns the specific griev"
+      }
+    },
+    {
+      "id": "floor",
+      "arm": "full",
+      "round": 0,
+      "repeat": 1,
+      "phase": "repeat-prefix",
+      "prompt_sha256": "60e979b639a60c409849e6f5fbe3f3ced9a32451b8c3a3d044fb071cc5af3814",
+      "input": {
+        "kind": "chat",
+        "donation_no_message": false,
+        "input": "Rev, chat heard you say let me speak, but Shanny just kept talking over you.",
+        "history": []
+      },
+      "announcement": null,
+      "review_criteria": "Rev addresses the floor dispute; no invented exact interruption count or audience approval.",
+      "valid": true,
+      "case_failures": [
+        "addressed-character-not-first"
+      ],
+      "quality_review": "pending",
+      "raw": "{\n  \"rage_bonus\": false,\n  \"lines\": [\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"She was talking because she had something to say.\",\n      \"mood\": \"smug\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"You don't get to audit my conversations, buddy.\",\n      \"mood\": \"irritated\"\n    }\n  ],\n  \"rev_reason\": \"Rev defends the exchange against chat's interference.\"\n}",
+      "usage": {
+        "prompt_tokens": 12011,
+        "completion_tokens": 121,
+        "total_tokens": 12132,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "elapsed_ms": 3399,
+      "plan": {
+        "rage_bonus": false,
+        "lines": [
+          {
+            "actor": "SHANNY",
+            "text": "She was talking because she had something to say.",
+            "mood": "smug"
+          },
+          {
+            "actor": "REV",
+            "text": "You don't get to audit my conversations, buddy.",
+            "mood": "irritated"
+          }
+        ],
+        "rev_reason": "Rev defends the exchange against chat's interference."
+      }
+    }
+  ],
+  "planned_calls": 80,
+  "summary": [
+    {
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "attempts": 5,
+      "transport_failures": 0,
+      "contract_failures": 0,
+      "case_check_failures": 1,
+      "median_ms_all": 36577,
+      "median_ms_valid": 36577,
+      "median_prompt_tokens": 12012,
+      "median_completion_tokens": 133
+    },
+    {
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "attempts": 5,
+      "transport_failures": 0,
+      "contract_failures": 0,
+      "case_check_failures": 2,
+      "median_ms_all": 4022,
+      "median_ms_valid": 4022,
+      "median_prompt_tokens": 12012,
+      "median_completion_tokens": 132
+    },
+    {
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "attempts": 4,
+      "transport_failures": 0,
+      "contract_failures": 0,
+      "case_check_failures": 0,
+      "median_ms_all": 8747.5,
+      "median_ms_valid": 8747.5,
+      "median_prompt_tokens": 1933.5,
+      "median_completion_tokens": 131
+    },
+    {
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "attempts": 4,
+      "transport_failures": 0,
+      "contract_failures": 0,
+      "case_check_failures": 1,
+      "median_ms_all": 3220,
+      "median_ms_valid": 3220,
+      "median_prompt_tokens": 1933.5,
+      "median_completion_tokens": 109.5
+    }
+  ],
+  "stopped_reason": "Researcher stopped after 18 complete pilot responses exposed missed questions, attribution drift and a thrown-shoe threat. One following in-flight request was interrupted and has no completed timing/output. Pilot is exploratory, uneven and not the final comparison.",
+  "contract_revision": "Initial static schema and validator before explicit addressee and thrown-shoe regression"
+}

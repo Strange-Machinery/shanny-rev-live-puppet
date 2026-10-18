@@ -1,0 +1,5 @@
+# Preserve the byte-exact installed control/reference snapshots across platforms.
+# Original whitespace is evidence, not newly authored source formatting.
+docs/dyad/reference/* -text -whitespace
+experiments/dyad/reference/* -text -whitespace
+experiments/dyad/evidence/*.json -text

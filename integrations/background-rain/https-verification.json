@@ -1,0 +1,16 @@
+{
+  "status": "PASS",
+  "checked_at": "2026-10-18T03:18:59.8609293Z",
+  "checks": {
+    "public_page": true,
+    "unauthenticated_denied": true,
+    "viewer_control_denied": true,
+    "wrong_origin_denied": true,
+    "operator_status": true,
+    "same_value_control_round_trip": true,
+    "viewer_link_uses_public_origin": true,
+    "obs_closed": true
+  },
+  "dyad_enabled": true,
+  "remote_media_acceptance": "Requires Buff to test from his own network; this receipt verifies HTTPS controls only."
+}

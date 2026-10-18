@@ -1,0 +1,85 @@
+{
+  "base": "d3bdbe609b8287e77ca5741f484161cdc5405aef",
+  "default_branch_at_inspection": "290ef2208f92ab8943fba59e46a3726f29db02d8",
+  "source": "Read-only STANK-TANK handoff installation snapshot; paths relative to that installation, no private configuration or assets copied",
+  "files": [
+    {
+      "path": "src/dyad-director.mjs",
+      "sha256": "b2c28f9092d3e3445bb19f010d80bc6767d971c349218f341c8d5df723fbdec8"
+    },
+    {
+      "path": "src/chat-heckles.mjs",
+      "sha256": "3ae440368626f99f809f43c814e889c8eb59a6e18c4f6cab73a3ebb3358a8fb5"
+    },
+    {
+      "path": "src/argue-director.mjs",
+      "sha256": "6f6330ef7a7dbe4fbcacaf939bfd7b1b5ef1d23a9a4b0f4c9b5df337eb16902a"
+    },
+    {
+      "path": "src/argue-callbacks.json",
+      "sha256": "6ab5db93cf58d3c1730a8f565be9a4371b4782e8a061382ca25a50d89e5f349e"
+    },
+    {
+      "path": "src/sample-led-voice.mjs",
+      "sha256": "36482bafa690ca2f04ebd6e4c7a08f1cd79b65d29c5bdd36d790d07ef8f13d4f"
+    },
+    {
+      "path": "src/donations/announcement.mjs",
+      "sha256": "59825ecec14c7416f1a1e8c829371af024cb0c5d3aab1d95d8abef9d57332183"
+    },
+    {
+      "path": "docs/ARGUE-COMMON-JOKES.txt",
+      "sha256": "dc85106468de043c4c8f8afdd75c0c9579f4a8ec058a101a88d88a836f59170f"
+    },
+    {
+      "path": "docs/dyad/character-guide.md",
+      "sha256": "d0d924b659f46f396cd5ce6d77e353a7259b30d5789d544839c576e16c5111e9"
+    },
+    {
+      "path": "docs/dyad/DYAD_PERFORMANCE_RULES.md",
+      "sha256": "e42eb0e6f806e5f7d348331d6fed2d5128c5e1f2087e0ae1b66e63d59559f79c"
+    },
+    {
+      "path": "docs/dyad/DYAD_DIRECTION.md",
+      "sha256": "d9503ade96f1e79096826e33dbd52981ef290db58956c33a6c65bcb0023dd679"
+    },
+    {
+      "path": "docs/dyad/shanny_rev_dyad_signatures.yaml",
+      "sha256": "3ed8e638d2287cf507a395a0aea227209d208f185ba84e475ea9734064185513"
+    },
+    {
+      "path": "evidence/dyad-smoke.json",
+      "sha256": "2861f655d99da8219c573f43868a8a1e9aefee0f5f6f4e6881a265dc3ebdb2de"
+    },
+    {
+      "path": "evidence/dyad-qualified-smoke.json",
+      "sha256": "3997e5342067d1791e60a908621320648cd32e7310acd429479861e152622860"
+    },
+    {
+      "path": "evidence/dyad-baseline.json",
+      "sha256": "93b6c82904145226c21fee244f18986c5aae9fd783a4926a432b77924391a7ae"
+    }
+  ],
+  "historical_baseline_prompt_sha256": "e010ff67b7b8b5e8f2dc8feb6b62333cc7edf71145ef82a614016f8ac3ec79aa",
+  "paired_full_prompt_sha256": "9655d03d74181b0fe9a9a7e43eed0b4b053acfb92bd1ef8e459088c36eda5aae",
+  "control_note": "Copied full prompt function and four reference files; confirmed equal to the installed prompt using the same external notes. Historical prompt was 52,839 characters; current control is 53,430, including a later 587-character money-only directive. A remaining four-character difference is not attributed. Historical evidence is preserved separately; do not call the paired control an exact replay of that historical hash.",
+  "frozen_gold": {
+    "src/conversation-director.mjs": "35e896be6c84f8d491ff7e6056f4253740351ee6c16c366eec1ea9dfa53afcdb",
+    "src/msi-blackout-gold.mjs": "a661776abeee31fe0e4a11790ce98f729405716c07c65e10962eda3d12cf730b",
+    "src/providers/qwen-failover.mjs": "7699922a4f2f89eed1ea7ac8df1c6b01d709ec5d5d50de0a995a8bc2bc4450e5",
+    "src/providers/qwen.mjs": "1c7c361322f4b7d1c005ee31de01cd21a1c05e70abce5016c2c2a2323262375b"
+  },
+  "paired_candidate_prompt_sha256": "f02e5a9fb7fd8e026d5b2356d463049b795e235d8742e132e98ef9a86ddbde0e",
+  "paired_comparison": {
+    "calls": 80,
+    "cases": 10,
+    "rounds": 2,
+    "arms": [
+      "full",
+      "compact"
+    ],
+    "request_contract": "Same schemaForRecord, 1024 maximum output tokens and sampling in both arms; explicit leading addressee checked in validation.",
+    "evidence": "experiments/dyad/evidence/paired-v2.json",
+    "review": "experiments/dyad/evidence/review-v2.json"
+  }
+}

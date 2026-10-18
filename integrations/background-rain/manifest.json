@@ -1,0 +1,90 @@
+{
+  "schema": "background-rain-installed-overlay-v1",
+  "prepared_at": "2026-10-18T02:53:07.295260+00:00",
+  "files": [
+    {
+      "path": "src/remote-web/stage-page.js",
+      "before_sha256": "db8f2601124651df2bbeabfaf65996e12f4fa531d0cb1c492e62bd6a38647d59",
+      "after_sha256": "5c2a742b98b147da8a008697177769e1355bcc11009451e982d933c51bf11721"
+    },
+    {
+      "path": "src/remote-web/presentation-ready.js",
+      "before_sha256": null,
+      "after_sha256": "b4595d695af53784d9e34fbc400f6daac0b36ae1b95d9816fed1f573b9dda11f"
+    },
+    {
+      "path": "src/remote-panel.mjs",
+      "before_sha256": "01c377d111e438cc8e6d8751430c5e357a6c6c0061ec4b2c304e4738352b0364",
+      "after_sha256": "897be443b56b73fc85a0bb1db3001a02ab5ccf64d3617b22674ea1de6137d85c"
+    },
+    {
+      "path": "src/stage-media.mjs",
+      "before_sha256": "e8c0335bf71e800e0a85b42169035e36e9012a299efe905b33ef0189df8d47ba",
+      "after_sha256": "c00b76c4ff7174d837df068efa7fbf67410e14292f2fe6590216fc8ef419a82c"
+    },
+    {
+      "path": "src/real-host.mjs",
+      "before_sha256": "752b787a3e8816a985d74f4f01bf54c28621c0e5b87789c95a6c8afb70ffaf35",
+      "after_sha256": "cb74207808bcaee16e037f64f9638145ee6295a7fbc6de949875623a4249e4e6"
+    },
+    {
+      "path": "python/open_views.py",
+      "before_sha256": "76ddeb37c9209ceca75d72208b10ddc908d834687a519d5d0f7ff0a09c0ad6a6",
+      "after_sha256": "1980809e6aaa82f0b2e96ef678ac8ef745bb848eaba27f018871be80549ad755"
+    },
+    {
+      "path": "python/show_launcher.py",
+      "before_sha256": null,
+      "after_sha256": "0070becfcb303ba42c03ed6119a7fc1f38580a872d27ce1961974cc7767dd4e2"
+    },
+    {
+      "path": "scripts/Install-Desktop-Launchers.ps1",
+      "before_sha256": null,
+      "after_sha256": "a78181e69b77d66552c4f3b7fdc1204da88ed5e51955590faaf7bc1e60b80cea"
+    },
+    {
+      "path": "scripts/Start-Buff-Trial.ps1",
+      "before_sha256": null,
+      "after_sha256": "46222282544791fc3296219edbcf25a3024fe7ee8bbd7fd25c53d6d0d2476e77"
+    },
+    {
+      "path": "scripts/Stop-Buff-Trial.ps1",
+      "before_sha256": null,
+      "after_sha256": "639b03b2fa5354633e3253e2675ae27d9d00db1dbb44d1eae67331507ca692a2"
+    },
+    {
+      "path": "docs/BUFF_TRIAL_QUICK_START.txt",
+      "before_sha256": null,
+      "after_sha256": "8e176cafb0419095e153b5ca0fdad7f30cd546b219cf94d3ae813aad54de64d0"
+    },
+    {
+      "path": "src/buff-sharing-control.mjs",
+      "before_sha256": null,
+      "after_sha256": "224e1c6a889d701e46797dbbafb8e5e3fc8e80340a0d09b6d73c19d76480ab13"
+    },
+    {
+      "path": "src/remote-web/index.html",
+      "before_sha256": "f5777b23e413c02124ab4046cebe93e74689bff0b8048f60d6e224fd515cadf6",
+      "after_sha256": "a1680e38717e1cf33ca987726eb71114c2d69281d192085b720b4e71fb19d7f4"
+    },
+    {
+      "path": "src/remote-web/panel.js",
+      "before_sha256": "6b041027b19c32f1db70a6a6d91dbe26128018afba875ec35d3af2202f81da84",
+      "after_sha256": "bbcf803ec843e970f042657af40604ce10ed0f9d3dc9ed4ace5cd1483b0993c6"
+    }
+  ],
+  "baseline_frozen_gold": {
+    "src/conversation-director.mjs": "35e896be6c84f8d491ff7e6056f4253740351ee6c16c366eec1ea9dfa53afcdb",
+    "src/msi-blackout-gold.mjs": "a661776abeee31fe0e4a11790ce98f729405716c07c65e10962eda3d12cf730b",
+    "src/providers/qwen-failover.mjs": "7699922a4f2f89eed1ea7ac8df1c6b01d709ec5d5d50de0a995a8bc2bc4450e5",
+    "src/providers/qwen.mjs": "1c7c361322f4b7d1c005ee31de01cd21a1c05e70abce5016c2c2a2323262375b"
+  },
+  "validation": {
+    "staged_full_tests": 340,
+    "additional_panel_tests": 2,
+    "final_sharing_targeted_tests": 7,
+    "background_rain_targeted_tests": 27,
+    "repository_tests": 309
+  },
+  "patch_sha256": "4a2a0c6c5ffcf349bed199ffef430c7568f41561f0c83ae7246fce2e8260f165"
+}

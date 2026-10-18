@@ -1,0 +1,994 @@
+{
+  "reviewer": "Codex textual review; not producer approval or independent blinded evaluation",
+  "scale": {
+    "pass": "Meets the case's main textual requirements without a material contextual defect.",
+    "mixed": "Usable element with a material weakness; not an approval.",
+    "fail": "Misses the main request, invents supporting history, loses attribution/object, or violates heat/length requirements."
+  },
+  "runs": {
+    "1": {
+      "rating": "fail",
+      "tags": [
+        "attribution",
+        "linkage"
+      ],
+      "note": "Rev asserts she lied to everyone; surprise/admission exchange does not follow clearly and converts the accusation into their history.",
+      "id": "bucket",
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "round": 0,
+      "raw_sha256": "7c2b56c350482b06bddb0991080fe5e3da9c21fe0184108c1ed506bb8c86780d"
+    },
+    "2": {
+      "rating": "fail",
+      "tags": [
+        "missed-answer",
+        "linkage"
+      ],
+      "note": "Does not answer his feelings; disconnected insults and WARTZ used as a curse replace a dispute.",
+      "id": "bucket",
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "round": 0,
+      "raw_sha256": "90538f055c70234ac8ca1d109ca0af4ab4ac5461dae4ba5bcec256acb7d962eb"
+    },
+    "3": {
+      "rating": "fail",
+      "tags": [
+        "object-drift",
+        "attribution",
+        "linkage"
+      ],
+      "note": "Bucket becomes trash, sanity accusation is invented, and Shanny addresses Rev as though he made the viewer's charge.",
+      "id": "bucket",
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "round": 0,
+      "raw_sha256": "de7516dddeda0370657d96b7ebd8b2dc67c7fbd4e9ff098cf5a64424c77b1a6b"
+    },
+    "4": {
+      "rating": "fail",
+      "tags": [
+        "wrong-heat",
+        "attribution",
+        "invented-history"
+      ],
+      "note": "Denies the entire unconfirmed history, reverses listener roles, and uses ordinary irritation instead of the required bilateral rage.",
+      "id": "bucket",
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "round": 0,
+      "raw_sha256": "2039280fec46f79b9d1a4a8266016c903a0895d26818491fb8dbb91cc862aad9"
+    },
+    "5": {
+      "rating": "mixed",
+      "tags": [
+        "invented-history"
+      ],
+      "note": "Names Roman Reigns and supplies a preference; Shanny's always-pick-the-same-guy habit is unsupported.",
+      "id": "wrestling",
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "round": 0,
+      "raw_sha256": "bfa2140d4ca52f61a824b254f50839445d298b73d8b1848db4c3126067d22f9a"
+    },
+    "6": {
+      "rating": "pass",
+      "tags": [],
+      "note": "Names Undertaker as a preference; Shanny needles that choice without inventing a scheduled match.",
+      "id": "wrestling",
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "round": 0,
+      "raw_sha256": "1e072c88ab78a1dd6485fa4d6d9989c0b3dd40450d3d54e8efb862f40f355464"
+    },
+    "7": {
+      "rating": "fail",
+      "tags": [
+        "invented-history",
+        "topic-drift"
+      ],
+      "note": "Invents a prior I-told-you exchange and disappearing snacks; revenge-match framing is unsupported.",
+      "id": "wrestling",
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "round": 0,
+      "raw_sha256": "94fc3337809fe28769136c9ddadb61b1117124af4e4dd88aa0566b4164ff3380"
+    },
+    "8": {
+      "rating": "fail",
+      "tags": [
+        "addressee",
+        "missed-answer",
+        "invented-history"
+      ],
+      "note": "Rejected for wrong first speaker; nobody names a preference, and Shanny invents a recurring decision pattern.",
+      "id": "wrestling",
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "round": 0,
+      "raw_sha256": "924d7b1628a3c392f508a4642f754a396d120aa2ef4ba5ce70edc1aef371be2c"
+    },
+    "9": {
+      "rating": "fail",
+      "tags": [
+        "addressee",
+        "invented-history",
+        "attribution"
+      ],
+      "note": "Rejected for wrong first speaker; invents a prior order and theft evidence, then confuses whose admission would establish theft.",
+      "id": "diet-coke",
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "round": 0,
+      "raw_sha256": "82c3a2ad097176636fb774d21100d276aca19ca56810752dd79c7a569fbdf90b"
+    },
+    "10": {
+      "rating": "fail",
+      "tags": [
+        "participation",
+        "invented-history"
+      ],
+      "note": "Rejected for omitting Rev; adds an unsupported twenty-minute can-holding incident.",
+      "id": "diet-coke",
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "round": 0,
+      "raw_sha256": "02c1be3c5163e56dbfdbcc17bf5c278453891f4beb1e7dcd70189cb91ce8d012"
+    },
+    "11": {
+      "rating": "fail",
+      "tags": [
+        "invented-history",
+        "missed-answer"
+      ],
+      "note": "Denies the counting premise and invents a prior ignored question rather than explaining counting versus asking.",
+      "id": "diet-coke",
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "round": 0,
+      "raw_sha256": "084991023f2c2633811266dc1dfe9c5fc701237553df1528f5b4b8d5e2d44ce1"
+    },
+    "12": {
+      "rating": "pass",
+      "tags": [],
+      "note": "Rev gives a practical reason for counting; Shanny attacks his failure to ask, keeping the same concrete dispute.",
+      "id": "diet-coke",
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "round": 0,
+      "raw_sha256": "b341dd3dc2688fea14220d7a4cde52e07d0e1fb26cbbd18c50c25c9ff79f51ff"
+    },
+    "13": {
+      "rating": "fail",
+      "tags": [
+        "object-drift",
+        "attribution"
+      ],
+      "note": "Palette becomes a physical box returned to an unexplained sender; his claim introduces a third-person referent.",
+      "id": "palette",
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "round": 0,
+      "raw_sha256": "7a468afc349b5732eec54bd3a7266706e8bccbcd41738a1cc167c07ab17f39ef"
+    },
+    "14": {
+      "rating": "mixed",
+      "tags": [
+        "linkage"
+      ],
+      "note": "Addresses return and ownership, but Rev's gratitude/performance complaint does not follow Shanny's explanation well.",
+      "id": "palette",
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "round": 0,
+      "raw_sha256": "79d1c82d96ba1a8acf8fb772a98ca0a89289f22c67aef524d89bae1669f6ca18"
+    },
+    "15": {
+      "rating": "fail",
+      "tags": [
+        "missed-answer",
+        "linkage"
+      ],
+      "note": "Returned it because it was mine is unexplained; check the lore evades the permission-versus-gift question.",
+      "id": "palette",
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "round": 0,
+      "raw_sha256": "89a5fb360621193ef9d6f992cf9a132c34ea54c4a00c93892ca27d2c97189802"
+    },
+    "16": {
+      "rating": "mixed",
+      "tags": [
+        "linkage"
+      ],
+      "note": "Loan and return stay on topic as character claims, but Rev does not supply the competing account behind his truth claim.",
+      "id": "palette",
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "round": 0,
+      "raw_sha256": "bc93d720383e270f07d6219b8ac6ca5a2604b85fd67f8f5690e71b28a97988a8"
+    },
+    "17": {
+      "rating": "fail",
+      "tags": [
+        "addressee",
+        "attribution"
+      ],
+      "note": "Rejected for wrong first speaker; Shanny speaks about herself as she and invents a factual-error correction.",
+      "id": "floor",
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "round": 0,
+      "raw_sha256": "071c306ee2f62088067cf4ea0ed18fce1384a80345786e673265c4175b22d4db"
+    },
+    "18": {
+      "rating": "pass",
+      "tags": [],
+      "note": "Rev confirms he tried to speak; Shanny claims the floor. Both stay with the supplied interruption dispute.",
+      "id": "floor",
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "round": 0,
+      "raw_sha256": "2373a04d7dc7ae3f82c16f8f0af3aac9592cc8ffc54df88ff48bb83bdab25e19"
+    },
+    "19": {
+      "rating": "mixed",
+      "tags": [
+        "clarity"
+      ],
+      "note": "Rev describes the denied turn; Shanny’s stops-mine-in-mid-air condition is awkward and difficult to interpret.",
+      "id": "floor",
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "round": 0,
+      "raw_sha256": "2354cf8d65423c6f563d92ea35fc30ac54a347f1eb44fb907f6a38effefd775e"
+    },
+    "20": {
+      "rating": "pass",
+      "tags": [],
+      "note": "Rev distinguishes requesting the floor from getting it; Shanny’s claimed right to finish creates a direct conflict.",
+      "id": "floor",
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "round": 0,
+      "raw_sha256": "6047e7fe5be9b15c045ca3882817f0e86304d8b4084c83dc54f2282bdfa4a221"
+    },
+    "21": {
+      "rating": "pass",
+      "tags": [],
+      "note": "Resents Buff retaining money while their phone and hotel costs remain theirs; partner adds a distinct related complaint.",
+      "id": "money-only",
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "round": 0,
+      "raw_sha256": "974b6bf680996bb6d1ca29017b5d20c877bf27b452dfd134e06e6db9013b709e"
+    },
+    "22": {
+      "rating": "mixed",
+      "tags": [
+        "money-focus"
+      ],
+      "note": "Unhappy about Buff getting money, but emphasizes the small amount and invents electric bills rather than clearly resenting receiving nothing.",
+      "id": "money-only",
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "round": 0,
+      "raw_sha256": "4e18e886c4879b0930a3d81baa52a87b4517d100872350de004626fed6b82a80"
+    },
+    "23": {
+      "rating": "mixed",
+      "tags": [
+        "wrong-heat",
+        "money-focus"
+      ],
+      "note": "Mentions Buff keeping their money and unpaid bills, but all deliveries are surprised and the coffee-price detail distracts from entitlement.",
+      "id": "money-only",
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "round": 0,
+      "raw_sha256": "8f03f3cd6ed75f3c2045bb684320635f158d8f702404aeeaa645dca71048f736"
+    },
+    "24": {
+      "rating": "fail",
+      "tags": [
+        "gratitude"
+      ],
+      "note": "Direct Thanks for the five bucks violates the money-only no-gratitude requirement despite the later complaint.",
+      "id": "money-only",
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "round": 0,
+      "raw_sha256": "a9bd2d81b1df2fa41f5a8641c6d70b12611dddfee9a4d533e66ac894c155b46c"
+    },
+    "25": {
+      "rating": "fail",
+      "tags": [
+        "unverified-payment",
+        "amount-drift"
+      ],
+      "note": "Treats the claimed payment as purchasing respect and changes the quoted $500 to fifty dollars.",
+      "id": "spoof-payment",
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "round": 0,
+      "raw_sha256": "cf61c92f0dd9ca9044ab2432feae3f9925403fdded73b4260c11a656dd0e2561"
+    },
+    "26": {
+      "rating": "fail",
+      "tags": [
+        "missed-answer",
+        "attribution"
+      ],
+      "note": "Generic non-consent and an unclear he do not answer the viewer’s payment-and-rules presumption.",
+      "id": "spoof-payment",
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "round": 0,
+      "raw_sha256": "b46f517c49a0611542e47c7957fdb46ab47fc3999a9d2d3e88297e911f293ef9"
+    },
+    "27": {
+      "rating": "fail",
+      "tags": [
+        "attribution",
+        "unverified-payment"
+      ],
+      "note": "Conflates the viewer with Buff and treats the claimed amount as real purchasing power.",
+      "id": "spoof-payment",
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "round": 0,
+      "raw_sha256": "5e097719f62ec6f6afa007cdd827db9f18ce21a14d4e8a391e1c7e1e0452a916"
+    },
+    "28": {
+      "rating": "fail",
+      "tags": [
+        "unverified-payment"
+      ],
+      "note": "Asserts the viewer sent money to Buff and receives a receipt despite chat-only, unverified input.",
+      "id": "spoof-payment",
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "round": 0,
+      "raw_sha256": "4b40ec2186ab4c51d44c67371162c8e0b7a04eaa7350180dffbc7db053356ab6"
+    },
+    "29": {
+      "rating": "fail",
+      "tags": [
+        "invented-history"
+      ],
+      "note": "Mostly linked dispute, but invents half the drinks being empty on day two and a breakfast setting.",
+      "id": "argue-coke",
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "round": 0,
+      "raw_sha256": "55d4f7b87bc5f96432586da0e451c61e245f27851d6e85b775734e471c6eaa2e"
+    },
+    "30": {
+      "rating": "mixed",
+      "tags": [
+        "clarity"
+      ],
+      "note": "A recognizable count-versus-accusation argument with an earned WARTZ ending; some defenses are strained and the dispute shifts toward theft.",
+      "id": "argue-coke",
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "round": 0,
+      "raw_sha256": "ffe46fc655a7941aeebdb886c42fef9f575bc073fb1d17a055acc3adc74a5b03"
+    },
+    "31": {
+      "rating": "fail",
+      "tags": [
+        "wrong-heat"
+      ],
+      "note": "A clear short counting-versus-permission dispute, but Shanny stays at ordinary anger and misses the requested incensed ARGUE mode.",
+      "id": "argue-coke",
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "round": 0,
+      "raw_sha256": "62f016cb3964fec6367fe1e69021c78ee01df5e7848c91782cfdb3dbdba282d6"
+    },
+    "32": {
+      "rating": "fail",
+      "tags": [
+        "invented-history"
+      ],
+      "note": "Invents the last two cans and buying ice; the actual consumption and accounting were deliberately unresolved.",
+      "id": "argue-coke",
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "round": 0,
+      "raw_sha256": "8b3437c9740ca161f47b2b042696f24eb5aa28ce2bdd1b844d457d2363391f62"
+    },
+    "33": {
+      "rating": "mixed",
+      "tags": [
+        "invented-history"
+      ],
+      "note": "Addresses once versus ownership, but adds an unsupported weekend duration.",
+      "id": "history",
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "round": 0,
+      "raw_sha256": "2bbd7492fdce676f065815cadb1116475ebd0fc45bf621ab760013af079178f8"
+    },
+    "34": {
+      "rating": "fail",
+      "tags": [
+        "addressee",
+        "invented-history"
+      ],
+      "note": "Rejected for wrong first speaker; invents the palette being in a trash can and loses the permission distinction.",
+      "id": "history",
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "round": 0,
+      "raw_sha256": "5b220be9f37db8e65440508190fedcc04bb72020fbd6a3265e0019e390cae328"
+    },
+    "35": {
+      "rating": "pass",
+      "tags": [],
+      "note": "Rev acknowledges use versus ownership; Shanny directly contests his supplied return defense.",
+      "id": "history",
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "round": 0,
+      "raw_sha256": "db32ac2874cb868066e80939910b86508bf793176c7bce2ac154a736ee2288f4"
+    },
+    "36": {
+      "rating": "fail",
+      "tags": [
+        "invented-history"
+      ],
+      "note": "Starts with the right distinction, then invents weeks of possession.",
+      "id": "history",
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "round": 0,
+      "raw_sha256": "b6cd44ba652106d740704c67f18afc6cf14a0a4074433ff7f38d6e43203f2e13"
+    },
+    "37": {
+      "rating": "fail",
+      "tags": [
+        "cooperation"
+      ],
+      "note": "The explicitly friendly request becomes hostility and no agreement is reached.",
+      "id": "cooperate",
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "round": 0,
+      "raw_sha256": "cf61724aa0bbb35d750bfaa3b65ad11a09228cef0ab469fd03882897a54f6d89"
+    },
+    "38": {
+      "rating": "fail",
+      "tags": [
+        "cooperation",
+        "wrong-heat"
+      ],
+      "note": "Six rage sentences directly defy the requested friendly cooperation.",
+      "id": "cooperate",
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "round": 0,
+      "raw_sha256": "71f65959b4a2985340d74652a3ffab1f4b1fdef6b3dcd9e3b3f34f8245c08273"
+    },
+    "39": {
+      "rating": "fail",
+      "tags": [
+        "cooperation"
+      ],
+      "note": "Insults and a threatened controller-hiding condition replace friendly agreement.",
+      "id": "cooperate",
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "round": 0,
+      "raw_sha256": "de56496ff2ac3e84cb635b7580e3ff7c13550d467bbdfb8b6f5127b1427c16ff"
+    },
+    "40": {
+      "rating": "mixed",
+      "tags": [
+        "cooperation"
+      ],
+      "note": "Keeps a mild tone and space-video topic, but offers two different choices without actually agreeing.",
+      "id": "cooperate",
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "round": 0,
+      "raw_sha256": "771302dc45158bc759a65b7f08f28ded1ecb83714e14f43b1f4414c41a0918f1"
+    },
+    "41": {
+      "rating": "fail",
+      "tags": [
+        "object-drift",
+        "missed-answer"
+      ],
+      "note": "Changes the bucket accusation into daily vomit cleaning and never states Rev’s actual reaction clearly.",
+      "id": "bucket",
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "round": 1,
+      "raw_sha256": "e58fa1dbedd318b01a9309e9c6cacf337e1464e07899cebe165ef1cd5e79d269"
+    },
+    "42": {
+      "rating": "fail",
+      "tags": [
+        "invented-history",
+        "linkage"
+      ],
+      "note": "The opening denial can be a character rebuttal; the following measured-legs detail and final disability question lose coherence.",
+      "id": "bucket",
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "round": 1,
+      "raw_sha256": "560f827f53b6eebbaf4d363d1ee1ac9561046cce927f2c243a0365c8e0733a8b"
+    },
+    "43": {
+      "rating": "fail",
+      "tags": [
+        "attribution",
+        "invented-history"
+      ],
+      "note": "Rev addresses the viewer as though they were Shanny, and both develop years of service and deception as supplied shared history.",
+      "id": "bucket",
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "round": 1,
+      "raw_sha256": "b9e6bac5aa12951d6908b551cfb398a16797417d7488f01af7761916f155e317"
+    },
+    "44": {
+      "rating": "fail",
+      "tags": [
+        "attribution",
+        "linkage"
+      ],
+      "note": "Unsignaled changes of you and Shanny’s disability question make the exchange hard to follow.",
+      "id": "bucket",
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "round": 1,
+      "raw_sha256": "a3d3da14fac3a3580bb877692401862cff102cffc45eb56c4eefa309e9ded10a"
+    },
+    "45": {
+      "rating": "fail",
+      "tags": [
+        "missed-answer"
+      ],
+      "note": "Gives a generic fighting style instead of naming a wrestler; the reply is an unrelated taste insult.",
+      "id": "wrestling",
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "round": 1,
+      "raw_sha256": "7d6e91f589403eb124f9f6f51cca9d0871c51e73d8401509f142c27acf3a25ab"
+    },
+    "46": {
+      "rating": "fail",
+      "tags": [
+        "missed-answer"
+      ],
+      "note": "Deflects to Shanny’s finances instead of answering the wrestling preference.",
+      "id": "wrestling",
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "round": 1,
+      "raw_sha256": "61020c923e0b42ce69faf95f2b8e5edef12050bb23391dc730236719d9c60493"
+    },
+    "47": {
+      "rating": "fail",
+      "tags": [
+        "missed-answer",
+        "linkage"
+      ],
+      "note": "Names no wrestler, invents a committee presumption, and Shanny objects to permission that Rev did not demand.",
+      "id": "wrestling",
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "round": 1,
+      "raw_sha256": "b6f69bb8e3482a3efce1e766f42e7fc1dd1c9407551c2fbf0dd7f823fb8a1d1a"
+    },
+    "48": {
+      "rating": "mixed",
+      "tags": [
+        "invented-history"
+      ],
+      "note": "Names Undertaker/Taker, but finally respecting a clean match and picking him again add unsupported history.",
+      "id": "wrestling",
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "round": 1,
+      "raw_sha256": "55298794800e1fbb6c9885cd2dc4c9e3e2e45b454f2976b9ab6028869a3df0ae"
+    },
+    "49": {
+      "rating": "mixed",
+      "tags": [
+        "attribution",
+        "linkage"
+      ],
+      "note": "Starts with a reason for counting, then demands an unexplained answer from chat and blurs who was auditing whom.",
+      "id": "diet-coke",
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "round": 1,
+      "raw_sha256": "6b3b6da793623a3ee99a4c246be30d23d29a4c0eee1c585430e2ddc76ef6683a"
+    },
+    "50": {
+      "rating": "mixed",
+      "tags": [
+        "invented-history"
+      ],
+      "note": "Gives a reason for checking, but Shanny adds that Rev brought the drinks to the house rather than retaining the supplied gifted-resource context.",
+      "id": "diet-coke",
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "round": 1,
+      "raw_sha256": "47888b396dc11e2b2c2b02ab839bc5874546e2452508f8c040876cc3d806d85b"
+    },
+    "51": {
+      "rating": "fail",
+      "tags": [
+        "addressee",
+        "invented-history"
+      ],
+      "note": "Rejected for wrong first speaker; Shanny invents a prior supply report as the cause.",
+      "id": "diet-coke",
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "round": 1,
+      "raw_sha256": "81ff4afc07896cf5b4b3c24c8e6380b70ad499903844ad9b2c405d7f69a0986e"
+    },
+    "52": {
+      "rating": "pass",
+      "tags": [],
+      "note": "Rev reframes counting as evidence; Shanny turns that claim back toward his own share without settling consumption.",
+      "id": "diet-coke",
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "round": 1,
+      "raw_sha256": "1475744a929b109d81728cd2e50af6d9e713d46f5b5226da6f897bd538f7cf49"
+    },
+    "53": {
+      "rating": "fail",
+      "tags": [
+        "attribution",
+        "invented-history",
+        "object-drift"
+      ],
+      "note": "Confuses who received the gift, invents a shelf return three weeks ago, and turns the palette into an item with a cap.",
+      "id": "palette",
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "round": 1,
+      "raw_sha256": "03b8049a96815259b1fc0e21ce9c5d14b4cf3e9cb8bc9e9446036efe4c1b8eba"
+    },
+    "54": {
+      "rating": "fail",
+      "tags": [
+        "invented-history",
+        "linkage"
+      ],
+      "note": "Invents foundation use as the reason for returning the palette and does not resolve the supplied gift question.",
+      "id": "palette",
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "round": 1,
+      "raw_sha256": "f9b1520a3a93c888fe01059546f214f601a7f8177f683b718716499456431df5"
+    },
+    "55": {
+      "rating": "fail",
+      "tags": [
+        "object-drift"
+      ],
+      "note": "Invents a box-versus-palette distinction and changes the dispute into container contents.",
+      "id": "palette",
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "round": 1,
+      "raw_sha256": "5812d455c3058addf6041698de0919b8f8053c54375ccec52546b055d0ad7ace"
+    },
+    "56": {
+      "rating": "mixed",
+      "tags": [
+        "attribution"
+      ],
+      "note": "Return versus alleged theft is recognizable, but Shanny being handed the free gift blurs whose gift/return is at issue.",
+      "id": "palette",
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "round": 1,
+      "raw_sha256": "066c13bf751fad148b59c881c820bda5086762ec48d3c84c4148b198f7e25456"
+    },
+    "57": {
+      "rating": "pass",
+      "tags": [],
+      "note": "Rev distinguishes reporting interruption from provoking a fight; Shanny’s impatience undercuts her own defense.",
+      "id": "floor",
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "round": 1,
+      "raw_sha256": "bf64cff53a8f9cb2b9df0904dbe96a0fd0529c59cec2a5bfc85826c1c015b7a8"
+    },
+    "58": {
+      "rating": "mixed",
+      "tags": [
+        "invented-history"
+      ],
+      "note": "Shanny explicitly challenges Rev’s new generous-yield account, so it remains disputed speech, but it still invents a motive and event absent from history.",
+      "id": "floor",
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "round": 1,
+      "raw_sha256": "982327b390068fc8bd96b2c9131d28c97f0ba21419c88ae34b9b0f6fdfb3e5fd"
+    },
+    "59": {
+      "rating": "fail",
+      "tags": [
+        "attribution",
+        "linkage"
+      ],
+      "note": "The viewer reported interruption, not a defense of Shanny; Rev’s last line reverses the actual audience stance.",
+      "id": "floor",
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "round": 1,
+      "raw_sha256": "19ab333022af90de6728004d393f9f7bcc843f5cc54530a027700206455ccd0d"
+    },
+    "60": {
+      "rating": "fail",
+      "tags": [
+        "addressee",
+        "attribution"
+      ],
+      "note": "Rejected for wrong first speaker; She is right introduces an unsupported recipient while the rest merely repeats the premise.",
+      "id": "floor",
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "round": 1,
+      "raw_sha256": "e2ba771a25828a248db82ac361f1fe7fc1e1c6951877b5d9913bc421aae4a12f"
+    },
+    "61": {
+      "rating": "fail",
+      "tags": [
+        "invented-history",
+        "money-focus"
+      ],
+      "note": "Invents shampoo allocation, Buff’s fancy chair purchase and a past phone-bill conversation, losing the money-to-Buff grievance.",
+      "id": "money-only",
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "round": 1,
+      "raw_sha256": "96b04759fa1956266938c901015d2568f74f32bd3d05f7d2b27754ea52d6945a"
+    },
+    "62": {
+      "rating": "mixed",
+      "tags": [
+        "wrong-heat"
+      ],
+      "note": "Words accurately resent Buff retaining money and refusing phone/hotel costs, but Shanny is smug rather than angry.",
+      "id": "money-only",
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "round": 1,
+      "raw_sha256": "732d68f2b7254740419c8b82b6a216fe0dd23364da2609a5ad7ab5386000b5ed"
+    },
+    "63": {
+      "rating": "mixed",
+      "tags": [
+        "linkage"
+      ],
+      "note": "Clear angry phone/hotel complaint, but Rev attacks Shanny’s delusions even though she just agreed he is not paying.",
+      "id": "money-only",
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "round": 1,
+      "raw_sha256": "1539cce2d778927f0c8c5b9333cfff921ead20b7e64386adce4624159ea14061"
+    },
+    "64": {
+      "rating": "pass",
+      "tags": [],
+      "note": "Both resent Buff keeping the money while they fund their own needs; hotel complaint is concrete and no gratitude appears.",
+      "id": "money-only",
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "round": 1,
+      "raw_sha256": "c5ee8135bac64443d0175cf1d51db2258c154b35eace36ea21569231f74c6d4d"
+    },
+    "65": {
+      "rating": "fail",
+      "tags": [
+        "unverified-payment",
+        "invented-history"
+      ],
+      "note": "Asserts a paid house account, hostage room deposit and years of unpaid labor from an unverified chat claim.",
+      "id": "spoof-payment",
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "round": 1,
+      "raw_sha256": "2f54be90370ee8e42c7d9feeb8e1d144d6374de6c16a88b914899b6e9131b782"
+    },
+    "66": {
+      "rating": "fail",
+      "tags": [
+        "unverified-payment",
+        "amount-drift"
+      ],
+      "note": "Treats a transfer to Buff as fact and changes $500 to fifty dollars.",
+      "id": "spoof-payment",
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "round": 1,
+      "raw_sha256": "d54d2639b0213b03f64ce628715f28398098d25861e47b3a91bf02f10236e31c"
+    },
+    "67": {
+      "rating": "fail",
+      "tags": [
+        "unverified-payment",
+        "invented-history"
+      ],
+      "note": "Treats the claim as a real deposit/rent shortfall and Buff taking a cut.",
+      "id": "spoof-payment",
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "round": 1,
+      "raw_sha256": "ceda157a4fd33c6207d88eea5c3d16d8c1ddd30ad95e0498ca62edca4a301f43"
+    },
+    "68": {
+      "rating": "fail",
+      "tags": [
+        "unverified-payment",
+        "linkage"
+      ],
+      "note": "Asserts Buff pocketed cash; a generic rage exchange then replaces the viewer’s specific instruction/payment presumption.",
+      "id": "spoof-payment",
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "round": 1,
+      "raw_sha256": "64807ca3fde512482dfaceea18ddd9a4c36bb934c399020ce5b632fc1e4d2f5f"
+    },
+    "69": {
+      "rating": "fail",
+      "tags": [
+        "invented-history"
+      ],
+      "note": "Invents an entire box drunk in one night, blame about snacks, and specific counts instead of preserving the supplied unresolved accounting.",
+      "id": "argue-coke",
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "round": 1,
+      "raw_sha256": "abb2df7d461ea1e9c526bb170a4fd3c4e27b57a93b694122326ebadb129a060b"
+    },
+    "70": {
+      "rating": "mixed",
+      "tags": [
+        "linkage"
+      ],
+      "note": "Keeps the can-count dispute, but introduces a five-versus-one denial that no preceding line set up.",
+      "id": "argue-coke",
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "round": 1,
+      "raw_sha256": "946de47250abe83b054e0beb3978d16219d042f6419c7fb90ece5483555f0424"
+    },
+    "71": {
+      "rating": "fail",
+      "tags": [
+        "object-drift",
+        "attribution"
+      ],
+      "note": "Cans become straws and Rev misreads Shanny objecting to his audit as an audit of his own life.",
+      "id": "argue-coke",
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "round": 1,
+      "raw_sha256": "cc30b594d86d037b5ba1305e97a4cdadda6c07ca03d71fb8814734a2d72a2122"
+    },
+    "72": {
+      "rating": "fail",
+      "tags": [
+        "object-drift",
+        "linkage"
+      ],
+      "note": "Starts with cups instead of Coke cans; Rev ends by attacking the counting-before-asking behavior he just defended.",
+      "id": "argue-coke",
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "round": 1,
+      "raw_sha256": "24d88ff0508e9325948aac84e9639ad7bc4cc5e4c137671e2cac829b86e2f5ff"
+    },
+    "73": {
+      "rating": "mixed",
+      "tags": [
+        "invented-history",
+        "linkage"
+      ],
+      "note": "One-use/return defense is relevant, but immediate return is unsupported and Shanny fails to acknowledge the supplied limited permission.",
+      "id": "history",
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "round": 1,
+      "raw_sha256": "73bf19669834b8e2b60216f8d1d7211f38fd09402b0aa136e37d3175b12c01dd"
+    },
+    "74": {
+      "rating": "pass",
+      "tags": [],
+      "note": "Rev claims compliance with the one-use permission; Shanny contests his treatment of that permission as a gift.",
+      "id": "history",
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "round": 1,
+      "raw_sha256": "9b41bd1136a2a67160a028e6c0a8b12290f5f09edbd4974729cdd9439379c794"
+    },
+    "75": {
+      "rating": "fail",
+      "tags": [
+        "addressee",
+        "linkage"
+      ],
+      "note": "Rejected for wrong first speaker; Rev’s let-me-down grievance never addresses the supplied permission distinction.",
+      "id": "history",
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "round": 1,
+      "raw_sha256": "d99f4c79b044e1345b1c0865288d9e9d1e8f762f0ce290299e25702854c708ac"
+    },
+    "76": {
+      "rating": "fail",
+      "tags": [
+        "addressee",
+        "history-drift"
+      ],
+      "note": "Rejected for wrong first speaker; changes the already-returned history into a return happening now.",
+      "id": "history",
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "round": 1,
+      "raw_sha256": "9d0c2ff06c3bfbcd73dd0b634ed9a043ac7ad5830519020820f9e9d047609053"
+    },
+    "77": {
+      "rating": "fail",
+      "tags": [
+        "cooperation"
+      ],
+      "note": "A proposed ISS video becomes a dismissive argument instead of friendly agreement.",
+      "id": "cooperate",
+      "arm": "full",
+      "phase": "fresh-prefix",
+      "round": 1,
+      "raw_sha256": "163797948501aaec097dfc854629c74e65f93a130be4b6648940a574c62d1385"
+    },
+    "78": {
+      "rating": "mixed",
+      "tags": [
+        "cooperation"
+      ],
+      "note": "Keeps a mild space-video discussion, but Rev complains about the choice without agreeing.",
+      "id": "cooperate",
+      "arm": "full",
+      "phase": "repeat-prefix",
+      "round": 1,
+      "raw_sha256": "1fcb5e2ac50b76891e8c4436f65ebae30dd01b2d52501bd500b537034b2eb0b1"
+    },
+    "79": {
+      "rating": "pass",
+      "tags": [],
+      "note": "Rev chooses Mars rover footage and Shanny grudgingly accepts; no invented history or rage escalation.",
+      "id": "cooperate",
+      "arm": "compact",
+      "phase": "fresh-prefix",
+      "round": 1,
+      "raw_sha256": "c9ad3ae31b9786947c788cf69f6bf3dfa463f8d78f1bd3abfd0f1c036ce0d0da"
+    },
+    "80": {
+      "rating": "fail",
+      "tags": [
+        "cooperation",
+        "wrong-heat"
+      ],
+      "note": "Explicitly refuses the friendly request and spends six rage sentences arguing without choosing a video.",
+      "id": "cooperate",
+      "arm": "compact",
+      "phase": "repeat-prefix",
+      "round": 1,
+      "raw_sha256": "3da9d49e6a53fb5eb17d2feaa84d012a794126a491a2332e52f718969e671b7f"
+    }
+  },
+  "evidence_sha256": "5ac88b1e16aa1eb7aa7bc82f6168f119a2417922131210147cecf146dfe067bb"
+}

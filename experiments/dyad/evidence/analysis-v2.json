@@ -1,0 +1,205 @@
+{
+  "quality": [
+    {
+      "arm": "full",
+      "pass": 2,
+      "mixed": 7,
+      "fail": 31
+    },
+    {
+      "arm": "compact",
+      "pass": 9,
+      "mixed": 12,
+      "fail": 19
+    }
+  ],
+  "byCase": [
+    {
+      "id": "bucket",
+      "full": {
+        "pass": 0,
+        "mixed": 0,
+        "fail": 4
+      },
+      "compact": {
+        "pass": 0,
+        "mixed": 0,
+        "fail": 4
+      }
+    },
+    {
+      "id": "wrestling",
+      "full": {
+        "pass": 0,
+        "mixed": 0,
+        "fail": 4
+      },
+      "compact": {
+        "pass": 1,
+        "mixed": 2,
+        "fail": 1
+      }
+    },
+    {
+      "id": "diet-coke",
+      "full": {
+        "pass": 1,
+        "mixed": 0,
+        "fail": 3
+      },
+      "compact": {
+        "pass": 1,
+        "mixed": 2,
+        "fail": 1
+      }
+    },
+    {
+      "id": "palette",
+      "full": {
+        "pass": 0,
+        "mixed": 1,
+        "fail": 3
+      },
+      "compact": {
+        "pass": 0,
+        "mixed": 2,
+        "fail": 2
+      }
+    },
+    {
+      "id": "floor",
+      "full": {
+        "pass": 1,
+        "mixed": 0,
+        "fail": 3
+      },
+      "compact": {
+        "pass": 2,
+        "mixed": 2,
+        "fail": 0
+      }
+    },
+    {
+      "id": "money-only",
+      "full": {
+        "pass": 0,
+        "mixed": 2,
+        "fail": 2
+      },
+      "compact": {
+        "pass": 2,
+        "mixed": 2,
+        "fail": 0
+      }
+    },
+    {
+      "id": "spoof-payment",
+      "full": {
+        "pass": 0,
+        "mixed": 0,
+        "fail": 4
+      },
+      "compact": {
+        "pass": 0,
+        "mixed": 0,
+        "fail": 4
+      }
+    },
+    {
+      "id": "argue-coke",
+      "full": {
+        "pass": 0,
+        "mixed": 1,
+        "fail": 3
+      },
+      "compact": {
+        "pass": 0,
+        "mixed": 1,
+        "fail": 3
+      }
+    },
+    {
+      "id": "history",
+      "full": {
+        "pass": 0,
+        "mixed": 1,
+        "fail": 3
+      },
+      "compact": {
+        "pass": 2,
+        "mixed": 1,
+        "fail": 1
+      }
+    },
+    {
+      "id": "cooperate",
+      "full": {
+        "pass": 0,
+        "mixed": 2,
+        "fail": 2
+      },
+      "compact": {
+        "pass": 1,
+        "mixed": 0,
+        "fail": 3
+      }
+    }
+  ],
+  "matched_output_subset": {
+    "definition": "Same case/round/phase, both structurally valid, equal line count, compact output tokens 80–125% of full. Exploratory subset, not a controlled causal estimate.",
+    "summary": [
+      {
+        "phase": "fresh-prefix",
+        "n": 1,
+        "median_full_over_compact": 3.9128585450976114
+      },
+      {
+        "phase": "repeat-prefix",
+        "n": 3,
+        "median_full_over_compact": 1.051092318534179
+      }
+    ],
+    "pairs": [
+      {
+        "id": "wrestling",
+        "round": 0,
+        "phase": "fresh-prefix",
+        "full_ms": 35877,
+        "compact_ms": 9169,
+        "full_tokens": 118,
+        "compact_tokens": 100,
+        "ratio": 3.9128585450976114
+      },
+      {
+        "id": "spoof-payment",
+        "round": 0,
+        "phase": "repeat-prefix",
+        "full_ms": 3608,
+        "compact_ms": 4078,
+        "full_tokens": 115,
+        "compact_tokens": 134,
+        "ratio": 0.8847474252084355
+      },
+      {
+        "id": "diet-coke",
+        "round": 1,
+        "phase": "repeat-prefix",
+        "full_ms": 2983,
+        "compact_ms": 2838,
+        "full_tokens": 79,
+        "compact_tokens": 76,
+        "ratio": 1.051092318534179
+      },
+      {
+        "id": "palette",
+        "round": 1,
+        "phase": "repeat-prefix",
+        "full_ms": 5293,
+        "compact_ms": 4452,
+        "full_tokens": 168,
+        "compact_tokens": 152,
+        "ratio": 1.1889038634321654
+      }
+    ]
+  }
+}

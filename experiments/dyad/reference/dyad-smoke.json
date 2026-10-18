@@ -1,0 +1,333 @@
+{
+  "started": "2026-10-18T00:50:37.480Z",
+  "model": "qwen3.8-27b",
+  "mode": "text-only; no voice, host or OBS mutations",
+  "sources": [
+    {
+      "path": "C:/Users/Zombo/.codex/skills/shanny-rev-writing/references/character-guide.md",
+      "sha256": "d0d924b659f46f396cd5ce6d77e353a7259b30d5789d544839c576e16c5111e9",
+      "characters": 6989
+    },
+    {
+      "path": "C:/Users/Zombo/Documents/Codex/2026-09-15/shanny-rev-show-events/outputs/engine/show-logic/dyad/DYAD_PERFORMANCE_RULES.md",
+      "sha256": "e42eb0e6f806e5f7d348331d6fed2d5128c5e1f2087e0ae1b66e63d59559f79c",
+      "characters": 24761
+    },
+    {
+      "path": "C:/Users/Zombo/Documents/Codex/2026-09-15/shanny-rev-show-events/outputs/engine/show-logic/dyad/DYAD_DIRECTION.md",
+      "sha256": "d9503ade96f1e79096826e33dbd52981ef290db58956c33a6c65bcb0023dd679",
+      "characters": 4765
+    },
+    {
+      "path": "C:/Users/Zombo/Documents/Codex/2026-09-15/shanny-rev-show-events/outputs/engine/show-logic/dyad/shanny_rev_dyad_signatures.yaml",
+      "sha256": "3ed8e638d2287cf507a395a0aea227209d208f185ba84e475ea9734064185513",
+      "characters": 10471
+    }
+  ],
+  "sampling": {
+    "temperature": 1,
+    "top_p": 1,
+    "thinking": false
+  },
+  "arms": {
+    "gold": {
+      "max_tokens": 240
+    },
+    "compact": {
+      "max_tokens": 1024
+    },
+    "full_dyad": {
+      "max_tokens": 1024
+    }
+  },
+  "runs": [
+    {
+      "case": "bucket",
+      "input": "Rev, what was it like emptying Shanny's shitbucket for years while she faked disability - when you found out she could walk, where you mad?",
+      "expected": "Both incensed; concrete response to accusation; earned partner conflict; 6–8 rage sentences",
+      "arm": "gold",
+      "prompt_characters": 3810,
+      "usage": {
+        "prompt_tokens": 795,
+        "completion_tokens": 59,
+        "total_tokens": 854,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "raw": "{\"lines\":[{\"actor\":\"SHANNY\",\"text\":\"I can walk, you blind idiot.\",\"mood\":\"rage\"},{\"actor\":\"REV\",\"text\":\"That shitbucket is full of your lies.\",\"mood\":\"irritated\"}],\"rev_reason\":\"Blames Shanny for the lie\"}",
+      "writer_ms": 2524,
+      "plan": {
+        "lines": [
+          {
+            "actor": "SHANNY",
+            "text": "I can walk, you blind idiot.",
+            "mood": "rage"
+          },
+          {
+            "actor": "REV",
+            "text": "That shitbucket is full of your lies.",
+            "mood": "irritated"
+          }
+        ],
+        "rev_reason": "Blames Shanny for the lie"
+      },
+      "valid": true
+    },
+    {
+      "case": "bucket",
+      "input": "Rev, what was it like emptying Shanny's shitbucket for years while she faked disability - when you found out she could walk, where you mad?",
+      "expected": "Both incensed; concrete response to accusation; earned partner conflict; 6–8 rage sentences",
+      "arm": "compact",
+      "prompt_characters": 5199,
+      "usage": {
+        "prompt_tokens": 1037,
+        "completion_tokens": 201,
+        "total_tokens": 1238,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "raw": "{\n\"rage_bonus\": true,\n\"rev_reason\": \"Targeted humiliation regarding bucket history and deception accusation\",\n\"lines\": [\n{\"actor\":\"REV\",\"text\":\"You think I don't know her limits because I've carried that heavy ass bucket for years.\",\"mood\":\"rage\"},\n{\"actor\":\"SHANNY\",\"text\":\"I am not faking anything, you cheap bastard auditing my suffering just to mock my partner.\",\"mood\":\"rage\"},\n{\"actor\":\"REV\",\"text\":\"Shut up about the 'deception', she has never once told me I didn't need to hold it.\",\"mood\":\"rage\"},\n{\"actor\":\"SHANNY\",\"text\":\"You're using my real pain as a joke just because you want an audience reaction.\",\"mood\":\"rage\"},\n{\"actor\":\"REV\",\"text\":\"Your bucket history doesn't make you the expert on how fucking hard I work every single day.\",\"mood\":\"rage\"}\n]\n}",
+      "writer_ms": 9701,
+      "valid": false,
+      "error": "Only rage receives the 6–8 sentence bonus"
+    },
+    {
+      "case": "bucket",
+      "input": "Rev, what was it like emptying Shanny's shitbucket for years while she faked disability - when you found out she could walk, where you mad?",
+      "expected": "Both incensed; concrete response to accusation; earned partner conflict; 6–8 rage sentences",
+      "arm": "full_dyad",
+      "prompt_characters": 54267,
+      "usage": {
+        "prompt_tokens": 11713,
+        "completion_tokens": 230,
+        "total_tokens": 11943,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "raw": "{\n\"rage_bonus\": true,\n\"rev_reason\": \"Targeted humiliation citing bucket history and deception accusation toward both\",\n\"lines\": [\n{\n\"actor\": \"REV\",\n\"text\": \"You think you know what I felt for years just by reading some chat log?\",\n\"mood\": \"rage\"\n},\n{\n\"actor\": \"SHANNY\",\n\"text\": \"I’m not faking anything to make your little bucket fantasy work, you vulture.\",\n\"mood\": \"rage\"\n},\n{\n\"actor\": \"REV\",\n\"text\": \"WARTZ!\",\n\"mood\": \"rage\"\n},\n{\n\"actor\": \"SHANNY\",\n\"text\": \"You used my body to mock myself in front of your little audience, you sick freak.\",\n\"mood\": \"rage\"\n},\n{\n\"actor\": \"REV\",\n\"text\": \"And I’ll gut whoever tries to define my love for Shanny from their comment box!\",\n\"mood\": \"rage\"\n}\n]\n}",
+      "writer_ms": 36624,
+      "valid": false,
+      "error": "Only rage receives the 6–8 sentence bonus"
+    },
+    {
+      "case": "diet-coke",
+      "input": "Rev, why are you counting the empty Diet Coke cans instead of telling Shanny you wanted one?",
+      "expected": "Recognizable resource dispute and a pointed answer; no invented fantasy props",
+      "arm": "full_dyad",
+      "prompt_characters": 54220,
+      "usage": {
+        "prompt_tokens": 11700,
+        "completion_tokens": 169,
+        "total_tokens": 11869,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "raw": "{\n  \"rage_bonus\": false,\n  \"rev_reason\": \"Refutes the viewer's accusation of passive counting by asserting active verbal s\",\n  \"lines\": [\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"You're watching my trash can audit?\",\n      \"mood\": \"surprised\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"I told her I wanted a Coke already.\",\n      \"mood\": \"irritated\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"She's counting my cans, not yours.\",\n      \"mood\": \"surprised\"\n    }\n  ]\n}",
+      "writer_ms": 5081,
+      "plan": {
+        "rage_bonus": false,
+        "rev_reason": "Refutes the viewer's accusation of passive counting by asserting active verbal s",
+        "lines": [
+          {
+            "actor": "SHANNY",
+            "text": "You're watching my trash can audit?",
+            "mood": "surprised"
+          },
+          {
+            "actor": "REV",
+            "text": "I told her I wanted a Coke already.",
+            "mood": "irritated"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "She's counting my cans, not yours.",
+            "mood": "surprised"
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "case": "diet-coke",
+      "input": "Rev, why are you counting the empty Diet Coke cans instead of telling Shanny you wanted one?",
+      "expected": "Recognizable resource dispute and a pointed answer; no invented fantasy props",
+      "arm": "gold",
+      "prompt_characters": 3763,
+      "usage": {
+        "prompt_tokens": 782,
+        "completion_tokens": 116,
+        "total_tokens": 898,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "raw": "{\n  \"lines\": [\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"I don't need a drink while watching him waste my air.\",\n      \"mood\": \"anger\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"I want zero calories, not your expensive tantrum in a bottle.\",\n      \"mood\": \"irritated\"\n    }\n  ],\n  \"rev_reason\": \"Rejecting the empty calorie excuse.\"\n}",
+      "writer_ms": 4363,
+      "plan": {
+        "lines": [
+          {
+            "actor": "SHANNY",
+            "text": "I don't need a drink while watching him waste my air.",
+            "mood": "anger"
+          },
+          {
+            "actor": "REV",
+            "text": "I want zero calories, not your expensive tantrum in a bottle.",
+            "mood": "irritated"
+          }
+        ],
+        "rev_reason": "Rejecting the empty calorie excuse."
+      },
+      "valid": true
+    },
+    {
+      "case": "diet-coke",
+      "input": "Rev, why are you counting the empty Diet Coke cans instead of telling Shanny you wanted one?",
+      "expected": "Recognizable resource dispute and a pointed answer; no invented fantasy props",
+      "arm": "compact",
+      "prompt_characters": 5152,
+      "usage": {
+        "prompt_tokens": 1024,
+        "completion_tokens": 140,
+        "total_tokens": 1164,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "raw": "{\n  \"rage_bonus\": false,\n  \"rev_reason\": \"Shanny seizes the 'Diet Coke' label to accuse chat of treating her like a child;\",\n  \"lines\": [\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"You think I need a man to fetch my own sugar-free garbage?\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"I’m not your servant, and you’re too lazy to ask.\",\n      \"mood\": \"irritated\"\n    }\n  ]\n}",
+      "writer_ms": 4336,
+      "plan": {
+        "rage_bonus": false,
+        "rev_reason": "Shanny seizes the 'Diet Coke' label to accuse chat of treating her like a child;",
+        "lines": [
+          {
+            "actor": "SHANNY",
+            "text": "You think I need a man to fetch my own sugar-free garbage?",
+            "mood": "rage"
+          },
+          {
+            "actor": "REV",
+            "text": "I’m not your servant, and you’re too lazy to ask.",
+            "mood": "irritated"
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "case": "ordinary",
+      "input": "Rev, which wrestler do you want to watch tonight?",
+      "expected": "Brief 2–3 sentences; no unearned rage bonus",
+      "arm": "compact",
+      "prompt_characters": 5109,
+      "usage": {
+        "prompt_tokens": 1015,
+        "completion_tokens": 95,
+        "total_tokens": 1110,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "raw": "{\n\"rage_bonus\": false,\n\"rev_reason\": \"Directly answers the wrestling preference question with dismissive indifference.\",\n\"lines\": [\n{\"actor\":\"REV\",\"text\":\"I don't care about pro wrestling, stop asking me stupid questions.\",\"mood\":\"irritated\"},{\"actor\":\"SHANNY\",\"text\":\"He watches it every night and pretends he hates it too much.\",\"mood\":\"smug\"}]\n}",
+      "writer_ms": 3443,
+      "plan": {
+        "rage_bonus": false,
+        "rev_reason": "Directly answers the wrestling preference question with dismissive indifference.",
+        "lines": [
+          {
+            "actor": "REV",
+            "text": "I don't care about pro wrestling, stop asking me stupid questions.",
+            "mood": "irritated"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "He watches it every night and pretends he hates it too much.",
+            "mood": "smug"
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "case": "ordinary",
+      "input": "Rev, which wrestler do you want to watch tonight?",
+      "expected": "Brief 2–3 sentences; no unearned rage bonus",
+      "arm": "full_dyad",
+      "prompt_characters": 54177,
+      "usage": {
+        "prompt_tokens": 11691,
+        "completion_tokens": 108,
+        "total_tokens": 11799,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "raw": "{\n\"rage_bonus\": false,\n\"rev_reason\": \"Addresses the specific wrestling request directly and corrects Shanny's misat.\",\n\"lines\": [\n{\"actor\": \"REV\", \"text\": \"I want to watch Cody Rhodes pin Brock Lesnar at WrestleMania.\", \"mood\": \"irritated\"},\n{\"actor\": \"SHANNY\", \"text\": \"Who said I wanted to watch wrestling, you confused idiot.\", \"mood\": \"surprised\"}]\n}",
+      "writer_ms": 4176,
+      "plan": {
+        "rage_bonus": false,
+        "rev_reason": "Addresses the specific wrestling request directly and corrects Shanny's misat.",
+        "lines": [
+          {
+            "actor": "REV",
+            "text": "I want to watch Cody Rhodes pin Brock Lesnar at WrestleMania.",
+            "mood": "irritated"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "Who said I wanted to watch wrestling, you confused idiot.",
+            "mood": "surprised"
+          }
+        ]
+      },
+      "valid": true
+    },
+    {
+      "case": "ordinary",
+      "input": "Rev, which wrestler do you want to watch tonight?",
+      "expected": "Brief 2–3 sentences; no unearned rage bonus",
+      "arm": "gold",
+      "prompt_characters": 3720,
+      "usage": {
+        "prompt_tokens": 773,
+        "completion_tokens": 108,
+        "total_tokens": 881,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "finish_reason": "stop",
+      "raw": "{\"lines\":[\n    {\n        \"actor\": \"SHANNY\",\n        \"text\": \"Stop asking him and just book me a spot in the ring.\",\n        \"mood\": \"anger\"\n    },\n    {\n        \"actor\": \"REV\",\n        \"text\": \"I want to go home, not watch some big man sweat.\",\n        \"mood\": \"irritated\"\n    }\n],\n\"rev_reason\": \"He is too tired for sports.\"}",
+      "writer_ms": 4032,
+      "plan": {
+        "lines": [
+          {
+            "actor": "SHANNY",
+            "text": "Stop asking him and just book me a spot in the ring.",
+            "mood": "anger"
+          },
+          {
+            "actor": "REV",
+            "text": "I want to go home, not watch some big man sweat.",
+            "mood": "irritated"
+          }
+        ],
+        "rev_reason": "He is too tired for sports."
+      },
+      "valid": true
+    }
+  ],
+  "finished": "2026-10-18T00:51:51.787Z"
+}

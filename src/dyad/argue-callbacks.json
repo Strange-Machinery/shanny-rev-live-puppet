@@ -1,0 +1,902 @@
+[
+  {
+    "id": 1,
+    "premise": "The bucket. An ordinary household object with the narrative importance of the One Ring. Possession, responsibility, avoidance, and the possibility of its return.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "The bucket",
+    "context": "The recurring household bucket dispute concerns possession, responsibility, avoidance and its return.",
+    "argument_focus": "Argue over whose responsibility the bucket is and why the other keeps bringing it back."
+  },
+  {
+    "id": 2,
+    "premise": "The recurring “$750K” grievance. The inheritance-money argument as a number that can interrupt absolutely any conversation. Its comic function is unfinished accounting that has become mythology.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "$750K grievance",
+    "context": "The recurring inheritance-money grievance centers on the disputed $750K figure. The supplied lore does not settle the accounting.",
+    "argument_focus": "Argue over reopening that money grievance versus getting an answer; do not invent who received or stole money."
+  },
+  {
+    "id": 3,
+    "premise": "Tento. The name, the tent era, and the grand franchise treatment of everyday tent logistics. A setting that somehow develops sequels and expanded lore.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Tento",
+    "context": "Tento refers to their tent-era setting and the logistics of living there.",
+    "argument_focus": "Argue about describing tent life grandly while refusing ordinary tent chores."
+  },
+  {
+    "id": 4,
+    "premise": "WARTZ! Specifically the alarm, soundboard drop, and audience response. A word that can announce an entrance, interrupt a speech, or serve as an emergency broadcast.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "WARTZ",
+    "context": "WARTZ is Rev's recognizable shouted interruption and audience/soundboard callback.",
+    "argument_focus": "Argue over Rev interrupting Shanny with WARTZ rather than answering her."
+  },
+  {
+    "id": 5,
+    "premise": "Kitty Doomz. Rev’s performance persona: the entrance, the presentation, the seriousness of the production, and the ordinary practical problems surrounding it.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Kitty Doomz",
+    "context": "Kitty Doomz is Rev's performance persona. Its grand presentation still requires practical setup.",
+    "argument_focus": "Argue over whose time and shared equipment Rev's persona gets to use."
+  },
+  {
+    "id": 6,
+    "premise": "Baby Carrot. The nickname, its staying power, and the attempts to argue a nickname out of existence. The protest itself can keep the callback alive.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Baby Carrot",
+    "context": "Rev protests the Baby Carrot nickname; Shanny's reassurance that it would be acceptable if true fails to give him the denial he wants.",
+    "argument_focus": "Rev demands she deny the nickname; she insists her attempted reassurance should count as loyalty."
+  },
+  {
+    "id": 7,
+    "premise": "G-Man. Recurring ally, adversary, helper, lecturer, and subject of arguments. One name can reopen several otherwise unrelated disputes.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "G-Man",
+    "context": "G-Man recurs as ally, adversary, helper and lecturer in their arguments.",
+    "argument_focus": "Argue about whether bringing G-Man into their dispute helps or gives him another chance to lecture; invent no new acts."
+  },
+  {
+    "id": 8,
+    "premise": "Stank Tank and Buff. The host trying to run a program while Shanny and Rev generate a different program inside it. Production management becomes part of the entertainment.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Buff and Stank Tank",
+    "context": "Buff tries to host Stank Tank while their own argument interrupts the program.",
+    "argument_focus": "Argue over which of them is preventing Buff from starting the show."
+  },
+  {
+    "id": 9,
+    "premise": "The makeup-palette ownership dispute. Given, borrowed, taken, returned: four words capable of supporting an entire courtroom drama without establishing who actually owns the palette.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Makeup palette",
+    "context": "Their makeup dispute involves competing claims that it was given, borrowed or taken, and whether returning it resolves permission. Ownership remains disputed.",
+    "argument_focus": "Rev uses its return as a defense; Shanny argues that returning it does not establish permission."
+  },
+  {
+    "id": 10,
+    "premise": "The Diet Coke audit. Gifted drinks, disputed quantities, and the trash can entering the discussion as evidence. Household refreshments treated like missing public funds.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Diet Coke",
+    "context": "Gifted Diet Cokes, disputed consumption counts and the trash can as evidence drive this argument. The actual consumption is unresolved.",
+    "argument_focus": "Argue over counting empties versus being allowed to drink a gifted Coke."
+  },
+  {
+    "id": 11,
+    "premise": "“Let me SPEAK.” Rev’s attempt to acquire the conversational equivalent of a building permit.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Let me SPEAK",
+    "context": "Rev's familiar demand for the floor is 'Let me SPEAK.'",
+    "argument_focus": "Rev tries to finish his answer; Shanny treats that demand as silencing her."
+  },
+  {
+    "id": 12,
+    "premise": "“YOU GET IT?” The demand for acknowledgment that becomes more urgent as actual understanding becomes less likely.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "YOU GET IT",
+    "context": "The demand 'YOU GET IT?' presses for acknowledgment during a dispute.",
+    "argument_focus": "Shanny wants acknowledgment of her point; Rev says hearing it does not mean agreeing."
+  },
+  {
+    "id": 13,
+    "premise": "“Rev, shut up!” A complete system of parliamentary procedure compressed into three words.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Rev shut up",
+    "context": "Shanny's 'Rev, shut up!' interrupts his attempt to answer.",
+    "argument_focus": "Argue about demanding an explanation and then refusing to let him finish it."
+  },
+  {
+    "id": 14,
+    "premise": "“Shanny, STOP.” The emergency brake that becomes another contribution to the noise.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Shanny STOP",
+    "context": "Rev's 'Shanny, STOP' is an attempt to halt an escalating exchange.",
+    "argument_focus": "Shanny argues that being told to stop is another offense; Rev tries to finish his objection."
+  },
+  {
+    "id": 15,
+    "premise": "“I guess I’m supposed to…” A practical request expanded into an unreasonable burden before anyone can clarify it.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "I guess I'm supposed to",
+    "context": "Shanny's 'I guess I'm supposed to...' turns a practical request into a complaint about an excessive burden.",
+    "argument_focus": "Argue about her being asked to move one of her things; she widens it into doing everything for him."
+  },
+  {
+    "id": 16,
+    "premise": "“Keep pushing.” Continuing the explanation becomes a new offense, separate from whatever started the argument.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Keep pushing",
+    "context": "The warning 'Keep pushing' can turn continuing an explanation into a separate offense.",
+    "argument_focus": "Rev insists he is answering the question; Shanny calls the continued answer provocation."
+  },
+  {
+    "id": 17,
+    "premise": "“I’m already at the edge.” The current disagreement inherits responsibility for the entire backlog.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Already at the edge",
+    "context": "Shanny's 'I'm already at the edge' brings accumulated grievances into the present disagreement.",
+    "argument_focus": "Argue about whether Rev's immediate request should inherit responsibility for the whole backlog."
+  },
+  {
+    "id": 18,
+    "premise": "“This is on camera.” The camera suddenly becomes a witness, an authority, and an implied future audience.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "On camera",
+    "context": "They invoke 'This is on camera' to make the audience or recording a witness.",
+    "argument_focus": "Argue about what the recording would actually show versus what each wants chat to believe."
+  },
+  {
+    "id": 19,
+    "premise": "“I do not consent” / “I will press my button.” Everyday disagreement acquiring formal declarations, procedural language, and escalation machinery.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Consent and the button",
+    "context": "Their declarations 'I do not consent' and 'I will press my button' formalize a disagreement.",
+    "argument_focus": "Argue about who gets to end a conversation and whether announcing a button ends the other person's objection."
+  },
+  {
+    "id": 20,
+    "premise": "“You’re a mook.” A good historical deep cut: unusually specific language that works best when it appears unexpectedly.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Mook",
+    "context": "You're a mook is their specific historical insult vocabulary, used by a person addressing another person.",
+    "argument_focus": "Rev calls Shanny a mook during their dispute; she demands an explanation and objects to how he defines it. No talking objects."
+  },
+  {
+    "id": 21,
+    "premise": "The cookie fight. One cookie treated as a test of generosity, fairness, loyalty, and who supposedly ate already.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "pending recovery",
+    "subject": "Cookie",
+    "context": "The producer's cookie-fight callback concerns a desirable cookie, fairness, sharing and conflicting claims about who already ate.",
+    "argument_focus": "Shanny controls the snack; Rev wants some; she argues he already ate or has ramen."
+  },
+  {
+    "id": 22,
+    "premise": "The secret pizza under the couch. Hidden-food lore with the structure of a treasure hunt and the emotional stakes of discovering a secret bank account.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "pending recovery",
+    "subject": "Pizza under the couch",
+    "context": "The producer's hidden-pizza-under-the-couch callback concerns concealed food and sharing; exact source clip remains pending.",
+    "argument_focus": "Rev wants a slice of the hidden pizza; Shanny defends keeping her food to herself."
+  },
+  {
+    "id": 23,
+    "premise": "Italian pizza bread. A specific cooking callback with enough recognizable detail to support a return visit, a recipe debate, or an excessively proud unveiling.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Italian pizza bread",
+    "context": "Italian pizza bread is their recognizable cooking callback.",
+    "argument_focus": "Argue over taking credit for the pizza bread versus doing the preparation or sharing it."
+  },
+  {
+    "id": 24,
+    "premise": "Shanny’s applesauce. A modest food acquiring its own place in reactor history.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Applesauce",
+    "context": "Shanny's applesauce is a recognizable food callback.",
+    "argument_focus": "Argue over Shanny's applesauce portion and Rev asking for some; do not invent a new historic incident."
+  },
+  {
+    "id": 25,
+    "premise": "The burger-and-fries demand. A precise order is funnier than generalized hunger: everyone knows exactly what would resolve the situation, and somehow that makes it harder.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Burger and fries",
+    "context": "The burger-and-fries callback is a specific food demand.",
+    "argument_focus": "Argue about wanting that exact meal versus being offered what is already available."
+  },
+  {
+    "id": 26,
+    "premise": "Rev’s “Hungry Boy” stream. Hunger delivered as a named broadcast format, complete with the seriousness of a public announcement.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Hungry Boy",
+    "context": "Rev's Hungry Boy stream presents hunger as his own named broadcast.",
+    "argument_focus": "Shanny disputes his hunger complaint or its public airing; Rev defends talking about needing food."
+  },
+  {
+    "id": 27,
+    "premise": "The air-fryer victory celebration. Receiving an appliance becomes winning an argument; cooking with it can immediately reopen the question of who deserves credit.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Air fryer",
+    "context": "An air-fryer gift announcement becomes a competitive celebration; original speaker attribution is unresolved.",
+    "argument_focus": "Argue now over claiming credit for the appliance while expecting the other to cook."
+  },
+  {
+    "id": 28,
+    "premise": "Boba tea. A small, specific luxury that can suddenly become the most important object in a conversation about much larger problems.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Boba tea",
+    "context": "Boba tea is a small luxury in their resource arguments.",
+    "argument_focus": "Argue over whether boba is a justified treat while another household want remains unmet."
+  },
+  {
+    "id": 29,
+    "premise": "Rev’s cold-coffee requirement. Coffee is available, but it is the wrong temperature. The distinction briefly becomes the central issue facing civilization.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Cold coffee",
+    "context": "Rev specifically wants cold coffee; available coffee being the wrong temperature matters to him.",
+    "argument_focus": "Shanny objects to the extra demand; Rev insists cold coffee was what he asked for."
+  },
+  {
+    "id": 30,
+    "premise": "Rev versus the hot chip. The challenge itself, the confidence beforehand, and the reactor audience’s attachment to that particular stream.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Hot chip",
+    "context": "Rev's hot-chip challenge is a recognizable stream callback, including confidence beforehand.",
+    "argument_focus": "Argue about his confidence and whether accepting a challenge means he gets to complain; invent no outcome."
+  },
+  {
+    "id": 31,
+    "premise": "The donation scoreboard. Rev receiving more than Shanny turns donations into a competitive event with an unofficial referee and disputed scoring.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Donation scoreboard",
+    "context": "Their donation comparison turns who receives more into a rivalry.",
+    "argument_focus": "Argue over why Rev receiving more should or should not count against Shanny; invent no current payment or amount."
+  },
+  {
+    "id": 32,
+    "premise": "Cigarette arithmetic. Packs, daily costs, cartons, and multiplication becoming ammunition in an argument about effort and responsibility.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Cigarette arithmetic",
+    "context": "Packs, cartons and daily cigarette costs become disputed household accounting.",
+    "argument_focus": "Argue over the cigarette calculation and whose spending gets scrutinized."
+  },
+  {
+    "id": 33,
+    "premise": "The one-dollar cigarette business. A tiny sales operation delivered with the importance of a major commercial venture.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "One-dollar cigarettes",
+    "context": "The one-dollar cigarette business treats individual cigarette sales as a business.",
+    "argument_focus": "Argue over whether Rev's tiny sales operation counts as contribution or just more cigarette arithmetic."
+  },
+  {
+    "id": 34,
+    "premise": "The donated vape that was supposedly inadequate. The reactor-observed contrast between complaining about the gift and continuing to use it.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Donated vape",
+    "context": "The callback contrasts complaining about a donated vape with continuing to use it.",
+    "argument_focus": "Rev points to continued use; Shanny insists using it does not make her complaint invalid."
+  },
+  {
+    "id": 35,
+    "premise": "Game and gadget spending. Every purchase potentially reopening the wider argument about priorities, necessities, and what counts as a reasonable expense.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Game and gadget spending",
+    "context": "Games and gadgets reopen arguments about spending priorities.",
+    "argument_focus": "Argue over calling a gadget necessary while treating the other's purchase as wasteful."
+  },
+  {
+    "id": 36,
+    "premise": "Dogecoin hope. The fantasy that one external financial event might arrive and settle every unresolved practical issue.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Dogecoin",
+    "context": "Dogecoin is a hopeful outside financial event imagined as a solution to practical problems.",
+    "argument_focus": "Rev invokes hoped-for gains; Shanny wants an answer to the expense in front of them."
+  },
+  {
+    "id": 37,
+    "premise": "The government phone. A humble piece of technology that can carry questions of independence, access, gratitude, and who controls the conversation.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Government phone",
+    "context": "The government-phone callback concerns independence, access and gratitude.",
+    "argument_focus": "Argue over who gets to control a conversation conducted on that phone; invent no ownership history."
+  },
+  {
+    "id": 38,
+    "premise": "No phone, no cigarettes. Two missing resources capable of reducing a grand announcement to immediate logistical misery.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "No phone no cigarettes",
+    "context": "Lacking a phone and cigarettes undercuts grand announcements with practical needs.",
+    "argument_focus": "Argue about making an announcement before either immediate need is solved."
+  },
+  {
+    "id": 39,
+    "premise": "Buff versus G-Man in the benefactor rankings. Competing accounts of who helped more, with money and hotel nights functioning like loyalty points.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Buff versus G-Man",
+    "context": "Buff and G-Man are compared as benefactors, with money and hotel help invoked in competing accounts.",
+    "argument_focus": "Argue over which kind of help deserves credit; invent no totals, dates or fresh favors."
+  },
+  {
+    "id": 40,
+    "premise": "The livestream “obligation.” The wonderfully revealing moment when being on camera is announced as an obligation the household must fulfill.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Livestream obligation",
+    "context": "Being on camera is framed as an obligation they must fulfill.",
+    "argument_focus": "Argue over who is fulfilling the obligation and who is making it impossible to begin."
+  },
+  {
+    "id": 41,
+    "premise": "Queen Shanny. A new royal title attached to an administration still dealing with the same outstanding disputes.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Queen Shanny",
+    "context": "Queen Shanny is royal self-presentation amid ordinary unresolved disputes.",
+    "argument_focus": "Rev challenges the royal treatment over a practical chore; she treats his refusal as disrespect."
+  },
+  {
+    "id": 42,
+    "premise": "The stolen wizard cloak. The public bit about taking Jason’s cloak and becoming the wizard: authority transferred through wardrobe.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Wizard cloak",
+    "context": "The producer's cloak callback involves Shanny taking Jason's wizard cloak and claiming the wizard role.",
+    "argument_focus": "Argue about whether wearing his cloak transfers his authority or just requires returning it."
+  },
+  {
+    "id": 43,
+    "premise": "Rev’s anime persona. Elaborate character presentation meeting the limitations of an ordinary livestream.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Anime persona",
+    "context": "Rev presents an elaborate anime persona within an ordinary livestream.",
+    "argument_focus": "Argue over time spent explaining the persona while Shanny wants the show to proceed."
+  },
+  {
+    "id": 44,
+    "premise": "Fishnets and the costume reveal. A dramatic change of presentation that becomes a whole discussion before the intended performance gets started.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Fishnets costume reveal",
+    "context": "A fishnets costume reveal provokes discussion before the intended performance.",
+    "argument_focus": "Argue over getting to present the costume versus the other commandeering the introduction."
+  },
+  {
+    "id": 45,
+    "premise": "The face-cross/Catholic presentation. The particular costume-and-explanation moment, with attention on how the chosen symbol is being presented.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Face-cross presentation",
+    "context": "Rev's face-cross/Catholic presentation involves a chosen religious symbol and his explanation of it.",
+    "argument_focus": "Argue over what he says his presentation means versus Shanny objecting to the explanation; mock the pair's interaction, not a faith."
+  },
+  {
+    "id": 46,
+    "premise": "Ezzie’s shirt. A T-shirt with a relationship history, a modeling explanation, and enough associated lore to derail a simple clothing comment.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Ezzie's shirt",
+    "context": "Ezzie's shirt carries relationship context and a modeling explanation.",
+    "argument_focus": "Shanny challenges the shirt/modeling explanation; Rev defends that explanation. Do not invent proof of an affair."
+  },
+  {
+    "id": 47,
+    "premise": "The Norway DM. Private-message wording being examined as though one preposition might decide the future of the relationship.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Norway DM",
+    "context": "The Norway-message dispute turns on private-message wording and whether a question was an accusation.",
+    "argument_focus": "Argue about the meaning of the wording and why asking it offended the other; do not invent a quoted private message."
+  },
+  {
+    "id": 48,
+    "premise": "The “cybersecurity model” catfish story. The reactor-described persona whose impressive collection of attributes invites increasingly specific questions.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Cybersecurity model",
+    "context": "The supplied catfish-story callback involves a claimed cybersecurity-model persona and questions about impressive credentials.",
+    "argument_focus": "Argue over believing that claimed persona versus asking basic questions; do not establish the person's identity or new acts."
+  },
+  {
+    "id": 49,
+    "premise": "The throuple-trolling scenario. A romantic complication treated like a scheduling, permission, and household-governance problem.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Throuple trolling",
+    "context": "The producer's throuple-trolling callback turns romantic speculation into questions of permission and household arrangements.",
+    "argument_focus": "Argue about who supposedly agreed to the scenario; do not establish an actual relationship."
+  },
+  {
+    "id": 50,
+    "premise": "Rev describing periods of his life as “arcs.” Everyday developments receiving chapter titles, retrospective judgments, and the promise of another season.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Life arcs",
+    "context": "Rev describes periods of his life as arcs.",
+    "argument_focus": "Shanny disputes his grand chapter title while the same household disagreement continues."
+  },
+  {
+    "id": 51,
+    "premise": "The moon being a light rather than rock. The actual moon-discussion callback: a concrete statement about what the moon is.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Moon as light",
+    "context": "In an older discussion Shanny calls the moon a light source and rejects its being rock. This is not denial that the moon exists.",
+    "argument_focus": "Argue over light versus rock and who gets to define what she meant."
+  },
+  {
+    "id": 52,
+    "premise": "Rev’s later “it’s a theory” defense. The attempt to rescue a statement by changing the category under which it should be judged.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "It's a theory",
+    "context": "Rev later defends Shanny's moon statement as a theory.",
+    "argument_focus": "Shanny objects to how his defense sounds; Rev argues that calling it a theory was defending her."
+  },
+  {
+    "id": 53,
+    "premise": "The Jesus/Yoda analogy. Rev reaching for a pop-culture comparison to explain a moral idea, then having to manage what the comparison implies.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Jesus and Yoda",
+    "context": "Rev uses Jesus/Yoda as a moral analogy, not a literal claim they are the same person.",
+    "argument_focus": "Argue about whether his pop-culture explanation clarifies his point or makes it harder to explain."
+  },
+  {
+    "id": 54,
+    "premise": "Falling asleep to space videos. A shared, ordinary pleasure that gives them something to agree about—and therefore something a petty disagreement can interrupt.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Space videos",
+    "context": "They share an interest in watching and falling asleep to space videos.",
+    "argument_focus": "Argue over talking through the video versus trying to enjoy or fall asleep to it."
+  },
+  {
+    "id": 55,
+    "premise": "Johnny from Cyberpunk as an explanatory reference. Rev bringing a game character into a conversation as though that should make his point immediately clear.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Johnny Cyberpunk",
+    "context": "Rev uses Johnny from Cyberpunk as an explanatory reference.",
+    "argument_focus": "Shanny wants an answer about their issue; Rev insists the game reference explains his point."
+  },
+  {
+    "id": 56,
+    "premise": "Stone Cold Steve Austin’s theme and the earbud dispute. Personal listening becoming a disagreement about attention, presentation, and the audience.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Steve Austin earbud",
+    "context": "Rev listening to Stone Cold Steve Austin's theme precedes an earbud objection invoking viewers; he treats it as a challenge to his choice.",
+    "argument_focus": "Argue over paying attention to the show versus his right to wear the earbud."
+  },
+  {
+    "id": 57,
+    "premise": "AVGN’s Rolling Rock versus Rev’s PBR preference. Beer taste developing into a critique of another creator’s judgment.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Rolling Rock and PBR",
+    "context": "Rev objects to AVGN/James Rolfe's Rolling Rock preference and favors PBR.",
+    "argument_focus": "Shanny objects to the length or importance of his beer-taste argument; Rev defends his judgment."
+  },
+  {
+    "id": 58,
+    "premise": "The Brangelina comparison. Their own celebrity framing meeting the very unglamorous practical details of being on camera.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Brangelina",
+    "context": "A joint clip compares them to Brangelina while discussing recognition; this is self-presentation, not measured fame.",
+    "argument_focus": "Argue over celebrity treatment while negotiating an ordinary filming arrangement."
+  },
+  {
+    "id": 59,
+    "premise": "The Shane Dawson/Jeffree Star makeup-series cameo. A remembered brush with a much larger audience becoming a reusable reference to recognition and importance.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Makeup-series cameo",
+    "context": "Documentary accounts describe inclusion of a makeup-unboxing appearance in Shane Dawson's Jeffree Star series; the palette dispute is not established as the same item.",
+    "argument_focus": "Argue over credit and recognition from the appearance without claiming a new invitation or relationship."
+  },
+  {
+    "id": 60,
+    "premise": "Shanny and Rev versus witchcraft. A documented reactor topic that gives their religious arguments a particularly theatrical vocabulary.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Witchcraft",
+    "context": "Shanny and Rev versus witchcraft is a reactor topic in the supplied list.",
+    "argument_focus": "Argue about their dramatic explanation of witchcraft and who gets to explain it; invent no real person's alleged conduct."
+  },
+  {
+    "id": 61,
+    "premise": "The GPS/train-track adventure. The railway-bridge throwback that reactor viewers explicitly remember and request. Navigation becomes the third participant.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "GPS train tracks",
+    "context": "The GPS/train-track railway-bridge adventure is a remembered navigation callback.",
+    "argument_focus": "Argue over trusting the directions versus blaming the person following them; invent no injury or legal outcome."
+  },
+  {
+    "id": 62,
+    "premise": "Tento as an intergalactic spaceship. The actual reactor riff that upgrades the tent into a science-fiction vessel with franchise potential.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Spaceship Tento",
+    "context": "Tento as an intergalactic spaceship is a reactor riff about the tent, not an actual spacecraft.",
+    "argument_focus": "Argue over Rev's grand spaceship description while Shanny demands ordinary tent work."
+  },
+  {
+    "id": 63,
+    "premise": "Tento as a cozy game. The reactor’s proposed simulator/RPG Maker treatment: everyday tent life imagined as a game with tasks and progression.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Tento game",
+    "context": "Tento as a cozy game or RPG Maker simulator is a reactor proposal, not an installed game they actually own.",
+    "argument_focus": "Argue over what chores the hypothetical game would give each of them."
+  },
+  {
+    "id": 64,
+    "premise": "The secret-location speech. The comic tension between emphasizing privacy and continuing to narrate the surrounding environment.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Secret location",
+    "context": "The secret-location speech stresses privacy while continuing to describe the surroundings.",
+    "argument_focus": "One objects to revealing details; the other insists the description did not name the place. Do not reveal an actual location."
+  },
+  {
+    "id": 65,
+    "premise": "The hotel era. A new room treated as a new television season, with the old unfinished conversation already unpacked.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Hotel era",
+    "context": "The hotel era changes their room while familiar disputes continue.",
+    "argument_focus": "Argue over who gets credit for settling in while the same chore remains undone; invent no booking or payment."
+  },
+  {
+    "id": 66,
+    "premise": "The “house is clean” claim. An argument about the definition of clean that can expand into who did what and who is qualified to judge.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "House is clean",
+    "context": "The house-is-clean callback disputes what clean means and who did the work.",
+    "argument_focus": "Argue about the standard of clean and who can criticize it; avoid inventing specific hazardous conditions."
+  },
+  {
+    "id": 67,
+    "premise": "Rev broadcasting from the kitchen or outside. The independent media operation negotiating household noise restrictions and access to its own set.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Separate broadcasts",
+    "context": "Rev broadcasting from the kitchen or outside negotiates space and noise with Shanny.",
+    "argument_focus": "Argue about his independent broadcast versus her objections to noise or use of shared space."
+  },
+  {
+    "id": 68,
+    "premise": "The “walk with me” format. An ordinary outing promoted into a distinct programming concept, complete with commentary on whatever enters the frame.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Walk with me",
+    "context": "Rev's walk-with-me format turns an ordinary outing into a named program.",
+    "argument_focus": "Argue about his commentary delaying the walk or her interruption of his segment."
+  },
+  {
+    "id": 69,
+    "premise": "Rev checking whether he is actually live. The announcement repeatedly delayed by the question of whether the announcement has already begun.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Am I live",
+    "context": "Rev repeatedly checking whether he is live delays the announcement itself.",
+    "argument_focus": "Shanny points out he has already been talking; Rev keeps defending why he needs to check."
+  },
+  {
+    "id": 70,
+    "premise": "The fake broken-microphone chat message. A functioning stream interrupted by troubleshooting a problem supplied by the audience.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Broken microphone prank",
+    "context": "The fake broken-microphone chat message is an audience prank while the microphone functions.",
+    "argument_focus": "Argue about who believed the prank and who is making the troubleshooting longer. Treat this as the known callback, not a newly received chat message."
+  },
+  {
+    "id": 71,
+    "premise": "“Is this real, or another performance?” The reactor-community debate that becomes a parallel storyline whenever the pair announces a major development.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Real or performance",
+    "context": "Reactors debate whether the pair's announcements are real or a performance.",
+    "argument_focus": "Argue over trying to convince the audience versus making another theatrical announcement; invent no audience verdict."
+  },
+  {
+    "id": 72,
+    "premise": "Chat as the relationship jury. Each person appealing to the same audience as though it has been separately retained to represent them.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Chat as jury",
+    "context": "Both appeal to chat as if the same audience has taken their side.",
+    "argument_focus": "Argue about asking the audience to judge while refusing the other person's appeal. Do not invent chat's actual replies."
+  },
+  {
+    "id": 73,
+    "premise": "The speech about refusing to discuss G-Man. A lengthy explanation of exactly why his name will no longer be discussed.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Not discussing G-Man",
+    "context": "A long speech about refusing to discuss G-Man repeatedly discusses why he will not be discussed.",
+    "argument_focus": "Rev points out the contradiction; Shanny insists explaining the ban is different from discussing him."
+  },
+  {
+    "id": 74,
+    "premise": "Yesterday’s reactors becoming today’s moderators. A breakup rearranging the channel’s political alliances and administrative permissions.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Reactors as moderators",
+    "context": "The supplied callback concerns changing channel alliances and moderator roles around a breakup.",
+    "argument_focus": "Argue about trust and who should moderate; invent no named appointment or current account access."
+  },
+  {
+    "id": 75,
+    "premise": "The channel-delete saga. Relationship conflict acquiring an admin panel and a very consequential button.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Channel-delete saga",
+    "context": "Their channel-delete saga mixes relationship conflict with an admin panel and delete button.",
+    "argument_focus": "Argue about threatening to end a channel versus wanting to finish an argument; no command or actual deletion."
+  },
+  {
+    "id": 76,
+    "premise": "Quitting, then returning hours later. A retirement whose duration becomes its own joke.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Quitting and returning",
+    "context": "The callback is quitting streaming and returning hours later.",
+    "argument_focus": "Argue over whether returning contradicts the goodbye or whether the partner forced a clarification."
+  },
+  {
+    "id": 77,
+    "premise": "The succession of channel names. Viewers needing continuity notes to establish which rebrand they are currently watching.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Channel names",
+    "context": "Repeated channel rebrands make continuity and recognition harder for viewers.",
+    "argument_focus": "Argue over a new name solving the problem versus carrying the same dispute into it; invent no actual new account."
+  },
+  {
+    "id": 78,
+    "premise": "The streaming marathon. The runtime gradually becoming more remarkable than the announced purpose of the broadcast.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Streaming marathon",
+    "context": "The stream's duration becomes more conspicuous than its announced purpose.",
+    "argument_focus": "Argue about ending the show versus taking just one more moment to explain."
+  },
+  {
+    "id": 79,
+    "premise": "Rev “feeding the algorithm.” An abstract recommendation system becoming another hungry entity that must be serviced.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Feeding the algorithm",
+    "context": "Rev frames streaming as feeding the algorithm.",
+    "argument_focus": "Shanny objects to treating more streaming as the answer to their immediate issue; keep algorithm feeding figurative."
+  },
+  {
+    "id": 80,
+    "premise": "PewpBawlz. The recognizable stream-drop/comment vocabulary that lets the audience participate through a tiny, ridiculous signal.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "PewpBawlz",
+    "context": "PewpBawlz is recognizable stream-drop/comment vocabulary.",
+    "argument_focus": "Argue about Rev repeating the drop instead of finishing his explanation; do not invent a message just received."
+  },
+  {
+    "id": 81,
+    "premise": "Rev’s karaoke. The confidence, the presentation, and the transition from household argument into an unsolicited concert.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Karaoke",
+    "context": "Rev's karaoke turns presentation and confidence into an unsolicited concert.",
+    "argument_focus": "Shanny wants the argument answered; Rev tries to introduce his song instead. No song lyrics or actual singing command."
+  },
+  {
+    "id": 82,
+    "premise": "The Temu neck-mounted phone camera. Equipment intended to improve filming producing an especially memorable camera angle.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Neck camera",
+    "context": "The Temu neck-mounted phone camera produces a memorable filming angle.",
+    "argument_focus": "Argue about his intended camera improvement versus her objection to the angle."
+  },
+  {
+    "id": 83,
+    "premise": "“Herden,” “aso tired,” “cheeden,” and “nevered.” The community’s familiar spellings, used sparingly as recognizable verbal callbacks.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Familiar spellings",
+    "context": "Herden, aso tired, cheeden and nevered are community spellings of familiar verbal callbacks, not object names.",
+    "argument_focus": "Argue about one partner repeating or correcting the other's wording; use only one callback, not an imitation word salad."
+  },
+  {
+    "id": 84,
+    "premise": "Barking in Shanny’s ear. A specific provocation with its own place in the reactor archive.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Barking in her ear",
+    "context": "Barking in Shanny's ear is a specific provocation callback.",
+    "argument_focus": "Shanny objects to the provocation; Rev tries to minimize it and she objects to that defense. Dialogue only, no generated barking noises."
+  },
+  {
+    "id": 85,
+    "premise": "The ruined birthday. A celebration becoming a hearing about who spoiled it and what restitution is appropriate.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Ruined birthday",
+    "context": "A birthday dispute centers on who spoiled the celebration and what is owed afterward.",
+    "argument_focus": "Argue over whose complaint is ruining the celebration now; do not invent a specific historical act."
+  },
+  {
+    "id": 86,
+    "premise": "The public forgiveness announcement. A grand reset whose success depends on nobody reopening the previous argument.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Public forgiveness",
+    "context": "A public forgiveness announcement attempts a reset while the earlier argument remains available.",
+    "argument_focus": "Rev asks why the grievance is back after forgiveness; Shanny distinguishes forgiving from forgetting."
+  },
+  {
+    "id": 87,
+    "premise": "The Foodie Beauty crossover. Familiar Shanny disputes encountering another established audience and its own vocabulary.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Foodie Beauty",
+    "context": "The Foodie Beauty crossover brings another creator's audience into their familiar disputes.",
+    "argument_focus": "Argue over borrowing attention from a crossover versus taking credit for their own show; invent no acts or quotes by that creator."
+  },
+  {
+    "id": 88,
+    "premise": "Rev versus Alex Jones / the InfoWars appearance. An especially distinctive collision of performance styles.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "InfoWars appearance",
+    "context": "Rev's Alex Jones/InfoWars appearance is a distinctive performance-world callback.",
+    "argument_focus": "Argue over Rev's self-important retelling versus Shanny wanting the current question answered; invent no interview quotes or endorsements."
+  },
+  {
+    "id": 89,
+    "premise": "The “Reese’s feces” reactor rhyme. A documented example of the community turning an ordinary brand name into an enduringly stupid callback.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Reese's feces",
+    "context": "Reese's feces is a reactor rhyme about the brand, not a claim about actual food contents.",
+    "argument_focus": "Argue over repeating the crude rhyme while the other wants to eat or finish speaking."
+  },
+  {
+    "id": 90,
+    "premise": "The “for Christ” branding. The gap between what the name promises and what an arriving viewer actually finds on the program.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "For Christ branding",
+    "context": "The for Christ name creates a contrast with their confrontational on-camera conduct.",
+    "argument_focus": "Argue over what their own branding promises versus how they are talking to each other."
+  },
+  {
+    "id": 91,
+    "premise": "The reassurance that makes everything worse. The Baby Carrot exchange supplies the model: someone wants a claim denied and receives reassurance that it would be acceptable if true.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Failed reassurance",
+    "context": "The Baby Carrot exchange illustrates a person asking for denial and receiving reassurance that the alleged thing would be acceptable.",
+    "argument_focus": "Rev wants denial of the nickname; Shanny insists not judging him should be sufficient support."
+  },
+  {
+    "id": 92,
+    "premise": "The “okay” that plainly means the argument is continuing. Verbal compliance with an entirely different message underneath it.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Okay",
+    "context": "A spoken okay can concede the floor without conceding the argument.",
+    "argument_focus": "Shanny demands a sincere answer; Rev insists he already said okay while clearly retaining his objection."
+  },
+  {
+    "id": 93,
+    "premise": "The fishing rod/lightsaber confusion. A specific prop-identification tangent from a reactor stream—excellent for an unexpectedly deep callback.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Fishing rod lightsaber",
+    "context": "A reactor prop-identification tangent confuses a fishing rod and a lightsaber.",
+    "argument_focus": "Argue over the comparison and why Rev insists his pop-culture explanation helps. It is not a real functioning lightsaber."
+  },
+  {
+    "id": 94,
+    "premise": "The temporary alliance against an outside critic. Their disagreement pauses because somebody else has supplied an objection they can both dislike.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Outside critic alliance",
+    "context": "They sometimes suspend a dispute to oppose an outside critic.",
+    "argument_focus": "Argue over who defended the pair better, reopening their disagreement without inventing the critic's words."
+  },
+  {
+    "id": 95,
+    "premise": "The game becoming an attention reset. A heated exchange gives way to a controller or game, while the unresolved grievance remains available for immediate retrieval.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Game attention reset",
+    "context": "A controller or game can draw attention away while a grievance remains unresolved.",
+    "argument_focus": "Shanny wants the answer before he starts playing; Rev says he can listen while playing."
+  },
+  {
+    "id": 96,
+    "premise": "“Was that a question, or an attack?” The Norway-message argument’s reusable structure: they cannot discuss the answer because they disagree about what asking meant.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Question or attack",
+    "context": "The Norway-message dispute illustrates disagreement over whether asking was an accusation.",
+    "argument_focus": "Rev argues he asked a question; Shanny argues the wording already accused her, or vice versa. Keep the ambiguity."
+  },
+  {
+    "id": 97,
+    "premise": "Proving the relationship while protecting privacy. Audience skepticism creates pressure to display evidence that the speaker also wants to keep private.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Privacy and proof",
+    "context": "Pressure to demonstrate their relationship conflicts with wanting privacy.",
+    "argument_focus": "Argue over demanding belief while refusing to display proof; invent no private evidence or intimate detail."
+  },
+  {
+    "id": 98,
+    "premise": "“Reveglio,” the Reverend Wizard, and the weather report. Rev’s name riff expands into a persona, recruits the cold weather, then abruptly returns to a serious update.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Reveglio weather",
+    "context": "Reveglio/the Reverend Wizard name riff recruits cold weather, then returns abruptly to a serious update.",
+    "argument_focus": "Argue over finishing the serious update versus extending his wizard/weather introduction; no literal weather magic."
+  },
+  {
+    "id": 99,
+    "premise": "The Koala Tea sign. A small environmental pun commandeering a walking monologue. This is the sort of harmless, particular detail that makes Rev feel recognizable.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Koala Tea",
+    "context": "A Koala Tea sign's pun diverts Rev's walking monologue.",
+    "argument_focus": "Shanny wants him to continue the walk or point; Rev keeps explaining the sign's pun."
+  },
+  {
+    "id": 100,
+    "premise": "The cops as unwilling babysitters. Especially the “GO TO YOUR ROOM AND BE QUIET” callback you identified: outside authority arrives, surveys the situation, and ends up imposing household rules.",
+    "basis": "producer-supplied fictional callback; not independently verified",
+    "clip_status": "not audited here",
+    "subject": "Cops as babysitters",
+    "context": "The producer's callback is outside authority effectively imposing household rules: GO TO YOUR ROOM AND BE QUIET.",
+    "argument_focus": "Argue over which of them needed the instruction, without inventing an arrest, charge or new police visit."
+  }
+]

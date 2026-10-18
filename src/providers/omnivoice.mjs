@@ -6,6 +6,8 @@ import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import {liveMood,actorMoods} from '../live-moods.mjs';
 import {requestedEpisodeCodes,availableEpisodeCodes} from '../approved-delivery.mjs';
+import {voiceDyadLiteInput} from '../voice-dyad-lite.mjs';
+import {sampleLedShannyInput} from '../dyad/sample-led-voice.mjs';
 
 /**
  * Thin client for the EXISTING /LIVE/python/omnivoice_live_worker.py protocol.
@@ -32,6 +34,11 @@ export class OmniVoiceProvider {
       throw new Error('OmniVoice cpuThreads must be an integer from 1 to 8');
     }
     if(config.approvedDelivery!==undefined&&typeof config.approvedDelivery!=='boolean')throw new Error('approvedDelivery must be a boolean');
+    if(config.voiceDyadLite!==undefined&&typeof config.voiceDyadLite!=='boolean')throw new Error('voiceDyadLite must be a boolean');
+    if(config.voiceDyadLite&&!config.approvedDelivery)throw new Error('Voice-dyad-lite requires the approved episode library');
+    if(config.sampleLedShanny!==undefined&&typeof config.sampleLedShanny!=='boolean')throw new Error('sampleLedShanny must be a boolean');
+    if(config.sampleLedShanny&&!config.approvedDelivery)throw new Error('Sample-led Shanny requires the approved episode library');
+    if(config.getVoiceDyadLite!==undefined&&typeof config.getVoiceDyadLite!=='function')throw new Error('getVoiceDyadLite must be a function');
     this.availableEpisodeCodes={};
     this.availableEpisodeCounts={};
     this.config = { ...config, startupMs: config.startupMs || 180_000,
@@ -175,11 +182,23 @@ export class OmniVoiceProvider {
   async generate({ actor, text, mood, voiceCode }) {
     if (!['SHANNY', 'REV'].includes(actor)) throw new Error('Unknown actor');
     if(mood!==undefined)liveMood(actor,mood);
-    if(voiceCode!==undefined&&(!this.config.approvedDelivery||!this.availableEpisodeCodes[actor]?.includes(voiceCode)))
-      throw new Error('Unqualified episode voice delivery');
     if (this.busy) throw new Error('OmniVoice worker is busy');
     this.busy = true;
-    try { return await this.#generate(actor, text, mood, voiceCode); }
+    try {
+      const lite=this.config.getVoiceDyadLite?this.config.getVoiceDyadLite():this.config.voiceDyadLite===true;
+      if(typeof lite!=='boolean')throw new Error('Voice-dyad-lite selector must return a boolean');
+      if(lite&&!this.config.approvedDelivery)throw new Error('Voice-dyad-lite requires the approved episode library');
+      if(lite||this.config.sampleLedShanny){
+        // Acquire the busy gate before startup; concurrent cold calls must not
+        // queue behind READY and accidentally synthesize two requests.
+        await this.#ensureWorker();
+        const route=lite?voiceDyadLiteInput:sampleLedShannyInput;
+        ({text,voiceCode}=route({actor,text,mood,voiceCode},this.availableEpisodeCodes));
+      }
+      if(voiceCode!==undefined&&(!this.config.approvedDelivery||!this.availableEpisodeCodes[actor]?.includes(voiceCode)))
+        throw new Error('Unqualified episode voice delivery');
+      return await this.#generate(actor, text, mood, voiceCode);
+    }
     finally { this.busy = false; }
   }
 

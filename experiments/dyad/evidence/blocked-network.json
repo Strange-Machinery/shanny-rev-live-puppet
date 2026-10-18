@@ -1,0 +1,7 @@
+{
+  "status": "environment-blocked",
+  "attempts": 80,
+  "cause": "EACCES from restricted networking, verified by a separate read-only models probe",
+  "model_outputs": 0,
+  "interpretation": "No model latency or quality evidence; not included in inference failure rates."
+}

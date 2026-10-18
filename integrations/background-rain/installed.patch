@@ -1,0 +1,468 @@
+--- a/src/remote-web/stage-page.js
++++ b/src/remote-web/stage-page.js
+@@ -1,6 +1,7 @@
+ import {StagePlayer} from './stage-player.js';
+ import {popupView} from './popup-view.js';
+ import {createMessageScroller} from './message-scroll.js';
++import {waitForPresentationReady} from './presentation-ready.js';
+ 
+ const liveDisplay=location.pathname==='/live';
+ document.body.classList.toggle('live-display',liveDisplay);
+@@ -165,17 +166,14 @@
+   const nonce=status?.presentation_nonce;
+   if(nonce&&nonce!==activePresentationNonce){
+     activePresentationNonce=nonce;
+-    const playing=video.paused?video.play():Promise.resolve();
+-    void Promise.resolve(playing).then(async()=>{
+-      if(activePresentationNonce!==nonce||popup.hidden||video.muted)return;
+-      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
++    void waitForPresentationReady({video,liveDisplay}).then(async()=>{
+       if(activePresentationNonce!==nonce||popup.hidden||video.muted)return;
+       await player.api({action:'media-presented',id:player.id,nonce});
+       if(activePresentationNonce===nonce&&!popup.hidden&&!video.muted&&status?.presentation_mode==='rain')
+         startRain(nonce);
+     }).catch(()=>{
+       if(activePresentationNonce===nonce)activePresentationNonce=null;
+-      state.textContent='OBS Browser Source blocked playback or presentation acknowledgment.';
++      state.textContent=liveDisplay?'Live Show could not start playback. Reopen it from the STANK TANK launcher.':'OBS Browser Source blocked playback or presentation acknowledgment.';
+     });
+   }else if(video.paused){
+     void video.play().catch(()=>{state.textContent='OBS Browser Source blocked audio autoplay; check OBS settings.';});
+--- /dev/null
++++ b/src/remote-web/presentation-ready.js
+@@ -0,0 +1,11 @@
++/** Confirm real playback; only the OBS compositor needs foreground paint frames. */
++export async function waitForPresentationReady({video,liveDisplay=false,
++  frame=callback=>globalThis.requestAnimationFrame(callback)}){
++  await video.play();
++  const ready=()=>!video.paused&&!video.muted&&video.readyState>=2;
++  if(!ready())throw Error('Selected output has not started playback.');
++  // Live Show must also work covered or minimized. requestAnimationFrame can
++  // remain suspended there indefinitely, even though media playback works.
++  if(!liveDisplay)await new Promise(resolve=>frame(()=>frame(resolve)));
++  if(!ready())throw Error('Selected output stopped before presentation.');
++}
+--- a/src/remote-panel.mjs
++++ b/src/remote-panel.mjs
+@@ -7,11 +7,12 @@
+ import {inspectWav} from './wav.mjs';
+ import {readJson} from './http-json.mjs';
+ 
+-export async function serveRemotePanel({action, publicOrigin, scratch, token=randomBytes(32).toString('hex'), port=0,allowLocalPreview=false,viewerKey}) {
+-  const origin=new URL(publicOrigin);
++export async function serveRemotePanel({action, publicOrigin, scratch, token=randomBytes(32).toString('hex'), port=0,allowLocalPreview=false,viewerKey,buffSharing}) {
++  let origin=new URL(publicOrigin);
+   if((origin.protocol!=='https:'&&!(allowLocalPreview&&origin.protocol==='http:'&&origin.hostname==='127.0.0.1'))||origin.username||origin.password||origin.pathname!=='/'||origin.search||origin.hash||token.length<32)
+     throw new Error('A private HTTPS origin and strong access key are required');
+   const assets=new Map();
++  assets.set('/presentation-ready.js',{body:await readFile(new URL('./remote-web/presentation-ready.js',import.meta.url)),type:'text/javascript'});
+   if(viewerKey!==undefined&&(typeof viewerKey!=='string'||!/^[a-f0-9]{64}$/.test(viewerKey)))throw new Error('Invalid private view-only OBS key');
+   const viewToken=viewerKey||createHmac('sha256',token).update('buff-obs-view-v1').digest('hex');
+   for(const [route,file,type] of [['/','index.html','text/html'],['/stage','stage.html','text/html'],['/live','stage.html','text/html'],['/stage-player.js','stage-player.js','text/javascript'],['/stage-page.js','stage-page.js','text/javascript'],['/popup-view.js','popup-view.js','text/javascript'],['/panel.js','panel.js','text/javascript'],['/mic-worklet.js','mic-worklet.js','text/javascript'],['/panel.css','panel.css','text/css'],['/stage.css','stage.css','text/css']])
+@@ -72,7 +73,27 @@
+         return send(200,await action({...input,viewer_role:viewer?(req.url==='/api/media-live'?'browser':'obs'):'preview'}));
+       }
+       if(!operator)return send(403,{error:'This OBS link is view-only.'});
+-      if(req.method==='GET'&&req.url==='/api/obs-link')return send(200,{url:(allowLocalPreview?localOrigin:origin.origin)+'/stage#key='+viewToken});
++      if(req.url==='/api/buff-link'||req.url==='/api/buff-origin'){
++        // The tunnel also connects from loopback. Require the local Host and
++        // reject proxy headers; possession of Buff's operator key is not enough.
++        const local=allowLocalPreview&&req.headers.host==='127.0.0.1:'+server.address().port&&
++          !['cf-ray','cf-connecting-ip','x-forwarded-for','forwarded','x-forwarded-host'].some(h=>req.headers[h])&&
++          ['127.0.0.1','::ffff:127.0.0.1'].includes(req.socket.remoteAddress);
++        if(!local||!buffSharing)return send(403,{error:'Use the producer panel on the show computer.'});
++        if(req.method==='GET'&&req.url==='/api/buff-link')return send(200,await buffSharing.status());
++        if(req.method!=='POST'||req.headers.origin!==localOrigin)return send(403,{error:'Local producer origin required.'});
++        if(!String(req.headers['content-type']).startsWith('application/json'))return send(415,{error:'JSON required.'});
++        let raw='';for await(const chunk of req){raw+=chunk;if(raw.length>1000)throw Error('Sharing request too large');}
++        const input=JSON.parse(raw);
++        if(!input||Array.isArray(input))return send(400,{error:'Invalid sharing request.'});
++        if(req.url==='/api/buff-origin'){
++          if(Object.keys(input).some(k=>k!=='origin'))return send(400,{error:'Unsupported sharing input.'});
++          return send(200,await buffSharing.setOrigin(input.origin));
++        }
++        if(Object.keys(input).length)return send(400,{error:'No sharing arguments are accepted.'});
++        return send(202,buffSharing.prepare());
++      }
++      if(req.method==='GET'&&req.url==='/api/obs-link')return send(200,{url:(origin.protocol==='https:'?origin.origin:localOrigin)+'/stage#key='+viewToken});
+       if(req.method==='GET'&&req.url==='/api/animations')return send(200,await action({action:'animations'}));
+       if(req.method==='GET'&&req.url==='/api/status') {
+         const s=await action({action:'status'});
+@@ -160,7 +181,8 @@
+   });
+   server.requestTimeout=20000;server.headersTimeout=10000;server.maxConnections=16;
+   await new Promise((done,fail)=>{server.once('error',fail);server.listen(port,'127.0.0.1',done);});
+-  return {port:server.address().port,token,origin:origin.origin,
++  return {port:server.address().port,token,get origin(){return origin.origin;},
++    setPublicOrigin(value){const next=new URL(value);if(next.protocol!=='https:'||next.username||next.password||next.pathname!=='/'||next.search||next.hash)throw Error('Invalid HTTPS origin');origin=next;},
+     async close(){closed=true;clearInterval(timer);await halt().catch(()=>{});server.closeAllConnections();await new Promise(done=>server.close(done));}};
+ }
+ 
+--- a/src/stage-media.mjs
++++ b/src/stage-media.mjs
+@@ -168,7 +168,7 @@
+       }
+       throw new Error('OBS rain music did not finish; refusing overlapping TTS');
+     },
+-    async waitForViewer({signal,timeoutMs=1700}={}){
++    async waitForViewer({signal,timeoutMs=outputOwner==='browser'?6000:1700}={}){
+       // The browser has to unmute and render the frame before first syllable.
+       // No OBS viewer during producer-only tests: modest deterministic preroll.
+       const nonce=presentationNonce;
+--- a/src/real-host.mjs
++++ b/src/real-host.mjs
+@@ -25,6 +25,7 @@
+ import {waitForVoiceMemory} from './gpu-readiness.mjs';
+ import {createStageMedia} from './stage-media.mjs';
+ import {serveRemotePanel} from './remote-panel.mjs';
++import {createBuffSharingControl} from './buff-sharing-control.mjs';
+ import {LiveDonations} from './donations/live-donations.mjs';
+ import {loadOrCreateViewerKey} from './obs-viewer-key.mjs';
+ import {withGoldChat} from './gold-chat-adapter.mjs';
+@@ -382,8 +383,14 @@
+         data.action==='silence'?session.silence():action(data)});
+     chat=createYouTubeChatBridge({session,...config.youtubeChat,
+       paidBusy:()=>Boolean(donations.queue.enabled&&donations.queue.task)});
+-    if(media)preview=await serveRemotePanel({action,publicOrigin:'http://127.0.0.1',
+-      allowLocalPreview:true,port:config.panelPort||0,token:config.panelToken,scratch:join(root,'preview'),
++    const buffSharing=createBuffSharingControl({root:fileURLToPath(new URL('../',import.meta.url)),
++      isBusy:()=>Boolean(session.turn||manualRainArming||donations?.queue?.task),
++      saveOrigin:async origin=>{
++        const old=config.panelPublicOrigin;config.panelPublicOrigin=origin;
++        try{await config.save();preview.setPublicOrigin(origin);}catch(error){config.panelPublicOrigin=old;throw error;}
++      }});
++    if(media)preview=await serveRemotePanel({action,publicOrigin:config.panelPublicOrigin||'http://127.0.0.1',
++      buffSharing,allowLocalPreview:true,port:config.panelPort||0,token:config.panelToken,scratch:join(root,'preview'),
+       viewerKey:loadOrCreateViewerKey(join(root,'obs-viewer-key.local.json'))});
+     http=createServer((req,res)=>{const revision=session.revision;void(async()=>{
+       const supplied=Buffer.from(String(req.headers.authorization||'')),expected=Buffer.from('Bearer '+token);
+--- a/python/open_views.py
++++ b/python/open_views.py
+@@ -23,6 +23,7 @@
+     if matches:
+         user32.ShowWindow(matches[0],9);user32.SetForegroundWindow(matches[0]);return
+     subprocess.Popen([edge,'--user-data-dir='+str(root/'private/browser'),'--no-first-run',
++        '--disable-background-timer-throttling','--disable-renderer-backgrounding',
+         '--autoplay-policy=no-user-gesture-required','--app='+url],creationflags=0x08000000)
+     deadline=time.monotonic()+15
+     while time.monotonic()<deadline:
+--- /dev/null
++++ b/python/show_launcher.py
+@@ -0,0 +1,69 @@
++"""Small installed control window; all model work stays in the existing host."""
++import os, queue, subprocess, sys, threading, tkinter as tk
++from pathlib import Path
++from tkinter import ttk
++
++ROOT = Path(__file__).resolve().parents[1]
++FLAGS = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
++
++def main():
++    app = tk.Tk(); app.title('STANK TANK — Start here'); app.geometry('540x490')
++    app.minsize(500, 470)
++    panel = ttk.Frame(app, padding=22); panel.pack(fill='both', expand=True)
++    ttk.Label(panel, text='STANK TANK', font=('Segoe UI', 24, 'bold')).pack(anchor='w')
++    ttk.Label(panel, text='GOLD dialogue · Dyad Lite voices', font=('Segoe UI', 11)).pack(anchor='w', pady=(0, 18))
++    status = tk.StringVar(value='Choose Live Show for everyday testing. OBS is optional.')
++    events = queue.Queue(); busy = False; buttons = []
++    def work(script, args=()):
++        nonlocal busy
++        if busy: return
++        busy = True
++        for button in buttons: button.configure(state='disabled')
++        status.set('Preparing the private trial link…' if script=='Start-Buff-Trial.ps1' else
++                   'Stopping Buff access…' if script=='Stop-Buff-Trial.ps1' else
++                   'Starting… Models may take a minute to warm up.' if 'Launch' in script else 'Stopping STANK TANK…')
++        def run():
++            try:
++                result = subprocess.run(['powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
++                    str(ROOT/'scripts'/script), *args], cwd=ROOT, capture_output=True, text=True,
++                    creationflags=FLAGS, timeout=360)
++                if result.returncode:
++                    (ROOT/'private'/'launcher-error.txt').write_text(result.stderr or result.stdout, encoding='utf8')
++                    raise RuntimeError('Startup did not finish. See the local launcher error file; retry after closing any old show.')
++                message = ('Buff link verified. Open his folder and send the current files.' if script=='Start-Buff-Trial.ps1' else
++                           'Buff access stopped. Prepare a new link before his next trial.' if script=='Stop-Buff-Trial.ps1' else
++                           'Stopped. Buff cannot control the show until you start it again.' if 'Stop' in script else
++                           'Ready. Producer controls are open. Leave Live Show open; it can stay in the background.')
++                events.put(('done', message))
++            except Exception as error: events.put(('done', str(error)))
++        threading.Thread(target=run, daemon=True).start()
++    def button(label, script, args=()):
++        item = ttk.Button(panel, text=label, command=lambda: work(script,args)); item.pack(fill='x', pady=4)
++        buttons.append(item)
++    button('Start Live Show — OBS not needed', 'Launch-STANK-TANK.ps1', ('-Mode','browser'))
++    button('Start OBS Reactive mode', 'Launch-STANK-TANK.ps1', ('-Mode','obs'))
++    button('STOP STANK TANK', 'Stop-STANK-TANK.ps1')
++    button('Prepare / verify Buff trial link', 'Start-Buff-Trial.ps1')
++    button('Stop Buff access', 'Stop-Buff-Trial.ps1')
++    def open_buff():
++        folder=ROOT/'For Buff'
++        if folder.exists(): os.startfile(folder)
++        else: status.set('Buff sharing has not been prepared yet.')
++    ttk.Button(panel, text="Open Buff's launcher and instructions", command=open_buff).pack(fill='x', pady=4)
++    ttk.Label(panel, textvariable=status, wraplength=480).pack(anchor='w', pady=(18,4))
++    ttk.Label(panel, text='Closing this window leaves the show running. Use STOP to shut it down.',
++              wraplength=480).pack(anchor='w')
++    def drain():
++        nonlocal busy
++        try:
++            while True:
++                kind, message=events.get_nowait(); status.set(message); busy=False
++                for item in buttons: item.configure(state='normal')
++        except queue.Empty: pass
++        app.after(150,drain)
++    drain()
++    if '--live' in sys.argv: app.after(150,lambda:work('Launch-STANK-TANK.ps1',('-Mode','browser')))
++    if '--obs' in sys.argv: app.after(150,lambda:work('Launch-STANK-TANK.ps1',('-Mode','obs')))
++    app.mainloop()
++
++if __name__ == '__main__': main()
+--- /dev/null
++++ b/scripts/Install-Desktop-Launchers.ps1
+@@ -0,0 +1,19 @@
++$ErrorActionPreference='Stop'
++$root=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
++$cfg=Get-Content -LiteralPath (Join-Path $root 'private\producer.local.json') -Raw|ConvertFrom-Json
++$pythonw=Join-Path (Split-Path -Parent $cfg.youtubeChat.python) 'pythonw.exe'
++if(-not (Test-Path -LiteralPath $pythonw)){throw 'The installed windowed Python runtime is missing.'}
++$desktop=[Environment]::GetFolderPath('Desktop')
++$shell=New-Object -ComObject WScript.Shell
++$entries=@(@('STANK TANK',''),@('STANK TANK — Live Show','--live'),@('STANK TANK — OBS Reactive','--obs'))
++foreach($entry in $entries){
++ $shortcut=$shell.CreateShortcut((Join-Path $desktop ($entry[0]+'.lnk')))
++ $shortcut.TargetPath=$pythonw
++ $shortcut.Arguments='"'+(Join-Path $root 'python\show_launcher.py')+'" '+$entry[1]
++ $shortcut.WorkingDirectory=$root
++ $shortcut.WindowStyle=1
++ $shortcut.Description='Start, stop, or reopen STANK TANK. Live Show works without OBS.'
++ $shortcut.IconLocation='C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe,0'
++ $shortcut.Save()
++ Write-Output ($entry[0]+'.lnk')
++}
+--- /dev/null
++++ b/scripts/Start-Buff-Trial.ps1
+@@ -0,0 +1,71 @@
++param([switch]$NewLink)
++$ErrorActionPreference='Stop'
++$root=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
++$mutex=[Threading.Mutex]::new($false,'Local\STANK_TANK_BUFF_TRIAL')
++$locked=$false
++$statusPath=Join-Path $root 'private\buff-trial-status.json'
++try{
++ $locked=$mutex.WaitOne(0)
++ if(-not $locked){throw 'A Buff link is already being prepared.'}
++ $cfg=Get-Content -LiteralPath (Join-Path $root 'private\producer.local.json') -Raw|ConvertFrom-Json
++ $local='http://127.0.0.1:'+$cfg.panelPort
++ $localHeaders=@{Authorization='Bearer '+$cfg.panelToken;Origin=$local}
++ $state=$null
++ try{$state=Invoke-RestMethod ($local+'/api/status') -Headers $localHeaders -TimeoutSec 3}catch{}
++ if($state -and $state.busy){throw 'Finish the exchange before preparing a Buff link.'}
++ $exe=Join-Path $root 'tools\cloudflared.exe'
++ if(-not (Test-Path -LiteralPath $exe)){throw 'The installed Cloudflare trial helper is missing.'}
++ @{state='preparing'}|ConvertTo-Json|Set-Content -LiteralPath $statusPath -Encoding utf8
++ if($NewLink){& (Join-Path $root 'scripts\Stop-Buff-Trial.ps1')|Out-Null}
++ $recordPath=Join-Path $root 'private\buff-tunnel-process.json'
++ $log=Join-Path $root 'private\buff-tunnel.stderr.log'
++ $owned=$null
++ if(Test-Path -LiteralPath $recordPath){
++  $record=Get-Content -LiteralPath $recordPath -Raw|ConvertFrom-Json
++  $candidate=Get-Process -Id $record.pid -ErrorAction SilentlyContinue
++  if($candidate -and $candidate.Path -eq $exe -and $candidate.StartTime.ToUniversalTime().Ticks -eq ([datetime]$record.created_at).ToUniversalTime().Ticks){$owned=$candidate}
++ }
++ if(-not $owned){
++  $owned=Start-Process -FilePath $exe -ArgumentList @('tunnel','--no-autoupdate','--url',$local) -WindowStyle Hidden -PassThru -RedirectStandardError $log -RedirectStandardOutput (Join-Path $root 'private\buff-tunnel.stdout.log')
++  [pscustomobject]@{pid=$owned.Id;created_at=$owned.StartTime.ToUniversalTime().ToString('o')}|ConvertTo-Json|Set-Content -LiteralPath $recordPath -Encoding utf8
++ }
++ $deadline=(Get-Date).AddSeconds(40);$origin=$null
++ do{
++  if($owned.HasExited){throw 'The HTTPS helper stopped. Check private\buff-tunnel.stderr.log.'}
++  if(Test-Path -LiteralPath $log){
++   $contents=Get-Content -LiteralPath $log -Raw
++   if($contents){$match=[regex]::Match($contents,'https://[a-z0-9-]+\.trycloudflare\.com');if($match.Success){$origin=$match.Value;break}}
++  }
++  Start-Sleep -Milliseconds 250
++ }while((Get-Date) -lt $deadline)
++ if(-not $origin){throw 'Cloudflare did not return a trial address.'}
++ if(-not $state){
++  $mode=if($cfg.outputOwner -eq 'obs'){'obs'}else{'browser'}
++  & (Join-Path $root 'scripts\Launch-STANK-TANK.ps1') -Mode $mode -NoViews|Out-Null
++ }
++ # Update the running host; models, output mode and voices stay warm.
++ $null=Invoke-RestMethod ($local+'/api/buff-origin') -Method Post -Headers $localHeaders -ContentType 'application/json' -Body (@{origin=$origin}|ConvertTo-Json) -TimeoutSec 10
++ $headers=@{Authorization='Bearer '+$cfg.panelToken;Origin=$origin}
++ $verified=$null;$deadline=(Get-Date).AddSeconds(60)
++ do{
++  try{$verified=Invoke-RestMethod ($origin+'/api/status') -Headers $headers -TimeoutSec 8;if($verified.kind -eq 'REMOTE_TESTING'){break}}catch{}
++  Start-Sleep -Milliseconds 800
++ }while((Get-Date) -lt $deadline)
++ if(-not $verified -or $verified.kind -ne 'REMOTE_TESTING'){throw 'The public HTTPS control check did not pass; no launcher was issued.'}
++ $folder=Join-Path $root 'For Buff'
++ New-Item -ItemType Directory -Path $folder -Force|Out-Null
++ $viewer=(Get-Content -LiteralPath (Join-Path $cfg.scratch 'obs-viewer-key.local.json') -Raw|ConvertFrom-Json).key
++ ('[InternetShortcut]'+[Environment]::NewLine+'URL='+$origin+'/#key='+$cfg.panelToken+[Environment]::NewLine)|Set-Content -LiteralPath (Join-Path $folder 'Buff Controls.url') -Encoding utf8
++ ('[InternetShortcut]'+[Environment]::NewLine+'URL='+$origin+'/live#key='+$viewer+[Environment]::NewLine)|Set-Content -LiteralPath (Join-Path $folder 'Live Show Viewer.url') -Encoding utf8
++ ($origin+'/stage#key='+$viewer)|Set-Content -LiteralPath (Join-Path $folder 'OBS Browser Source.txt') -Encoding utf8
++ Copy-Item -LiteralPath (Join-Path $root 'docs\BUFF_TRIAL_QUICK_START.txt') -Destination (Join-Path $folder 'READ ME FIRST.txt')
++ @{state='ready';origin=$origin;checked_at=[datetime]::UtcNow.ToString('o')}|ConvertTo-Json|Set-Content -LiteralPath $statusPath -Encoding utf8
++ Write-Output 'Buff HTTPS controls verified. The current private launchers are in For Buff.'
++}catch{
++ if($locked){@{state='error'}|ConvertTo-Json|Set-Content -LiteralPath $statusPath -Encoding utf8}
++ $_.Exception.Message|Set-Content -LiteralPath (Join-Path $root 'private\buff-trial-error.txt') -Encoding utf8
++ throw
++}finally{
++ if($locked){$mutex.ReleaseMutex()}
++ $mutex.Dispose()
++}
+--- /dev/null
++++ b/scripts/Stop-Buff-Trial.ps1
+@@ -0,0 +1,12 @@
++$ErrorActionPreference='Stop'
++$root=(Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
++@{state='stopped'}|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $root 'private\buff-trial-status.json') -Encoding utf8
++$file=Join-Path $root 'private\buff-tunnel-process.json'
++if(-not (Test-Path -LiteralPath $file)){Write-Output 'Buff access is already stopped.';exit 0}
++$record=Get-Content -LiteralPath $file -Raw|ConvertFrom-Json
++$process=Get-Process -Id $record.pid -ErrorAction SilentlyContinue
++if(-not $process){Write-Output 'Buff access is already stopped.';exit 0}
++if($process.Path -ne (Join-Path $root 'tools\cloudflared.exe') -or $process.StartTime.ToUniversalTime().Ticks -ne ([datetime]$record.created_at).ToUniversalTime().Ticks){throw 'The recorded process has changed; no process was stopped.'}
++Stop-Process -Id $process.Id
++$process.WaitForExit(5000)|Out-Null
++Write-Output 'Buff HTTPS access stopped. Prepare a new trial link before sending it again.'
+--- /dev/null
++++ b/docs/BUFF_TRIAL_QUICK_START.txt
+@@ -0,0 +1,33 @@
++STANK TANK — BUFF'S PRIVATE TRIAL
++
++Double-click Buff Controls.url. It opens the controls in your normal browser.
++No models, Python, Node or Tailscale are needed on your computer.
++The producer must have STANK TANK running on their computer.
++
++TRY IT
++1. Wait for the panel to connect. Leave Dyad ON for the auditioned Lite voices.
++2. Enter a short comment and click Test React or Test Read + React.
++3. Try ARGUE or MAKE IT RAIN when the show is idle.
++4. STOP immediately cancels the performance. It does not close the producer's app.
++The controls and dialogue history work over HTTPS. Real paid intake is disabled
++in this private trial. The donation buttons are synthetic tests.
++
++WATCHING AND SOUND
++Live Show Viewer.url opens the browser stage. There is only one sound owner.
++For a browser trial on YOUR computer, ask the producer to close their Live Show
++window, leave Live Show mode selected, then reopen your viewer. Click Enable
++sound once if your browser requests it. Keep that viewer open during the trial;
++it can remain in the background.
++Do not open several viewers. STOP if the stage or audio disconnects.
++
++For an OBS trial on your computer, add a Browser Source using the entire address
++in OBS Browser Source.txt, set 1920 x 1080, enable Control audio via OBS, and select
++OBS Reactive in the controls. The producer's OBS does not need to be open.
++Your own network's video/audio connection is the first remote acceptance check;
++HTTPS controls have been verified, but that cannot certify your WebRTC path.
++
++THIS IS A TEMPORARY LINK
++The address stops working when the producer stops sharing or restarts the tunnel.
++If it stops connecting, ask for a fresh trial folder. Do not edit the address.
++These launchers contain private access keys. Send them only to Buff; do not post
++them in chat, a stream overlay, or a public repository.
+--- /dev/null
++++ b/src/buff-sharing-control.mjs
+@@ -0,0 +1,44 @@
++import {spawn} from 'node:child_process';
++import {readFile} from 'node:fs/promises';
++import {join} from 'node:path';
++
++export const isTrialOrigin=value=>typeof value==='string'&&/^https:\/\/[a-z0-9]+(?:-[a-z0-9]+)*\.trycloudflare\.com$/.test(value);
++
++/** Owns only the installed trial helper. No shell input or credentials from the browser. */
++export function createBuffSharingControl({root,isBusy,saveOrigin,run=spawn,read=readFile,alive=pid=>{try{process.kill(pid,0);return true;}catch{return false;}}}){
++  let running=false,error='';
++  const json=async name=>JSON.parse((await read(join(root,'private',name),'utf8')).replace(/^\uFEFF/,''));
++  return {
++    async status(){
++      if(running)return {state:'preparing',message:'Creating and checking your new link…'};
++      try{
++        const receipt=await json('buff-trial-status.json'),process=await json('buff-tunnel-process.json');
++        if(receipt.state==='ready'&&isTrialOrigin(receipt.origin)&&alive(process.pid))
++          return {state:'ready',origin:receipt.origin,message:'Ready to send to Buff.'};
++      }catch{}
++      if(error)return {state:'error',message:error};
++      return {state:'stopped',message:'Create a link when you are ready for Buff.'};
++    },
++    prepare(){
++      if(running)return {state:'preparing'};
++      if(isBusy())throw Error('Finish the current exchange before creating a new link.');
++      running=true;error='';
++      try{
++        // No inherited pipes: the long-lived tunnel must not keep a completed
++        // PowerShell invocation's captured stdout/stderr open.
++        const child=run('powershell.exe',['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',join(root,'scripts','Start-Buff-Trial.ps1'),'-NewLink'],
++          {cwd:root,windowsHide:true,stdio:'ignore',timeout:180000});
++        let finished=false;
++        const done=failed=>{if(finished)return;finished=true;running=false;
++          if(failed)error='The link could not be prepared. Try again or use the desktop launcher.';};
++        child.once('error',()=>done(true));child.once('exit',code=>done(code!==0));
++      }catch(err){running=false;throw err;}
++      return {state:'preparing'};
++    },
++    async setOrigin(origin){
++      if(!isTrialOrigin(origin))throw Error('A Cloudflare trial HTTPS address is required.');
++      await saveOrigin(origin);
++      return {updated:true};
++    }
++  };
++}
+--- a/src/remote-web/index.html
++++ b/src/remote-web/index.html
+@@ -4,6 +4,7 @@
+ <section><label><input type="checkbox" id="dyad" checked> Dyad</label><p>Enhanced saved voices for Shanny and Rev. GOLD writes their replies, with no extra writing pass. Turn off for standard voice selection. Change while idle.</p><p id="dyad-status" role="status"></p><button id="reset-grievances">Reset current grievances</button><p>Starts a fresh round by clearing recent arguments. Their identity, established lore, behavior and voices stay the same.</p></section>
+ <section><h2>Start an argument</h2><button id="argue-now" class="rain-now">ARGUE</button><p>Start a 4–6-line argument from their lore. Shanny rages; Rev argues back in his own way. Sometimes one cries. Pauses YouTube chat. V620 only.</p><p id="argue-status" role="status"></p></section>
+ <section><h2>Output</h2><p id="output-status"></p><div class="buttons"><button id="live-mode">Live Show · browser sound</button><button id="obs-mode">OBS Reactive · OBS sound</button></div><button id="open-live">Open Live Show</button><button id="copy-obs">Copy private OBS link</button><input id="obs-link" readonly hidden><p>Mode changes require an idle stage. The producer panel is always silent. Microphone capture and real paid intake are off.</p></section>
++<section id="buff-sharing" hidden><h2>Buff’s private link</h2><p id="buff-link-status" role="status">Checking the link…</p><div class="buttons"><button id="new-buff-link">New Buff HTTPS link</button><button id="copy-buff-link" disabled>Copy Buff link</button></div><input id="buff-link" readonly hidden aria-label="Buff’s private control link"><p>Make a fresh link if the old one expires. Send it to Buff privately. A new link replaces the previous one; your show stays running.</p></section>
+ <section><h2>YouTube chat</h2><label for="source">Your broadcast URL or video ID</label><input id="source" value="nfDaihVwvoQ"><label for="chat-mode">Response</label><select id="chat-mode"><option value="react">React</option><option value="read">Read + React</option></select><button id="save-chat">Save source and mode</button><div class="buttons"><button id="chat-enable">Enable YouTube chat</button><button id="chat-disable">Disable YouTube chat</button></div><p id="chat-status" role="status"></p></section>
+ <section><h2>Private tests</h2><label for="text">Synthetic audience comment</label><textarea id="text" rows="3" maxlength="450">Rev, why are you blaming Shanny for that empty bucket?</textarea><div class="buttons"><button id="react-test">Test React</button><button id="read-test">Test Read + React</button></div><button id="message-donation">Test $1 donation · with message</button><button id="empty-donation">Test $1 donation · no message</button><button id="rain-now" class="rain-now">MAKE IT RAIN</button><p id="result" role="status"></p><pre id="dialogue"></pre></section>
+ <section><h2>Writer and stage</h2><p id="writer"></p><p id="media"></p><p id="timing"></p><p id="error"></p></section>
+--- a/src/remote-web/panel.js
++++ b/src/remote-web/panel.js
+@@ -17,8 +17,32 @@
+ $('message-donation').onclick=()=>act({action:'donation-test-message',text:$('text').value});
+ $('live-mode').onclick=()=>act({action:'output-mode',owner:'browser'});
+ $('obs-mode').onclick=()=>act({action:'output-mode',owner:'obs'});
+-$('open-live').onclick=async()=>{try{const d=await api('obs-link');window.open(d.url.replace('/stage#','/live#'),'STANK_TANK_LIVE','popup,width=1152,height=720');}catch(e){$('result').textContent=e.message;}};
++$('open-live').onclick=async()=>{try{const d=await api('obs-link');window.open((location.hostname==='127.0.0.1'?location.origin+'/stage'+new URL(d.url).hash:d.url).replace('/stage#','/live#'),'STANK_TANK_LIVE','popup,width=1152,height=720');}catch(e){$('result').textContent=e.message;}};
+ $('copy-obs').onclick=async()=>{const d=await api('obs-link');try{await navigator.clipboard.writeText(d.url);$('result').textContent='Private view-only OBS link copied.';}catch{$('obs-link').hidden=false;$('obs-link').value=d.url;}};
++const localProducer=location.hostname==='127.0.0.1';
++let buffLink='',buffPreparing=false,lastBuffPoll=0;
++$('buff-sharing').hidden=!localProducer;
++async function pollBuff(force=false){
++ if(!localProducer||!force&&Date.now()-lastBuffPoll<2000)return;
++ lastBuffPoll=Date.now();
++ try{const info=await api('buff-link');buffPreparing=info.state==='preparing';
++   buffLink=info.state==='ready'?info.origin+'/#key='+encodeURIComponent(key):'';
++   $('buff-link-status').textContent=info.message;
++   $('copy-buff-link').disabled=!buffLink;
++   $('buff-link').value=buffLink;if(!buffLink)$('buff-link').hidden=true;
++ }catch{$('buff-link-status').textContent='Link check unavailable. Try again when the show reconnects.';buffLink='';$('copy-buff-link').disabled=true;}
++}
++$('new-buff-link').onclick=async()=>{
++ buffPreparing=true;buffLink='';$('new-buff-link').disabled=true;$('copy-buff-link').disabled=true;$('buff-link').hidden=true;
++ $('buff-link-status').textContent='Creating and checking your new link…';
++ try{await api('buff-link',{});}catch(error){buffPreparing=false;$('buff-link-status').textContent=error.message;return;}
++ await pollBuff(true);
++};
++$('copy-buff-link').onclick=async()=>{
++ if(!buffLink)return;
++ try{await navigator.clipboard.writeText(buffLink);$('buff-link-status').textContent='Copied. Send this private link to Buff.';}
++ catch{$('buff-link').hidden=false;$('buff-link').value=buffLink;$('buff-link').select();$('buff-link-status').textContent='Select and copy the link below.';}
++};
+ let first=true,polling=false;
+ async function poll(){if(polling)return;polling=true;try{const s=await api('status'),c=s.youtube_chat||{},m=s.media||{},b=s.qwen_backend||{};
+  $('status').textContent=s.busy?'Preparing or presenting an exchange':s.mode==='live'?'Ready · armed':'Stopped · chat and microphone off';
+@@ -28,6 +52,7 @@
+  $('chat-enable').disabled=c.enabled||!c.configured||s.busy;$('chat-disable').disabled=!c.enabled;
+  const d=s.dyad||{};$('dyad').checked=d.enabled===true;$('dyad').disabled=!d.available||d.changing||s.busy;
+  $('reset-grievances').disabled=s.busy;
++ await pollBuff();$('new-buff-link').disabled=buffPreparing||s.busy;
+  $('dyad-status').textContent=d.changing?'Saving voice choice…':d.error?'Dyad unavailable · '+d.error:d.enabled?'Dyad on · enhanced saved voices · GOLD dialogue.':'Dyad off · standard voices · GOLD dialogue.';
+  $('writer').textContent='ORIGINAL MSI BLACKOUT GOLD · V620 preferred · actual last GOLD writer: '+(b.last_route||'not yet used')+' · '+(b.last_reason||'');
+  const a=s.argument;
