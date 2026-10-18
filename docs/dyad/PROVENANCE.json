@@ -68,5 +68,18 @@
     "src/msi-blackout-gold.mjs": "a661776abeee31fe0e4a11790ce98f729405716c07c65e10962eda3d12cf730b",
     "src/providers/qwen-failover.mjs": "7699922a4f2f89eed1ea7ac8df1c6b01d709ec5d5d50de0a995a8bc2bc4450e5",
     "src/providers/qwen.mjs": "1c7c361322f4b7d1c005ee31de01cd21a1c05e70abce5016c2c2a2323262375b"
+  },
+  "paired_candidate_prompt_sha256": "f02e5a9fb7fd8e026d5b2356d463049b795e235d8742e132e98ef9a86ddbde0e",
+  "paired_comparison": {
+    "calls": 80,
+    "cases": 10,
+    "rounds": 2,
+    "arms": [
+      "full",
+      "compact"
+    ],
+    "request_contract": "Same schemaForRecord, 1024 maximum output tokens and sampling in both arms; explicit leading addressee checked in validation.",
+    "evidence": "experiments/dyad/evidence/paired-v2.json",
+    "review": "experiments/dyad/evidence/review-v2.json"
   }
 }

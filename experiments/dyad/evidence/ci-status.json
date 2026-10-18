@@ -1,0 +1,9 @@
+{
+  "commit": "c041f74d4fb864b5a9c802f21aa63a0d24a1f734",
+  "run_url": "https://github.com/Strange-Machinery/shanny-rev-live-puppet/actions/runs/39086886858",
+  "status": "completed",
+  "conclusion": "failure",
+  "steps": [],
+  "logs": "Unavailable: GitHub returned BlobNotFound for the failed job log.",
+  "cause": "Not determined; jobs stopped before any test steps. Do not interpret this as a source test result or a passing CI run."
+}
