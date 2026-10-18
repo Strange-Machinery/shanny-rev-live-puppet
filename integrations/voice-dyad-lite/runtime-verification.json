@@ -1,0 +1,29 @@
+{
+  "status": "VERIFIED_RUNNING",
+  "checked_at": "2026-10-18T02:27:29.1705846Z",
+  "dyad": {
+    "kind": "voice-dyad-lite",
+    "enabled": true,
+    "available": true,
+    "changing": false,
+    "state": "ready",
+    "writer": "gold",
+    "extra_model_calls": 0,
+    "error": ""
+  },
+  "off_persisted": true,
+  "on_persisted": true,
+  "writer_profile": "msi-blackout-gold-v01",
+  "writer_schema": "original-msi-blackout-lines-v1",
+  "writer_calls_during_toggle": 0,
+  "same_services_after_toggle": true,
+  "output_owner": "browser",
+  "mode": "muted",
+  "busy": false,
+  "chat_enabled": false,
+  "paid_intake_enabled": false,
+  "gold_unchanged": true,
+  "private_configuration_unchanged_after_roundtrip": true,
+  "stage_available": true,
+  "stage_presenting": false
+}

@@ -1,0 +1,55 @@
+{
+  "schema": "voice-dyad-lite-installed-overlay-v1",
+  "prepared_at": "2026-10-18T02:21:07.530905+00:00",
+  "target": "2026-10-17 STANK-TANK installation",
+  "baseline_frozen_gold": {
+    "src/conversation-director.mjs": "35e896be6c84f8d491ff7e6056f4253740351ee6c16c366eec1ea9dfa53afcdb",
+    "src/msi-blackout-gold.mjs": "a661776abeee31fe0e4a11790ce98f729405716c07c65e10962eda3d12cf730b",
+    "src/providers/qwen-failover.mjs": "7699922a4f2f89eed1ea7ac8df1c6b01d709ec5d5d50de0a995a8bc2bc4450e5",
+    "src/providers/qwen.mjs": "1c7c361322f4b7d1c005ee31de01cd21a1c05e70abce5016c2c2a2323262375b"
+  },
+  "files": [
+    {
+      "path": "src/real-host.mjs",
+      "before_sha256": "734d2d35dc9d969f0b327140bc23d35103396e412dab9e5cdbe25a5fd984de8f",
+      "after_sha256": "752b787a3e8816a985d74f4f01bf54c28621c0e5b87789c95a6c8afb70ffaf35"
+    },
+    {
+      "path": "src/providers/omnivoice.mjs",
+      "before_sha256": "202092bf93b65e03f2858ca2d3c0408faf4fe664ed7f4ce2793b9a176bc40d25",
+      "after_sha256": "8ea55d82b86e7e7a273e6ed1c57caab94bd2716351c2a40cb6ada6abd9275798"
+    },
+    {
+      "path": "src/remote-web/index.html",
+      "before_sha256": "c559962f449b441a8c3a782121aa385a2dbd68eedf951c1f9c2e36e24f28a013",
+      "after_sha256": "f5777b23e413c02124ab4046cebe93e74689bff0b8048f60d6e224fd515cadf6"
+    },
+    {
+      "path": "src/remote-web/panel.js",
+      "before_sha256": "be90ed88a36f3e5ed8989b06a1f366ef6ed057459a4ac582ff0f85b947d7a751",
+      "after_sha256": "6b041027b19c32f1db70a6a6d91dbe26128018afba875ec35d3af2202f81da84"
+    },
+    {
+      "path": "src/voice-dyad-lite.mjs",
+      "before_sha256": null,
+      "after_sha256": "ae48a858ca5a0fcc6d407c03a8266d0948798498650b7c1708c31b9df8e21c31"
+    },
+    {
+      "path": "src/voice-dyad-control.mjs",
+      "before_sha256": null,
+      "after_sha256": "7681b868a295598ba309bfd5d01144aa4026ab921c10376e9e6a066553c300b3"
+    },
+    {
+      "path": "src/dyad/sample-led-voice.mjs",
+      "before_sha256": null,
+      "after_sha256": "36482bafa690ca2f04ebd6e4c7a08f1cd79b65d29c5bdd36d790d07ef8f13d4f"
+    }
+  ],
+  "preserved": "GOLD writer, existing ARGUE writer, paid handling, native stage, voice assets and generation settings",
+  "validation": {
+    "staged_node_tests": 331,
+    "repository_node_tests": 302,
+    "final_targeted_tests": 13
+  },
+  "patch_sha256": "512c24043ba8f5729fadae12926c97571b68f7f7b534761ab66f2bcaf4e39d41"
+}

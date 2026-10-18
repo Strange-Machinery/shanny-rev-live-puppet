@@ -1,5 +1,7 @@
 # Compact live Dyad — development comparison
 
+This is the historical dialogue-writer experiment. The later producer-approved [voice-dyad-lite integration](VOICE_DYAD_LITE.md) retains GOLD and replaces only the installed Dyad voice selection; its audition and deployment results are documented separately below that link.
+
 The single-call candidate is implemented and tested in an isolated clone. It remains experimental: text quality is uneven, especially on the targeted bucket accusation, object/claim attribution, unverified payment claims and explicit cooperation. No host, OBS, voice assets, native player, private configuration or installed GOLD source was changed; nothing was merged or deployed.
 
 The candidate prompt is 11,497 characters versus 53,430 for the paired full control, including the same external notes (78% smaller by characters). Both get one call, a 1,024-token maximum, temperature 1, top_p 1 and thinking off.

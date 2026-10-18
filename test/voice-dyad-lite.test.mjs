@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {voiceDyadLiteInput} from '../src/voice-dyad-lite.mjs';
+import {createVoiceDyadControl} from '../src/voice-dyad-control.mjs';
 import {requestedEpisodeCodes} from '../src/approved-delivery.mjs';
 import {createConversationDirector} from '../src/conversation-director.mjs';
 import {OmniVoiceProvider} from '../src/providers/omnivoice.mjs';
@@ -87,7 +88,7 @@ test('lite is opt-in, requires approved recordings and cannot overlap cold worke
 
 test('an incomplete worker catalog fails before synthesis and releases its busy gate',async t=>{
  const {p,root}=await fixture(t,{shannyReference:'test-shanny'});
- await assert.rejects(p.generate({actor:'SHANNY',mood:'rage',text:'Wait.'}),/S06/);
+ await assert.rejects(p.generate({actor:'SHANNY',mood:'crying',text:'Wait.'}),/S04/);
  assert.equal(p.busy,false);await assert.rejects(fs.stat(path.join(root,'requests')),{code:'ENOENT'});
  const result=await p.generate({actor:'REV',text:'Wait.',voiceCode:'R12'});
  assert.equal(result.timings.voice_code,'R12');
@@ -110,4 +111,20 @@ test('lite voice output remains held and STOP prevents its later release',async 
  await g.panic();
  await assert.rejects(g.release({id:job.request_id,session_id:scope.session_id,epoch:scope.epoch}),/Stale/);
  assert.equal((await g.events()).events.some(e=>e.type==='speech.ready'&&e.id===job.request_id),false);
+});
+
+test('producer switching reuses one resident worker and OFF retains installed sample-led Shanny',async t=>{
+ let p;
+ const control=createVoiceDyadControl({config:{dyadEnabled:false},getCodes:()=>p?.availableEpisodeCodes||{}});
+ const f=await fixture(t,{sampleLedShanny:true,getVoiceDyadLite:()=>control.forTurn()});p=f.p;
+ await p.warmup();const pid=p.child.pid;
+ await p.generate({actor:'SHANNY',mood:'anger',text:'Do NOT Tell Me!'});
+ await p.generate({actor:'REV',mood:'irritated',text:'Wait.'});
+ await control.setEnabled(true);
+ await p.generate({actor:'REV',mood:'irritated',text:'Wait.'});
+ await control.setEnabled(false);
+ await p.generate({actor:'REV',mood:'irritated',text:'Wait.'});
+ assert.equal(p.child.pid,pid);
+ const sent=await f.requests();assert.equal(sent[0].text,'do not tell me!');assert.equal(sent[0].voice_code,'S06');
+ assert.deepEqual(sent.slice(1).map(x=>x.voice_code),[undefined,'R10',undefined]);
 });
