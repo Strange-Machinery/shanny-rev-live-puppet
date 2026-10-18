@@ -1,4 +1,8 @@
-# Compact live dyad experiment
+# Voice-dyad-lite and dialogue comparison evidence
+
+The current candidate is [voice-dyad-lite](VOICE_DYAD_LITE.md): GOLD writes the dialogue and supplies its existing mood; a local voice adapter selects approved saved recordings without an additional model call. It is opt-in through `omnivoice.voiceDyadLite: true` in a future isolated configuration, with `approvedDelivery: true`. No installed configuration has been changed. The standalone dialogue experiments below remain for reproducibility and are not imported by the lite voice path.
+
+## Earlier dialogue experiment
 
 This branch adds a single-call dialogue candidate and a paired text-only benchmark. It is based on frozen MSI BLACKOUT GOLD `d3bdbe609b8287e77ca5741f484161cdc5405aef`, rather than the older prototype on `main`. It does not connect the candidate to the host or alter installed behavior. Review the comparison evidence before considering integration.
 
