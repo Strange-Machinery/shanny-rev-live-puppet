@@ -1,0 +1,441 @@
+{
+  "schema_version": "shanny-rev-dyad-signatures-v1",
+  "revision": "dyad-dialogue-surface-20261005",
+  "motifs": [
+    {
+      "id": "ENGAGE",
+      "actors": [
+        "SHANNY",
+        "REV"
+      ],
+      "performance": [
+        "PARTNER_RESPONSE"
+      ]
+    },
+    {
+      "id": "SOFT_OVERLAP",
+      "actors": [
+        "SHANNY",
+        "REV"
+      ],
+      "performance": [
+        "QUICK_ENTRY",
+        "CONTINUE_UNDER_OVERLAP"
+      ],
+      "rev_listener_performance": [
+        "STOP_IF_YIELDING",
+        "INCREDULOUS_PARTNER_STARE",
+        "PRE_REPLY_GESTURE_OPTIONAL"
+      ]
+    },
+    {
+      "id": "FLOOR_SEIZURE",
+      "actors": [
+        "SHANNY",
+        "REV"
+      ],
+      "performance": [
+        "ENTRY_EMPHASIS",
+        "COMPRESSED_PHRASING",
+        "FREEZE_OTHER"
+      ],
+      "rev_listener_performance": [
+        "FREEZE_AFTER_CUTOFF",
+        "WIDE_EYED_PARTNER_STARE",
+        "OPEN_MOUTH_HOLD",
+        "PRE_REPLY_SHAKE_OR_SHRUG"
+      ]
+    },
+    {
+      "id": "HARD_CUT",
+      "actors": [
+        "SHANNY",
+        "REV"
+      ],
+      "performance": [
+        "IMMEDIATE_ENTRY",
+        "ABORT_OTHER_CLAUSE"
+      ],
+      "rev_listener_performance": [
+        "FREEZE_AFTER_CUTOFF",
+        "WIDE_EYED_PARTNER_STARE",
+        "OPEN_MOUTH_HOLD",
+        "PRE_REPLY_SHAKE_OR_SHRUG"
+      ]
+    },
+    {
+      "id": "FAILED_EXPLANATION",
+      "actors": [
+        "REV"
+      ],
+      "performance": [
+        "INHALE_TO_RESTART",
+        "WAIT_FOR_GAP"
+      ]
+    },
+    {
+      "id": "FLOOR_DENIAL",
+      "actors": [
+        "SHANNY",
+        "REV"
+      ],
+      "performance": [
+        "IMMEDIATE_ENTRY",
+        "COMPRESSED_PHRASING",
+        "FREEZE_OTHER_AFTER_CUTOFF"
+      ],
+      "rev_listener_performance": [
+        "FREEZE_AFTER_CUTOFF",
+        "WIDE_EYED_PARTNER_STARE",
+        "OPEN_MOUTH_HOLD",
+        "PRE_REPLY_SHAKE_OR_SHRUG"
+      ]
+    },
+    {
+      "id": "FLOOR_RECLAMATION",
+      "actors": [
+        "SHANNY",
+        "REV"
+      ],
+      "performance": [
+        "PREPARE_FLOOR_RECLAMATION"
+      ]
+    },
+    {
+      "id": "ACKNOWLEDGMENT_DEMAND",
+      "actors": [
+        "REV"
+      ],
+      "performance": [
+        "STRONG_FINAL_EMPHASIS",
+        "PARTNER_LOCK"
+      ]
+    },
+    {
+      "id": "TONE_AS_OFFENSE",
+      "actors": [
+        "SHANNY"
+      ],
+      "performance": [
+        "PARTNER_LOCK"
+      ]
+    },
+    {
+      "id": "GRIEVANCE_TELESCOPE",
+      "actors": [
+        "SHANNY"
+      ],
+      "performance": [
+        "CLAUSE_CHAINING"
+      ]
+    },
+    {
+      "id": "SARCASTIC_CONCESSION",
+      "actors": [
+        "SHANNY"
+      ],
+      "performance": [
+        "COMPRESSED_PHRASING"
+      ]
+    },
+    {
+      "id": "INTERPRETATION_REVERSAL",
+      "actors": [
+        "SHANNY",
+        "REV"
+      ],
+      "performance": [
+        "ENTRY_EMPHASIS"
+      ]
+    },
+    {
+      "id": "COUNTERSTRIKE",
+      "actors": [
+        "REV"
+      ],
+      "performance": [
+        "ENTRY_EMPHASIS",
+        "PARTNER_LOCK"
+      ]
+    },
+    {
+      "id": "VICTIM_REFRAME",
+      "actors": [
+        "SHANNY"
+      ],
+      "performance": [
+        "PARTNER_LOCK",
+        "CLAUSE_CHAINING"
+      ]
+    },
+    {
+      "id": "ACCUSATION_CHAIN",
+      "actors": [
+        "SHANNY"
+      ],
+      "performance": [
+        "CLAUSE_CHAINING"
+      ]
+    },
+    {
+      "id": "AUDIENCE_TRIANGULATION",
+      "actors": [
+        "SHANNY",
+        "REV"
+      ],
+      "performance": [
+        "AUDIENCE_PIVOT"
+      ]
+    },
+    {
+      "id": "AGENCY_REBUTTAL",
+      "actors": [
+        "SHANNY",
+        "REV"
+      ],
+      "performance": [
+        "PARTNER_LOCK"
+      ]
+    },
+    {
+      "id": "LOGISTIC_SNAPBACK",
+      "actors": [
+        "SHANNY",
+        "REV"
+      ],
+      "performance": [
+        "AROUSAL_DROP"
+      ]
+    },
+    {
+      "id": "TEMPORARY_COALITION",
+      "actors": [
+        "SHANNY",
+        "REV"
+      ],
+      "performance": [
+        "SHARED_TARGET"
+      ]
+    },
+    {
+      "id": "SOFT_RESET",
+      "actors": [
+        "SHANNY",
+        "REV"
+      ],
+      "performance": [
+        "AROUSAL_DROP"
+      ]
+    },
+    {
+      "id": "HISTORICAL_CALLBACK",
+      "actors": [
+        "SHANNY",
+        "REV"
+      ],
+      "performance": [
+        "CALLBACK_RECOGNITION"
+      ]
+    }
+  ],
+  "signatures": [
+    {
+      "id": "REV_FAILED_EXPLANATION_RESTART",
+      "owner": "REV",
+      "type": "PHRASE_FAMILY",
+      "move": "FAILED_EXPLANATION",
+      "trigger": "interrupted explanation remains open",
+      "function": "re-enter without pretending the lost clause completed",
+      "reuse": "COMMON_STRUCTURAL",
+      "documentary_confidence": "HIGH",
+      "show_status": "APPROVED_CONDITIONAL",
+      "realizations": [
+        "But I—",
+        "No, what I was—",
+        "Can I just—"
+      ]
+    },
+    {
+      "id": "REV_FLOOR_PROTEST",
+      "owner": "REV",
+      "type": "EXACT_SIGNATURE",
+      "move": "FLOOR_RECLAMATION",
+      "trigger": "repeated failed floor entries",
+      "function": "explicitly reclaim the floor",
+      "reuse": "RECOGNIZABLE",
+      "documentary_confidence": "HIGH",
+      "show_status": "APPROVED_EARNED_ONLY",
+      "realizations": [
+        "Let me SPEAK."
+      ]
+    },
+    {
+      "id": "REV_STOP_COMMAND",
+      "owner": "REV",
+      "type": "PHRASE_FAMILY",
+      "move": "FLOOR_RECLAMATION",
+      "trigger": "partner sustains interruption",
+      "function": "halt the interruption process",
+      "reuse": "RECOGNIZABLE",
+      "documentary_confidence": "HIGH",
+      "show_status": "APPROVED_EARNED_ONLY",
+      "realizations": [
+        "Shanny, STOP.",
+        "Would you STOP."
+      ]
+    },
+    {
+      "id": "REV_ACKNOWLEDGMENT_DEMAND",
+      "owner": "REV",
+      "type": "EXACT_SIGNATURE",
+      "move": "ACKNOWLEDGMENT_DEMAND",
+      "trigger": "multiple failed entries or ignored claim",
+      "function": "force explicit uptake",
+      "reuse": "ICONIC_PAYOFF",
+      "documentary_confidence": "HIGH",
+      "show_status": "APPROVED_EARNED_ONLY",
+      "realizations": [
+        "YOU GET IT?",
+        "Do you get that?"
+      ]
+    },
+    {
+      "id": "REV_AUDIENCE_ACKNOWLEDGMENT",
+      "owner": "REV",
+      "type": "PHRASE_FAMILY",
+      "move": "AUDIENCE_TRIANGULATION",
+      "trigger": "partner withholds uptake while audience is salient",
+      "function": "seek public confirmation",
+      "reuse": "RECOGNIZABLE",
+      "documentary_confidence": "MEDIUM",
+      "show_status": "APPROVED_CONDITIONAL",
+      "realizations": [
+        "You get that, folks?"
+      ]
+    },
+    {
+      "id": "SHANNY_SARCASTIC_CONCESSION",
+      "owner": "SHANNY",
+      "type": "PHRASE_FAMILY",
+      "move": "SARCASTIC_CONCESSION",
+      "trigger": "instruction or correction framed as control",
+      "function": "invert compliance into accusation",
+      "reuse": "COMMON_STRUCTURAL",
+      "documentary_confidence": "HIGH",
+      "show_status": "APPROVED_CONDITIONAL",
+      "realizations": [
+        "I guess I'm supposed to...",
+        "I guess I have to..."
+      ]
+    },
+    {
+      "id": "SHANNY_PROVOCATION_FRAME",
+      "owner": "SHANNY",
+      "type": "PHRASE_FAMILY",
+      "move": "INTERPRETATION_REVERSAL",
+      "trigger": "Rev continues an unwanted claim",
+      "function": "recast continuation as provocation",
+      "reuse": "RECOGNIZABLE",
+      "documentary_confidence": "HIGH",
+      "show_status": "APPROVED_CONDITIONAL",
+      "realizations": [
+        "Keep pushing.",
+        "Keep speaking.",
+        "Are you sure you want to push me?"
+      ]
+    },
+    {
+      "id": "SHANNY_EDGE_DECLARATION",
+      "owner": "SHANNY",
+      "type": "EXACT_SIGNATURE",
+      "move": "GRIEVANCE_TELESCOPE",
+      "trigger": "present dispute activates accumulated grievance",
+      "function": "compress the backlog into a threshold claim",
+      "reuse": "RECOGNIZABLE",
+      "documentary_confidence": "MEDIUM",
+      "show_status": "APPROVED_EARNED_ONLY",
+      "realizations": [
+        "I'm already at the edge."
+      ]
+    },
+    {
+      "id": "SHANNY_SUFFERING_FRAME",
+      "owner": "SHANNY",
+      "type": "PHRASE_FAMILY",
+      "move": "GRIEVANCE_TELESCOPE",
+      "trigger": "relationship injury dominates object issue",
+      "function": "make present logistics evidence of suffering",
+      "reuse": "COMMON_STRUCTURAL",
+      "documentary_confidence": "HIGH",
+      "show_status": "APPROVED_CONDITIONAL",
+      "realizations": [
+        "I'm in goddamn pain...",
+        "It hurts so much.",
+        "I need to get this out of my system."
+      ]
+    },
+    {
+      "id": "SHANNY_CAMERA_WITNESS",
+      "owner": "SHANNY",
+      "type": "PHRASE_FAMILY",
+      "move": "AUDIENCE_TRIANGULATION",
+      "trigger": "audience or recording is scene-relevant",
+      "function": "turn private conflict into witnessed conduct",
+      "reuse": "RECOGNIZABLE",
+      "documentary_confidence": "HIGH",
+      "show_status": "APPROVED_CONDITIONAL",
+      "realizations": [
+        "They see you.",
+        "This is on camera.",
+        "This is on record."
+      ]
+    },
+    {
+      "id": "SHANNY_SHUT_UP_COMMAND",
+      "owner": "SHANNY",
+      "type": "PHRASE_FAMILY",
+      "move": "FLOOR_DENIAL",
+      "trigger": "Rev attempts to continue while she is tactically denying his floor",
+      "function": "terminate his entry and retain the floor",
+      "reuse": "RECOGNIZABLE",
+      "documentary_confidence": "MEDIUM",
+      "show_status": "APPROVED_EARNED_ONLY",
+      "realizations": [
+        "Rev, shut up!",
+        "Shut up, Rev!"
+      ]
+    },
+    {
+      "id": "SHANNY_BOUNDARY_LEGALISM",
+      "owner": "SHANNY",
+      "type": "PHRASE_FAMILY",
+      "move": "AGENCY_REBUTTAL",
+      "trigger": "request is interpreted as coercion",
+      "function": "translate disagreement into agency defense",
+      "reuse": "RECOGNIZABLE",
+      "documentary_confidence": "MEDIUM",
+      "show_status": "APPROVED_CONDITIONAL",
+      "realizations": [
+        "I do not consent.",
+        "I will press my button."
+      ]
+    }
+  ],
+  "historical_callbacks": [
+    {
+      "callback_id": "SHANNY_MOOK",
+      "owner": "SHANNY",
+      "source_phrase": "You're a mook.",
+      "move": "HISTORICAL_CALLBACK",
+      "reuse": "RARE",
+      "activation_keywords": [
+        "mook",
+        "historical callback"
+      ],
+      "exact_phrase": true,
+      "derived_variants": "LIMITED",
+      "documentary_confidence": "MEDIUM",
+      "show_status": "APPROVED"
+    }
+  ]
+}

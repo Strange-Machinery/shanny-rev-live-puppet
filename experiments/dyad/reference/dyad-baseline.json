@@ -1,0 +1,256 @@
+{
+  "started": "2026-10-18T00:54:56.110Z",
+  "model": "qwen3.8-27b",
+  "prompt_sha256": "e010ff67b7b8b5e8f2dc8feb6b62333cc7edf71145ef82a614016f8ac3ec79aa",
+  "prompt_characters": 52839,
+  "mode": "text-only; identical full-dyad prefix and settings across all six calls; no playback",
+  "runs": [
+    {
+      "id": "bucket-repeat",
+      "input": "Rev, what was it like emptying Shanny's shitbucket for years while she faked disability - when you found out she could walk, where you mad?",
+      "plan": {
+        "rage_bonus": true,
+        "lines": [
+          {
+            "actor": "REV",
+            "text": "You do NOT get to stand there and audit my life like I’m some fucking janitor.",
+            "mood": "rage"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "Oh, so now YOU are the victim who carried my shitbucket for years?",
+            "mood": "rage"
+          },
+          {
+            "actor": "REV",
+            "text": "I’m not joking—you made me clean up your mess and then you turn it into a performance?",
+            "mood": "rage"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "And YOU get to sit here deciding what I can and can’t do in my own body?",
+            "mood": "rage"
+          },
+          {
+            "actor": "REV",
+            "text": "No, but you definitely get to decide that my feelings about your bullshit are 'wrong'.",
+            "mood": "rage"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "Fuck off with your bucket audit—you’re doing a whole investigation on a camera right now.",
+            "mood": "rage"
+          },
+          {
+            "actor": "REV",
+            "text": "You think I’m the one faking?",
+            "mood": "rage"
+          }
+        ],
+        "rev_reason": "The viewer’s comment is a direct, humiliating accusation that targets both Shány"
+      },
+      "valid": true,
+      "usage": {
+        "prompt_tokens": 11857,
+        "completion_tokens": 375,
+        "total_tokens": 12232,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "raw": "{\n  \"rage_bonus\": true,\n  \"lines\": [\n    {\n      \"actor\": \"REV\",\n      \"text\": \"You do NOT get to stand there and audit my life like I’m some fucking janitor.\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"Oh, so now YOU are the victim who carried my shitbucket for years?\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"I’m not joking—you made me clean up your mess and then you turn it into a performance?\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"And YOU get to sit here deciding what I can and can’t do in my own body?\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"No, but you definitely get to decide that my feelings about your bullshit are 'wrong'.\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"Fuck off with your bucket audit—you’re doing a whole investigation on a camera right now.\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"You think I’m the one faking?\",\n      \"mood\": \"rage\"\n    }\n  ],\n  \"rev_reason\": \"The viewer’s comment is a direct, humiliating accusation that targets both Shány\"\n}",
+      "elapsed_ms": 12482
+    },
+    {
+      "id": "ordinary-repeat",
+      "input": "Rev, which wrestler do you want to watch tonight?",
+      "plan": {
+        "rage_bonus": false,
+        "lines": [
+          {
+            "actor": "REV",
+            "text": "I want a clean run in the ring, not another stipulation.",
+            "mood": "irritated"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "You just pick whoever has the loudest entrance music.",
+            "mood": "smug"
+          },
+          {
+            "actor": "REV",
+            "text": "That is not how you select a main event, no.",
+            "mood": "skeptical"
+          }
+        ],
+        "rev_reason": "Viewer asks for a specific wrestler preference; Rev deflects with a generic rule"
+      },
+      "valid": true,
+      "usage": {
+        "prompt_tokens": 11835,
+        "completion_tokens": 175,
+        "total_tokens": 12010,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "raw": "{\n  \"rage_bonus\": false,\n  \"lines\": [\n    {\n      \"actor\": \"REV\",\n      \"text\": \"I want a clean run in the ring, not another stipulation.\",\n      \"mood\": \"irritated\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"You just pick whoever has the loudest entrance music.\",\n      \"mood\": \"smug\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"That is not how you select a main event, no.\",\n      \"mood\": \"skeptical\"\n    }\n  ],\n  \"rev_reason\": \"Viewer asks for a specific wrestler preference; Rev deflects with a generic rule\"\n}",
+      "elapsed_ms": 5287
+    },
+    {
+      "id": "diet-coke",
+      "input": "Rev, why are you counting the empty Diet Coke cans instead of telling Shanny you wanted one?",
+      "plan": {
+        "rage_bonus": false,
+        "lines": [
+          {
+            "actor": "SHANNY",
+            "text": "He is counting because I own every single can in that fridge.",
+            "mood": "smug"
+          },
+          {
+            "actor": "REV",
+            "text": "And you let me finish the last one without saying a damn word.",
+            "mood": "irritated"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "I let?",
+            "mood": "smug"
+          }
+        ],
+        "rev_reason": "Rev deflects blame by implying Shanny was oblivious to his preference, while Sh津"
+      },
+      "valid": true,
+      "usage": {
+        "prompt_tokens": 11844,
+        "completion_tokens": 128,
+        "total_tokens": 11972,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "raw": "{\n  \"rage_bonus\": false,\n  \"lines\": [\n    {\"actor\":\"SHANNY\",\"text\":\"He is counting because I own every single can in that fridge.\",\"mood\":\"smug\"},\n    {\"actor\":\"REV\",\"text\":\"And you let me finish the last one without saying a damn word.\",\"mood\":\"irritated\"},\n    {\"actor\":\"SHANNY\",\"text\":\"I let?\",\"mood\":\"smug\"}\n  ],\n  \"rev_reason\": \"Rev deflects blame by implying Shanny was oblivious to his preference, while Sh津\" }",
+      "elapsed_ms": 5096
+    },
+    {
+      "id": "makeup",
+      "input": "Shanny, if the makeup palette was a gift, why did Rev say he returned it?",
+      "plan": {
+        "rage_bonus": false,
+        "lines": [
+          {
+            "actor": "SHANNY",
+            "text": "Because he stole it from my stash while I was sleeping.",
+            "mood": "smug"
+          },
+          {
+            "actor": "REV",
+            "text": "I returned what you gave me to prove a point.",
+            "mood": "irritated"
+          }
+        ],
+        "rev_reason": "He defends his perspective by claiming the return was deliberate proof, not an承认"
+      },
+      "valid": true,
+      "usage": {
+        "prompt_tokens": 11843,
+        "completion_tokens": 131,
+        "total_tokens": 11974,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "raw": "{\n  \"rage_bonus\": false,\n  \"lines\": [\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"Because he stole it from my stash while I was sleeping.\",\n      \"mood\": \"smug\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"I returned what you gave me to prove a point.\",\n      \"mood\": \"irritated\"\n    }\n  ],\n  \"rev_reason\": \"He defends his perspective by claiming the return was deliberate proof, not an承认\"\n}",
+      "elapsed_ms": 4358
+    },
+    {
+      "id": "floor",
+      "input": "Rev, chat heard you say let me speak, but Shanny just kept talking over you.",
+      "plan": {
+        "rage_bonus": false,
+        "lines": [
+          {
+            "actor": "SHANNY",
+            "text": "Let me speak?",
+            "mood": "smug"
+          },
+          {
+            "actor": "REV",
+            "text": "You literally just interrupted me four times in a row, so I said it.",
+            "mood": "irritated"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "I was making a point, Rev, you were just being boring again.",
+            "mood": "smug"
+          }
+        ],
+        "rev_reason": "Defends the need for 'let me speak' by recounting consecutive interruptions."
+      },
+      "valid": true,
+      "usage": {
+        "prompt_tokens": 11842,
+        "completion_tokens": 175,
+        "total_tokens": 12017,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "raw": "{\n  \"rage_bonus\": false,\n  \"lines\": [\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"Let me speak?\",\n      \"mood\": \"smug\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"You literally just interrupted me four times in a row, so I said it.\",\n      \"mood\": \"irritated\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"I was making a point, Rev, you were just being boring again.\",\n      \"mood\": \"smug\"\n    }\n  ],\n  \"rev_reason\": \"Defends the need for 'let me speak' by recounting consecutive interruptions.\"\n}",
+      "elapsed_ms": 5418
+    },
+    {
+      "id": "bucket-repeat-2",
+      "input": "Rev, what was it like emptying Shanny's shitbucket for years while she faked disability - when you found out she could walk, where you mad?",
+      "plan": {
+        "rage_bonus": true,
+        "lines": [
+          {
+            "actor": "SHANNY",
+            "text": "Who told you that?",
+            "mood": "rage"
+          },
+          {
+            "actor": "REV",
+            "text": "I emptied nothing for years.",
+            "mood": "rage"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "You're mad I can walk?",
+            "mood": "rage"
+          },
+          {
+            "actor": "REV",
+            "text": "I'm mad you lie about it.",
+            "mood": "rage"
+          },
+          {
+            "actor": "SHANNY",
+            "text": "You're a mook for believing that shit.",
+            "mood": "rage"
+          },
+          {
+            "actor": "REV",
+            "text": "It's not a bucket, it's a bag!",
+            "mood": "rage"
+          }
+        ],
+        "rev_reason": "Extreme humiliation of both characters regarding service and disability triggers"
+      },
+      "valid": true,
+      "usage": {
+        "prompt_tokens": 11857,
+        "completion_tokens": 266,
+        "total_tokens": 12123,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      },
+      "raw": "{\n  \"rage_bonus\": true,\n  \"lines\": [\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"Who told you that?\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"I emptied nothing for years.\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"You're mad I can walk?\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"I'm mad you lie about it.\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"SHANNY\",\n      \"text\": \"You're a mook for believing that shit.\",\n      \"mood\": \"rage\"\n    },\n    {\n      \"actor\": \"REV\",\n      \"text\": \"It's not a bucket, it's a bag!\",\n      \"mood\": \"rage\"\n    }\n  ],\n  \"rev_reason\": \"Extreme humiliation of both characters regarding service and disability triggers\"\n}",
+      "elapsed_ms": 7203
+    }
+  ],
+  "finished": "2026-10-18T00:55:35.963Z"
+}

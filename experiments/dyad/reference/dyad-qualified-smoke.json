@@ -1,0 +1,106 @@
+[
+  {
+    "id": "bucket",
+    "text": "Rev, what was it like emptying Shanny's shitbucket for years while she faked disability - when you found out she could walk, where you mad?",
+    "plan": {
+      "rage_bonus": true,
+      "lines": [
+        {
+          "actor": "SHANNY",
+          "text": "You absolute FRAUD, going around claiming I FAKE it?",
+          "mood": "rage"
+        },
+        {
+          "actor": "REV",
+          "text": "I was NOT MAD.",
+          "mood": "irritated"
+        },
+        {
+          "actor": "SHANNY",
+          "text": "You're using MY bucket to humiliate HIM, so I should thank you?",
+          "mood": "rage"
+        },
+        {
+          "actor": "REV",
+          "text": "It's called a PAIN, you psycho.",
+          "mood": "rage"
+        },
+        {
+          "actor": "SHANNY",
+          "text": "You think I don't suffer?",
+          "mood": "rage"
+        },
+        {
+          "actor": "REV",
+          "text": "WARTZ on your little bucket-watching hobby.",
+          "mood": "rage"
+        }
+      ],
+      "rev_reason": "The comment is a targeted humiliation using the 'bucket' lore to gaslight both:\n"
+    },
+    "valid": true,
+    "elapsed_ms": 38794,
+    "status": {
+      "state": "ready",
+      "writer": "v620",
+      "model": "qwen3.8-27b",
+      "calls": 1,
+      "last_ms": 38794,
+      "line_count": 6,
+      "rage_bonus": true,
+      "subject": null,
+      "error": ""
+    }
+  },
+  {
+    "id": "ordinary",
+    "text": "Rev, which wrestler do you want to watch tonight?",
+    "plan": {
+      "rage_bonus": false,
+      "lines": [
+        {
+          "actor": "REV",
+          "text": "I’m watching whatever isn’t a Rolling Rock commercial.",
+          "mood": "irritated"
+        },
+        {
+          "actor": "SHANNY",
+          "text": "You pick, I’m just glad you have taste.",
+          "mood": "smug"
+        }
+      ],
+      "rev_reason": "Viewer asked Rev a direct preference question; he answers with the established P"
+    },
+    "valid": true,
+    "elapsed_ms": 4363,
+    "status": {
+      "state": "ready",
+      "writer": "v620",
+      "model": "qwen3.8-27b",
+      "calls": 2,
+      "last_ms": 4363,
+      "line_count": 2,
+      "rage_bonus": false,
+      "subject": null,
+      "error": ""
+    }
+  },
+  {
+    "id": "argument",
+    "text": "Buff pressed Argue.",
+    "error": "Only rage may use bonus airtime",
+    "valid": false,
+    "elapsed_ms": 9306,
+    "status": {
+      "state": "failed",
+      "writer": "v620",
+      "model": "qwen3.8-27b",
+      "calls": 3,
+      "last_ms": 9306,
+      "line_count": 2,
+      "rage_bonus": false,
+      "subject": "Diet Coke",
+      "error": "Only rage may use bonus airtime"
+    }
+  }
+]
