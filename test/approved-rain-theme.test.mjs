@@ -48,5 +48,6 @@ test('rain prelude prepares Qwen and voices concurrently but native desk receipt
   assert.match(session,/await this\.playPreparedPresentationRows\(turn,rows\)/);
   const host=read('src/real-host.mjs');
   assert.match(host,/seat:\(\{signal\}\)=>media\.animate\(\{id:'seated_response'/);
-  assert.match(host,/waitRainEnd:\(\{signal\}\)=>media\.waitForRainEnd\(\{signal\}\)/);
+  // Preserve the caller's full soundtrack timeout and requireViewer flag.
+  assert.match(host,/waitRainEnd:options=>httpPresentation\?httpPresentation\.waitForRainEnd\(options\):media\.waitForRainEnd\(options\)/);
 });

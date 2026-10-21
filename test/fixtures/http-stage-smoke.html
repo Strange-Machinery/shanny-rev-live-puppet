@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Local HTTP stage smoke test</title>
+<style>
+body{margin:24px;background:#10151d;color:#edf3fa;font:16px system-ui;max-width:1000px}
+button{font:inherit;padding:12px 18px;margin:0 10px 14px 0}canvas{display:block;width:100%;max-width:960px;border:1px solid #537087}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#182330;padding:12px}a{color:#8bc8ff}video{display:none}
+</style><script type="module" src="/smoke-source.js"></script></head>
+<body><h1>Local HTTP video and audio test</h1>
+<p>This uses an animated test card and quiet test tones. It makes no model or external service calls and creates no recordings on disk.</p>
+<p>Keep this tab visible. Click <strong>Start synthetic feed</strong>, then open the separate receiver URL printed by the script and click its <strong>Enable sound</strong> button.</p>
+<button id="start">Start synthetic feed</button><button id="stop" disabled>STOP and revoke stream</button>
+<p id="state" role="status">Waiting for a local user gesture.</p>
+<canvas id="canvas" width="1280" height="720" aria-label="Moving synthetic video test"></canvas>
+<video id="input" autoplay muted playsinline></video>
+<h2>Live status</h2><pre id="status">No receiver has been verified.</pre>
+<p>The receiver must show the moving card and alternate the test tones without drift. STOP must hide and silence it. Click Start again to test recovery. Actual OBS and the real show remain separate acceptance checks.</p>
+</body></html>

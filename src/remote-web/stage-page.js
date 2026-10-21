@@ -1,8 +1,14 @@
 import {StagePlayer} from './stage-player.js';
 import {popupView} from './popup-view.js';
 import {createMessageScroller} from './message-scroll.js';
+import {HttpStagePlayer} from './http-stage-player.js';
+import {LocalMediaPublisher} from './local-media-publisher.js';
 
-const key=new URLSearchParams(location.hash.slice(1)).get('key')||'';
+const parameters=new URLSearchParams(location.hash.slice(1));
+const key=parameters.get('key')||'';
+const sourceMode=parameters.get('source')==='http';
+const httpMode=!sourceMode&&parameters.get('transport')==='http';
+const watchMode=location.pathname==='/watch';
 history.replaceState(null,'',location.pathname);
 const $=id=>document.getElementById(id);
 const video=$('stage'),popup=$('stank-popup'),rainCue=$('rain-cue');
@@ -26,9 +32,46 @@ const subtitle=$('actor-caption'),subtitleActor=$('subtitle-actor'),subtitleWord
 const strap=$('painted-strap');
 let activePresentationNonce=null;
 let activeRainNonce=null;
+let publisher=null,publisherWanted=true,publisherNeedsClick=false,publisherStopping=false;
+let lastSourceNonce=null,lastSourceEpoch=null,lastSourceStatus=null,publisherSource=null,publisherTask=null;
+async function startPublisher(){
+  if(!publisher||publisherTask||publisher.starting||publisherNeedsClick||lastSourceStatus?.available!==true)return;
+  const stream=video.srcObject;
+  if(publisher.running&&publisherSource===stream)return;
+  if(!publisherWanted&&!publisher.running)return;
+  if(!stream?.getVideoTracks?.().length||!stream?.getAudioTracks?.().length)return;
+  const task=(async()=>{
+    if(publisher.running)await publisher.stop();
+    publisherWanted=false;publisherSource=stream;
+    try{
+      await publisher.start();
+      if(video.srcObject!==stream){await publisher.stop();publisherWanted=!publisherNeedsClick;}
+    }catch(error){state.textContent=error.message;}
+  })();
+  publisherTask=task;
+  try{await task;}finally{if(publisherTask===task)publisherTask=null;}
+}
+async function stopPublisher(){
+  if(!publisher||publisherStopping)return;
+  publisherStopping=true;publisherWanted=!publisherNeedsClick;
+  const pending=publisherTask;
+  const task=(async()=>{
+    // Cancel an in-flight start immediately, then wait for its cleanup before
+    // admitting another source. No reconnect may race the old publisher close.
+    await publisher.stop();
+    await pending?.catch(()=>{});
+    publisherSource=null;
+  })();
+  publisherTask=task;
+  try{await task;}finally{
+    if(publisherTask===task)publisherTask=null;
+    publisherStopping=false;
+  }
+  if(publisherWanted)void startPublisher();
+}
 // Do not mix the celebration soundtrack into a stale/hotmic/seated popup.
-// This audio element is captured by OBS Browser Source separately from the
-// native WebRTC TTS; test OBS "Control audio via OBS" before going live.
+// Legacy WebRTC captures this element separately. The HTTP publisher mixes it
+// once into the program track; the remote HTTP receiver never plays it again.
 function stopRain(){
   if(activeRainNonce===null&&rainCue.paused)return;
   activeRainNonce=null;
@@ -40,6 +83,8 @@ function activeRain(nonce){
 }
 function reportRain(action,nonce){
   if(!activeRain(nonce))return Promise.resolve();
+  if(sourceMode)publisher?.setRainPlayback({nonce,state:action==='media-rain-started'?'playing':
+    action==='media-rain-ended'?'ended':'failed'});
   return player.api({action,id:player.id,nonce}).catch(()=>{
     if(activeRain(nonce))
       state.textContent='OBS rain playback receipt failed. Check the producer stage and audio connection.';
@@ -50,7 +95,7 @@ function startRain(nonce){
   stopRain();
   activeRainNonce=nonce;
   rainCue.currentTime=0;
-  rainCue.muted=false;
+  rainCue.muted=sourceMode;
   // MUST follow the accepted OBS media-presented receipt. The host will
   // not count this as "playing" until HTMLMediaElement.play() resolves.
   void Promise.resolve().then(()=>{
@@ -99,9 +144,28 @@ function hide(){
   subtitleActor.textContent='';subtitleWords.textContent='';
 }
 function renderPresentation(visible,status){
-  const view=popupView(status);
-  const mediaReady=Boolean(player.pc?.connectionState==='connected'&&video.readyState>=2);
-  if(!visible||!view.visible||!mediaReady){hide();return;}
+  if(sourceMode){
+    if(Number.isSafeInteger(status?.control_epoch)){
+      if(lastSourceEpoch!==null&&lastSourceEpoch!==status.control_epoch){
+        // STOP is observable independently of upload errors. A simultaneous
+        // source loss must not swallow the 409 and silently restart the feed.
+        publisherNeedsClick=true;publisherWanted=false;
+        state.textContent='Feed stopped. Click Start Buff feed to resume.';
+        void stopPublisher();
+      }
+      lastSourceEpoch=status.control_epoch;
+    }
+    lastSourceStatus=status;publisher?.setPresentation(status);
+    if(status?.available!==true&&(publisher?.running||publisher?.starting))void stopPublisher();
+    if(status?.presentation_nonce&&status.presentation_nonce!==lastSourceNonce){
+      lastSourceNonce=status.presentation_nonce;publisherWanted=!publisherNeedsClick;void startPublisher();
+    }
+  }
+  let view=popupView(status);
+  const mediaReady=Boolean((httpMode?player.isReady:player.pc?.connectionState==='connected')&&video.readyState>=2);
+  if(watchMode&&status?.available&&mediaReady&&!view.visible)
+    view={visible:true,kind:'hotmic',heading:'LIVE SHOW',donor:'',amount:'',message:''};
+  if((!visible&&!watchMode)||!view.visible||!mediaReady){hide();return;}
   popup.dataset.kind=view.kind;
   popup.dataset.art=painted.has(imageForKind(view.kind))?'painted':'fallback';
   let scrollText=null;
@@ -144,7 +208,10 @@ function renderPresentation(visible,status){
       message.textContent=scrollText;
     }else scroller.show({text:scrollText,nonce:status?.presentation_nonce});
   }
-  video.muted=false;
+  video.muted=sourceMode;
+  // The HTTP stream already contains the source soundtrack. Starting a second
+  // HTML audio element here would double it and lose the shared media clock.
+  if(httpMode){stopRain();if(video.paused)void video.play().catch(()=>{state.textContent='Click Enable sound to play the show.';});return;}
   // Sound never begins before the OBS viewer acknowledges a visible,
   // unmuted video frame. This allows the host to validate music receipts
   // as belonging to the same exact presentation nonce.
@@ -156,9 +223,9 @@ function renderPresentation(visible,status){
     activePresentationNonce=nonce;
     const playing=video.paused?video.play():Promise.resolve();
     void Promise.resolve(playing).then(async()=>{
-      if(activePresentationNonce!==nonce||popup.hidden||video.muted)return;
+      if(activePresentationNonce!==nonce||popup.hidden||(!sourceMode&&video.muted))return;
       await player.api({action:'media-presented',id:player.id,nonce});
-      if(activePresentationNonce===nonce&&!popup.hidden&&!video.muted&&status?.presentation_mode==='rain')
+      if(activePresentationNonce===nonce&&!popup.hidden&&(sourceMode||!video.muted)&&status?.presentation_mode==='rain')
         startRain(nonce);
     }).catch(()=>{
       if(activePresentationNonce===nonce)activePresentationNonce=null;
@@ -169,15 +236,43 @@ function renderPresentation(visible,status){
   }
 }
 hide();
-connection.hidden=true;
+connection.hidden=!sourceMode&&!watchMode;
+if(sourceMode||watchMode){connection.dataset.interactive='true';connection.setAttribute('aria-hidden','false');}
 // No debug/error billboard in the publicly streamed 1920x1080 OBS source.
-const player=new StagePlayer({
-  video,key,
+const Player=httpMode?HttpStagePlayer:StagePlayer;
+const player=new Player({
+  video,key,ingest:sourceMode,
   onStatus:text=>{state.textContent=text;},
   onPresentation:renderPresentation,
-  onStats:stats=>{window.stageStats=stats;}
+  onStats:stats=>{window.stageStats=stats;if(sourceMode)void startPublisher();}
 });
-video.onplaying=()=>{connection.hidden=true;};
+video.onplaying=()=>{connection.hidden=!sourceMode&&!watchMode;};
 video.onpause=()=>{hide();};
-window.addEventListener('pagehide',()=>{hide();void player.close({permanent:true});});
-void player.connect();
+window.addEventListener('pagehide',()=>{hide();void publisher?.stop();void player.close({permanent:true});});
+if(sourceMode){
+  $('sound').textContent='Start Buff feed';$('sound').tabIndex=0;
+  $('sound').onclick=()=>{publisherNeedsClick=false;publisherWanted=true;void publisher?.context?.resume();void startPublisher();};
+  void (async()=>{
+    const reply=await fetch('/api/http-stage/config',{headers:{Authorization:'Bearer '+key},cache:'no-store',redirect:'error'});
+    const config=await reply.json();
+    if(!reply.ok||!config.can_publish)throw new Error('Open the publisher from the local producer panel.');
+    publisher=new LocalMediaPublisher({video,rainAudio:rainCue,key,
+      onStatus:text=>{state.textContent=text;},onError:error=>{
+        publisherNeedsClick=error.status===409;
+        state.textContent=publisherNeedsClick?'Feed stopped. Click Start Buff feed to resume.':error.message;
+        publisherWanted=!publisherNeedsClick;
+        // Wait for a fresh native status before restarting after an epoch
+        // change; stale local presentation state may never restore old audio.
+        lastSourceStatus={available:false,presentation_visible:false};
+        publisher.setPresentation(lastSourceStatus);
+      }});
+    if(lastSourceStatus)publisher.setPresentation(lastSourceStatus);
+    await player.connect();
+  })().catch(error=>{state.textContent=error.message;});
+}else{
+  if(watchMode){
+    $('sound').tabIndex=0;$('sound').onclick=()=>{video.muted=false;void video.play().catch(()=>{});};
+    $('reconnect').tabIndex=0;$('reconnect').onclick=()=>{void player.connect();};
+  }
+  void player.connect();
+}
