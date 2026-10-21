@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "base_commit": "6b532677055d73c7120bae17fd848f8805559c09",
+  "files": [
+    {
+      "path": "src/http-stage-media.mjs",
+      "base_blob_sha": null
+    },
+    {
+      "path": "src/http-stage-presentation.mjs",
+      "base_blob_sha": null
+    },
+    {
+      "path": "src/http-stage-proxy.mjs",
+      "base_blob_sha": null
+    },
+    {
+      "path": "src/http-stage-routes.mjs",
+      "base_blob_sha": null
+    },
+    {
+      "path": "src/real-host.mjs",
+      "base_blob_sha": "e54d944fa44450bc1f8380b01963b9015b597479"
+    },
+    {
+      "path": "src/remote-panel.mjs",
+      "base_blob_sha": "cf49c69c2d04a254f0a3082745570fe2a13c9468"
+    },
+    {
+      "path": "src/remote-web/http-stage-player.js",
+      "base_blob_sha": null
+    },
+    {
+      "path": "src/remote-web/http-stage-protocol.js",
+      "base_blob_sha": null
+    },
+    {
+      "path": "src/remote-web/index.html",
+      "base_blob_sha": "7420f3229dd5f9a60c8984228c9cea67647d459c"
+    },
+    {
+      "path": "src/remote-web/local-media-publisher.js",
+      "base_blob_sha": null
+    },
+    {
+      "path": "src/remote-web/panel.js",
+      "base_blob_sha": "e2d7e3877b21ea98dfbe4b27a5e6eebe6eb3628d"
+    },
+    {
+      "path": "src/remote-web/stage-page.js",
+      "base_blob_sha": "bbb22f4e4c94398a4f62f510d4e2a80eef63faf5"
+    },
+    {
+      "path": "src/remote-web/stage-player.js",
+      "base_blob_sha": "605688561d73c951a8f025f6cbd60a05f4edd011"
+    },
+    {
+      "path": "src/remote-web/stage.css",
+      "base_blob_sha": "aa8dcd55ebf9fb25918ca23b84376154f287018d"
+    },
+    {
+      "path": "src/stage-media.mjs",
+      "base_blob_sha": "8b4547af44ca8564c8747ccea01fecb9a7e89baa"
+    }
+  ]
+}

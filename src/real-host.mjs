@@ -25,6 +25,9 @@ import {serveRemotePanel} from './remote-panel.mjs';
 import {LiveDonations} from './donations/live-donations.mjs';
 import {loadOrCreateViewerKey} from './obs-viewer-key.mjs';
 import {createCameraFlipGate} from './audience-reactions.mjs';
+import {createHttpStageMedia} from './http-stage-media.mjs';
+import {createHttpStageRoutes} from './http-stage-routes.mjs';
+import {createHttpStagePresentation} from './http-stage-presentation.mjs';
 
 async function freePort(){const socket=tcpServer();await new Promise((r,j)=>{socket.once('error',j);socket.listen(0,'127.0.0.1',r);});const port=socket.address().port;await new Promise(r=>socket.close(r));return port;}
 async function waitUntil(check,ms){const end=Date.now()+ms;while(Date.now()<end){if(await check())return;await delay(200);}throw new Error('A character service did not become ready');}
@@ -52,12 +55,13 @@ export async function serveRealHost(config){
     await unlink(lockPath);lock=await open(lockPath,'wx');
   }
   await lock.writeFile(JSON.stringify({pid:process.pid}));
-  const children=[],logs=[];let live,session,http,voice,whisper,monitor,media,preview,donations,closed=false;
+  const children=[],logs=[];let live,session,http,voice,whisper,monitor,media,preview,donations,httpStage,httpPresentation,closed=false;
   const stopChildren=()=>{for(const child of children)if(child.exitCode===null)child.kill();};
   const close=async()=>{
     if(closed)return;closed=true;clearInterval(monitor);
     await preview?.close();await donations?.close().catch(()=>{});
     await session?.stop().catch(()=>{});stopChildren();
+    await httpStage?.close();
     await whisper?.close();
     await media?.close();
     if(http){http.closeAllConnections();await new Promise(r=>http.close(r));}
@@ -136,7 +140,14 @@ export async function serveRealHost(config){
     whisper=new PersistentWhisper({...config.whisper,workerScript:fileURLToPath(new URL('../python/whisper_file.py',import.meta.url))});
     await whisper.warmup();
     progress('Opening the character stage...');
-    if(config.media?.enabled)media=await createStageMedia({token,iceServers:config.media.iceServers||[]});
+    if(config.media?.enabled)media=await createStageMedia({token,iceServers:config.media.iceServers||[],onStop:()=>httpStage?.stop()});
+    if(config.media?.http?.enabled===true){
+      if(!media)throw new Error('HTTP publishing needs the existing local native stage');
+      httpStage=createHttpStageMedia({enabled:true,ffmpegPath:config.media.http.ffmpegPath||'ffmpeg'});
+      httpPresentation=createHttpStagePresentation({transport:httpStage,getStage:()=>media.info()});
+      // Native emergency-stop callbacks revoke encoded media. Ordinary
+      // presentation_end remains timestamped with the final spoken frames.
+    }
     // Per-producer/actor performance gate, not an audience-controlled stage command.
     const cameraFlipGate=createCameraFlipGate();
     session=new ConversationSession({gateway,director,whisper,
@@ -164,8 +175,8 @@ export async function serveRealHost(config){
       // keeping the public popup visible. TTS is NOT released until receipt.
       seat:({signal})=>media.animate({id:'seated_response',targets:['SHANNY','REV'],signal}),
       end:({signal})=>media.animate({id:'presentation_end',targets:['SHANNY','REV'],signal}),
-      waitVisible:({signal})=>media.waitForViewer({signal}),
-      waitRainEnd:({signal})=>media.waitForRainEnd({signal}),
+      waitVisible:options=>httpPresentation?httpPresentation.waitForViewer(options):media.waitForViewer(options),
+      waitRainEnd:options=>httpPresentation?httpPresentation.waitForRainEnd(options):media.waitForRainEnd(options),
       stop:()=>media.stopAnimations()
     }:undefined});await session.initialize();
     const player=spawn(config.player,['-force-d3d11','-screen-fullscreen','0','-videoMode',config.videoMode||'COLORBLIND','-logFile',join(root,'player.log')],
@@ -231,9 +242,10 @@ export async function serveRealHost(config){
           available_delivery_codes:voice.availableEpisodeCodes,
           qualified_samples_by_code:voice.availableEpisodeCounts,
           source_echo_flags:director.audit({history:session.history})}:{enabled:false},
-        media:media?.info()||null,
+        media:media?{...media.info(),...(httpStage?{http:httpStage.info()}: {})}:null,
         presentation_visible:media?.info().presentation_visible||false,donations:donations?.status()||null,
         preview_url:preview?'http://127.0.0.1:'+preview.port+'/#key='+preview.token:null};
+      if(data.action==='media-http-status')return httpStage?.info()||{enabled:false};
       if(data.action?.startsWith('media-')){if(!media)throw new Error('Stage feed not configured');return media.viewer(data);}
       if(data.action==='animations')return animations.menu();
       if(data.action==='animate'){if(session.mode!=='live')await session.arm();return animations.play(data);}
@@ -262,7 +274,7 @@ export async function serveRealHost(config){
       if(data.action==='donation-enable'){
         const ready=media?.info();
         if(!ready?.available)throw new Error('The paired OBS stage must be ready before donation reactions are enabled');
-        if(!ready.obs_viewers)
+        if(httpStage?!httpStage.info().ready_obs_receivers:!ready.obs_viewers)
           throw new Error('Connect the private OBS Browser Source before enabling automatic paid donations');
         return donations.enable({make_it_rain:data.make_it_rain===true});
       }
@@ -298,11 +310,16 @@ export async function serveRealHost(config){
       host:async data=>data.action==='stop'?(await session.stop(),{stopped:true}):
         data.action==='silence'?session.silence():action(data)});
     if(media)preview=await serveRemotePanel({action,publicOrigin:'http://127.0.0.1',
-      allowLocalPreview:true,scratch:join(root,'preview'),
+      allowLocalPreview:true,scratch:join(root,'preview'),httpStage,
       viewerKey:loadOrCreateViewerKey(join(root,'obs-viewer-key.local.json'))});
+    const receiveHttpStage=httpStage?createHttpStageRoutes({media:httpStage}):null;
     http=createServer((req,res)=>{const revision=session.revision;void(async()=>{
       const supplied=Buffer.from(String(req.headers.authorization||'')),expected=Buffer.from('Bearer '+token);
       if(supplied.length!==expected.length||!timingSafeEqual(supplied,expected)){res.writeHead(401);res.end();return;}
+      if(req.url.startsWith('/api/http-stage/')){
+        if(!receiveHttpStage){res.writeHead(503,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'HTTP stage transport is not enabled.'}));return;}
+        return await receiveHttpStage(req,res,{role:'receiver',operator:true,viewer:false,localOrigin:''});
+      }
       if(req.method!=='POST'||req.url!=='/action'){res.writeHead(404);res.end();return;}
       const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>64000)throw new Error('Request exceeds limit');chunks.push(chunk);}
       const data=JSON.parse(Buffer.concat(chunks).toString('utf8'));

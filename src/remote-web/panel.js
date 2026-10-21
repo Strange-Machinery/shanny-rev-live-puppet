@@ -1,16 +1,39 @@
 import {StagePlayer} from './stage-player.js';
+import {HttpStagePlayer} from './http-stage-player.js';
 const $=id=>document.getElementById(id);
 const key=new URLSearchParams(location.hash.slice(1)).get('key')||'';
 history.replaceState(null,'',location.pathname);
-const stage=new StagePlayer({video:$('stage-preview'),key,onStatus:text=>$('stage-status').textContent=text,onStats:s=>{
+const stageOptions={video:$('stage-preview'),key,onStatus:text=>$('stage-status').textContent=text,onStats:s=>{
   $('stage-quality').textContent=[s.width&&s.height?s.width+' × '+s.height:'',s.fps?Math.round(s.fps)+' fps':'',s.codec||'',Number.isFinite(s.rtt_ms)?'Network round trip '+Math.round(s.rtt_ms)+' ms':''].filter(Boolean).join(' · ');
-}});
-$('connect-stage').onclick=()=>void stage.connect();
+}};
+let stage=new StagePlayer(stageOptions);
+$('connect-stage').onclick=async()=>{
+  try{
+    const config=await api('http-stage/config');
+    if(config.enabled&&!(stage instanceof HttpStagePlayer)){
+      await stage.close({permanent:true});stage=new HttpStagePlayer({...stageOptions,viewerRole:'preview'});
+    }
+    await stage.connect();
+  }catch(error){$('stage-status').textContent=error.message;}
+};
 $('stage-sound').onclick=async()=>{const video=$('stage-preview');video.muted=!video.muted;try{await video.play();$('stage-sound').textContent=video.muted?'Enable preview sound':'Mute preview sound';}catch{$('stage-status').textContent='Connect the preview first.';}};
 $('copy-obs').onclick=async()=>{try{const result=await api('obs-link');try{await navigator.clipboard.writeText(result.url);$('stage-status').textContent='OBS link copied. Paste into a 1920 × 1080 Browser source.';}catch{$('obs-link').hidden=false;$('obs-link').value=result.url;$('obs-link').select();$('stage-status').textContent='Copy this link into your OBS Browser source.';}}catch(error){$('stage-status').textContent=error.message;}};
 window.addEventListener('pagehide',()=>void stage.close());
 let revision=0,request=null,stream=null,context=null,recording=false,starting=false,chunks=[],frames=0,timer=null,online=false,donationsEnabled=false,stageBusy=false,stageAvailable=false,lastQueueDepth=0;
 async function api(path,body,signal){const response=await fetch('/api/'+path,{method:body?'POST':'GET',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,signal,redirect:'error',cache:'no-store'});const result=await response.json();if(!response.ok)throw new Error(result.error||'Connection failed');return result;}
+async function openStagePage(path,field='url'){
+  const page=window.open('about:blank','_blank');
+  if(page)page.opener=null;
+  try{const result=await api(path);if(page)page.location.href=result[field];
+    else{$('obs-link').hidden=false;$('obs-link').value=result[field];$('obs-link').select();}}
+  catch(error){page?.close();$('stage-status').textContent=error.message;}
+}
+$('open-http-show').onclick=()=>void openStagePage('http-stage-link','watch_url');
+$('open-http-source').onclick=()=>void openStagePage('http-stage-source-link');
+void api('http-stage/config').then(config=>{
+  $('http-stage-tools').hidden=!config.enabled;
+  $('open-http-source').hidden=!config.can_publish;
+}).catch(()=>{});
 function stopCapture(){recording=false;starting=false;clearTimeout(timer);stream?.getTracks().forEach(track=>track.stop());stream=null;void context?.close();context=null;$('mic').textContent='Test microphone';}
 function stop(){revision++;request?.abort();stopCapture();chunks=[];frames=0;donationsEnabled=false;
  $('result').textContent='Stopped. Microphone off.';void api('action',{action:'stop'}).catch(()=>{});

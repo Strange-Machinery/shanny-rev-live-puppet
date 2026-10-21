@@ -6,16 +6,22 @@ import {resolve,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {inspectWav} from './wav.mjs';
 import {readJson} from './http-json.mjs';
+import {createHttpStageRoutes} from './http-stage-routes.mjs';
+import {createHttpStageProxy} from './http-stage-proxy.mjs';
 
-export async function serveRemotePanel({action, publicOrigin, scratch, token=randomBytes(32).toString('hex'), port=0,allowLocalPreview=false,viewerKey}) {
+export async function serveRemotePanel({action, publicOrigin, scratch, token=randomBytes(32).toString('hex'), port=0,allowLocalPreview=false,viewerKey,httpStage,httpStageProxy}) {
   const origin=new URL(publicOrigin);
   if((origin.protocol!=='https:'&&!(allowLocalPreview&&origin.protocol==='http:'&&origin.hostname==='127.0.0.1'))||origin.username||origin.password||origin.pathname!=='/'||origin.search||origin.hash||token.length<32)
     throw new Error('A private HTTPS origin and strong access key are required');
   const assets=new Map();
   if(viewerKey!==undefined&&(typeof viewerKey!=='string'||!/^[a-f0-9]{64}$/.test(viewerKey)))throw new Error('Invalid private view-only OBS key');
   const viewToken=viewerKey||createHmac('sha256',token).update('buff-obs-view-v1').digest('hex');
+  const httpRoutes=httpStage?createHttpStageRoutes({media:httpStage}):null;
   for(const [route,file,type] of [['/','index.html','text/html'],['/stage','stage.html','text/html'],['/stage-player.js','stage-player.js','text/javascript'],['/stage-page.js','stage-page.js','text/javascript'],['/panel.js','panel.js','text/javascript'],['/mic-worklet.js','mic-worklet.js','text/javascript'],['/panel.css','panel.css','text/css'],['/stage.css','stage.css','text/css']])
     assets.set(route,{body:await readFile(new URL('./remote-web/'+file,import.meta.url)),type});
+  for(const file of ['popup-view.js','http-stage-player.js','http-stage-protocol.js','local-media-publisher.js'])
+    assets.set('/'+file,{body:await readFile(new URL('./remote-web/'+file,import.meta.url)),type:'text/javascript'});
+  assets.set('/watch',assets.get('/stage'));
   // Source-painted transparent 12-cel assets are producer-installed, not
   // external URLs. Missing artwork leaves the existing simple HUD operational.
   // Only these exact four fixed names can ever be served publicly.
@@ -62,16 +68,46 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
       const operator=matches(token),viewer=matches(viewToken);
       if(!operator&&!viewer)return send(401,{error:'Reopen the private launcher supplied by your producer.'});
       const localOrigin='http://127.0.0.1:'+server.address().port;
+      // A tunnel also connects from loopback. Its forwarded requests must
+      // never acquire the local producer's publishing capability.
+      const localProducer=allowLocalPreview&&operator&&req.headers.host===new URL(localOrigin).host&&
+        ['127.0.0.1','::ffff:127.0.0.1','::1'].includes(req.socket.remoteAddress)&&
+        !Object.keys(req.headers).some(h=>h==='forwarded'||h==='x-real-ip'||h.startsWith('x-forwarded-')||h.startsWith('cf-'));
       if(req.headers.origin&&req.headers.origin!==origin.origin&&!(allowLocalPreview&&req.headers.origin===localOrigin))return send(403,{error:'Origin rejected.'});
+      if(req.method==='GET'&&req.url==='/api/http-stage/config'){
+        const status=httpStage?.info()||(httpStageProxy?await action({action:'media-http-status'}).catch(()=>({enabled:false})):{enabled:false});
+        return send(200,{enabled:status.enabled===true,can_publish:localProducer&&status.enabled===true,
+          transport:'http-fmp4',default_enabled:false});
+      }
+      if(req.url.startsWith('/api/http-stage/')){
+        if(httpRoutes)return await httpRoutes(req,res,{role:allowLocalPreview?'all':'receiver',
+          operator,viewer,localOrigin});
+        if(httpStageProxy)return await httpStageProxy(req,res);
+        return send(503,{error:'HTTP stage transport is not enabled.'});
+      }
       if(req.method==='POST'&&req.url==='/api/media'){
         let size=0;const parts=[];
         for await(const chunk of req){size+=chunk.length;if(size>64000)throw new Error('Stage message too large');parts.push(chunk);}
         const input=JSON.parse(Buffer.concat(parts).toString('utf8'));
-        if(!['media-status','media-open','media-offer','media-poll','media-close','media-presented','media-rain-started','media-rain-ended','media-rain-failed'].includes(input?.action)||Object.keys(input).some(k=>!['action','id','sdp','nonce'].includes(k)))return send(400,{error:'Unsupported stage request'});
-        return send(200,await action({...input,viewer_role:viewer?'obs':'preview'}));
+        if(!['media-status','media-open','media-offer','media-poll','media-close','media-presented','media-rain-started','media-rain-ended','media-rain-failed'].includes(input?.action)||Object.keys(input).some(k=>!['action','id','sdp','nonce','ingest'].includes(k)))return send(400,{error:'Unsupported stage request'});
+        if(input.ingest!==undefined&&(input.ingest!==true||input.action!=='media-open'||!localProducer||
+            req.headers.origin!==localOrigin||!httpStage?.info().enabled))return send(403,{error:'Use the local producer to publish the stage.'});
+        const {ingest,...request}=input;
+        return send(200,await action({...request,viewer_role:ingest?'ingest':viewer?'obs':'preview'}));
       }
       if(!operator)return send(403,{error:'This OBS link is view-only.'});
-      if(req.method==='GET'&&req.url==='/api/obs-link')return send(200,{url:(allowLocalPreview?localOrigin:origin.origin)+'/stage#key='+viewToken});
+      if(req.method==='GET'&&req.url==='/api/http-stage-link')
+        return send(200,{url:(allowLocalPreview?localOrigin:origin.origin)+'/stage#transport=http&key='+viewToken,
+          watch_url:(allowLocalPreview?localOrigin:origin.origin)+'/watch#transport=http&key='+viewToken});
+      if(req.method==='GET'&&req.url==='/api/http-stage-source-link'){
+        if(!localProducer||!httpStage?.info().enabled)return send(403,{error:'Use the local producer to publish the stage.'});
+        return send(200,{url:localOrigin+'/stage#source=http&key='+token});
+      }
+      if(req.method==='GET'&&req.url==='/api/obs-link'){
+        const enabled=httpStage?.info().enabled===true||
+          (httpStageProxy?(await action({action:'media-http-status'}).catch(()=>({}))).enabled===true:false);
+        return send(200,{url:(allowLocalPreview?localOrigin:origin.origin)+'/stage#'+(enabled?'transport=http&':'')+'key='+viewToken});
+      }
       if(req.method==='GET'&&req.url==='/api/animations')return send(200,await action({action:'animations'}));
       if(req.method==='GET'&&req.url==='/api/status') {
         const s=await action({action:'status'});
@@ -154,7 +190,8 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
   const config=JSON.parse(await readFile(resolve(process.argv[2]),'utf8'));
   const upstream=new URL(config.endpoint);
   if(upstream.protocol!=='http:'||upstream.hostname!=='127.0.0.1'||upstream.pathname!=='/action')throw new Error('Local producer backend required');
-  const app=await serveRemotePanel({...config,action:async data=>{
+  const app=await serveRemotePanel({...config,
+    httpStageProxy:createHttpStageProxy({endpoint:config.endpoint,token:config.upstreamToken}),action:async data=>{
     const reply=await fetch(upstream,{method:'POST',headers:{Authorization:'Bearer '+config.upstreamToken,'Content-Type':'application/json'},body:JSON.stringify(data),signal:AbortSignal.timeout(75000),redirect:'error'});
     const result=await readJson(reply,256000);if(!reply.ok)throw new Error('Producer action failed');return result;
   }});

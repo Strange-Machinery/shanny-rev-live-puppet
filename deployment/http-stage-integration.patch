@@ -1,0 +1,531 @@
+diff --git a/src/real-host.mjs b/src/real-host.mjs
+index e54d944..7e81952 100644
+--- a/src/real-host.mjs
++++ b/src/real-host.mjs
+@@ -25,6 +25,9 @@ import {serveRemotePanel} from './remote-panel.mjs';
+ import {LiveDonations} from './donations/live-donations.mjs';
+ import {loadOrCreateViewerKey} from './obs-viewer-key.mjs';
+ import {createCameraFlipGate} from './audience-reactions.mjs';
++import {createHttpStageMedia} from './http-stage-media.mjs';
++import {createHttpStageRoutes} from './http-stage-routes.mjs';
++import {createHttpStagePresentation} from './http-stage-presentation.mjs';
+ 
+ async function freePort(){const socket=tcpServer();await new Promise((r,j)=>{socket.once('error',j);socket.listen(0,'127.0.0.1',r);});const port=socket.address().port;await new Promise(r=>socket.close(r));return port;}
+ async function waitUntil(check,ms){const end=Date.now()+ms;while(Date.now()<end){if(await check())return;await delay(200);}throw new Error('A character service did not become ready');}
+@@ -52,12 +55,13 @@ export async function serveRealHost(config){
+     await unlink(lockPath);lock=await open(lockPath,'wx');
+   }
+   await lock.writeFile(JSON.stringify({pid:process.pid}));
+-  const children=[],logs=[];let live,session,http,voice,whisper,monitor,media,preview,donations,closed=false;
++  const children=[],logs=[];let live,session,http,voice,whisper,monitor,media,preview,donations,httpStage,httpPresentation,closed=false;
+   const stopChildren=()=>{for(const child of children)if(child.exitCode===null)child.kill();};
+   const close=async()=>{
+     if(closed)return;closed=true;clearInterval(monitor);
+     await preview?.close();await donations?.close().catch(()=>{});
+     await session?.stop().catch(()=>{});stopChildren();
++    await httpStage?.close();
+     await whisper?.close();
+     await media?.close();
+     if(http){http.closeAllConnections();await new Promise(r=>http.close(r));}
+@@ -136,7 +140,14 @@ export async function serveRealHost(config){
+     whisper=new PersistentWhisper({...config.whisper,workerScript:fileURLToPath(new URL('../python/whisper_file.py',import.meta.url))});
+     await whisper.warmup();
+     progress('Opening the character stage...');
+-    if(config.media?.enabled)media=await createStageMedia({token,iceServers:config.media.iceServers||[]});
++    if(config.media?.enabled)media=await createStageMedia({token,iceServers:config.media.iceServers||[],onStop:()=>httpStage?.stop()});
++    if(config.media?.http?.enabled===true){
++      if(!media)throw new Error('HTTP publishing needs the existing local native stage');
++      httpStage=createHttpStageMedia({enabled:true,ffmpegPath:config.media.http.ffmpegPath||'ffmpeg'});
++      httpPresentation=createHttpStagePresentation({transport:httpStage,getStage:()=>media.info()});
++      // Native emergency-stop callbacks revoke encoded media. Ordinary
++      // presentation_end remains timestamped with the final spoken frames.
++    }
+     // Per-producer/actor performance gate, not an audience-controlled stage command.
+     const cameraFlipGate=createCameraFlipGate();
+     session=new ConversationSession({gateway,director,whisper,
+@@ -164,8 +175,8 @@ export async function serveRealHost(config){
+       // keeping the public popup visible. TTS is NOT released until receipt.
+       seat:({signal})=>media.animate({id:'seated_response',targets:['SHANNY','REV'],signal}),
+       end:({signal})=>media.animate({id:'presentation_end',targets:['SHANNY','REV'],signal}),
+-      waitVisible:({signal})=>media.waitForViewer({signal}),
+-      waitRainEnd:({signal})=>media.waitForRainEnd({signal}),
++      waitVisible:options=>httpPresentation?httpPresentation.waitForViewer(options):media.waitForViewer(options),
++      waitRainEnd:options=>httpPresentation?httpPresentation.waitForRainEnd(options):media.waitForRainEnd(options),
+       stop:()=>media.stopAnimations()
+     }:undefined});await session.initialize();
+     const player=spawn(config.player,['-force-d3d11','-screen-fullscreen','0','-videoMode',config.videoMode||'COLORBLIND','-logFile',join(root,'player.log')],
+@@ -231,9 +242,10 @@ export async function serveRealHost(config){
+           available_delivery_codes:voice.availableEpisodeCodes,
+           qualified_samples_by_code:voice.availableEpisodeCounts,
+           source_echo_flags:director.audit({history:session.history})}:{enabled:false},
+-        media:media?.info()||null,
++        media:media?{...media.info(),...(httpStage?{http:httpStage.info()}: {})}:null,
+         presentation_visible:media?.info().presentation_visible||false,donations:donations?.status()||null,
+         preview_url:preview?'http://127.0.0.1:'+preview.port+'/#key='+preview.token:null};
++      if(data.action==='media-http-status')return httpStage?.info()||{enabled:false};
+       if(data.action?.startsWith('media-')){if(!media)throw new Error('Stage feed not configured');return media.viewer(data);}
+       if(data.action==='animations')return animations.menu();
+       if(data.action==='animate'){if(session.mode!=='live')await session.arm();return animations.play(data);}
+@@ -262,7 +274,7 @@ export async function serveRealHost(config){
+       if(data.action==='donation-enable'){
+         const ready=media?.info();
+         if(!ready?.available)throw new Error('The paired OBS stage must be ready before donation reactions are enabled');
+-        if(!ready.obs_viewers)
++        if(httpStage?!httpStage.info().ready_obs_receivers:!ready.obs_viewers)
+           throw new Error('Connect the private OBS Browser Source before enabling automatic paid donations');
+         return donations.enable({make_it_rain:data.make_it_rain===true});
+       }
+@@ -298,11 +310,16 @@ export async function serveRealHost(config){
+       host:async data=>data.action==='stop'?(await session.stop(),{stopped:true}):
+         data.action==='silence'?session.silence():action(data)});
+     if(media)preview=await serveRemotePanel({action,publicOrigin:'http://127.0.0.1',
+-      allowLocalPreview:true,scratch:join(root,'preview'),
++      allowLocalPreview:true,scratch:join(root,'preview'),httpStage,
+       viewerKey:loadOrCreateViewerKey(join(root,'obs-viewer-key.local.json'))});
++    const receiveHttpStage=httpStage?createHttpStageRoutes({media:httpStage}):null;
+     http=createServer((req,res)=>{const revision=session.revision;void(async()=>{
+       const supplied=Buffer.from(String(req.headers.authorization||'')),expected=Buffer.from('Bearer '+token);
+       if(supplied.length!==expected.length||!timingSafeEqual(supplied,expected)){res.writeHead(401);res.end();return;}
++      if(req.url.startsWith('/api/http-stage/')){
++        if(!receiveHttpStage){res.writeHead(503,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'HTTP stage transport is not enabled.'}));return;}
++        return await receiveHttpStage(req,res,{role:'receiver',operator:true,viewer:false,localOrigin:''});
++      }
+       if(req.method!=='POST'||req.url!=='/action'){res.writeHead(404);res.end();return;}
+       const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>64000)throw new Error('Request exceeds limit');chunks.push(chunk);}
+       const data=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+diff --git a/src/remote-panel.mjs b/src/remote-panel.mjs
+index cf49c69..c32c36c 100644
+--- a/src/remote-panel.mjs
++++ b/src/remote-panel.mjs
+@@ -6,16 +6,22 @@ import {resolve,join} from 'node:path';
+ import {fileURLToPath} from 'node:url';
+ import {inspectWav} from './wav.mjs';
+ import {readJson} from './http-json.mjs';
++import {createHttpStageRoutes} from './http-stage-routes.mjs';
++import {createHttpStageProxy} from './http-stage-proxy.mjs';
+ 
+-export async function serveRemotePanel({action, publicOrigin, scratch, token=randomBytes(32).toString('hex'), port=0,allowLocalPreview=false,viewerKey}) {
++export async function serveRemotePanel({action, publicOrigin, scratch, token=randomBytes(32).toString('hex'), port=0,allowLocalPreview=false,viewerKey,httpStage,httpStageProxy}) {
+   const origin=new URL(publicOrigin);
+   if((origin.protocol!=='https:'&&!(allowLocalPreview&&origin.protocol==='http:'&&origin.hostname==='127.0.0.1'))||origin.username||origin.password||origin.pathname!=='/'||origin.search||origin.hash||token.length<32)
+     throw new Error('A private HTTPS origin and strong access key are required');
+   const assets=new Map();
+   if(viewerKey!==undefined&&(typeof viewerKey!=='string'||!/^[a-f0-9]{64}$/.test(viewerKey)))throw new Error('Invalid private view-only OBS key');
+   const viewToken=viewerKey||createHmac('sha256',token).update('buff-obs-view-v1').digest('hex');
++  const httpRoutes=httpStage?createHttpStageRoutes({media:httpStage}):null;
+   for(const [route,file,type] of [['/','index.html','text/html'],['/stage','stage.html','text/html'],['/stage-player.js','stage-player.js','text/javascript'],['/stage-page.js','stage-page.js','text/javascript'],['/panel.js','panel.js','text/javascript'],['/mic-worklet.js','mic-worklet.js','text/javascript'],['/panel.css','panel.css','text/css'],['/stage.css','stage.css','text/css']])
+     assets.set(route,{body:await readFile(new URL('./remote-web/'+file,import.meta.url)),type});
++  for(const file of ['popup-view.js','http-stage-player.js','http-stage-protocol.js','local-media-publisher.js'])
++    assets.set('/'+file,{body:await readFile(new URL('./remote-web/'+file,import.meta.url)),type:'text/javascript'});
++  assets.set('/watch',assets.get('/stage'));
+   // Source-painted transparent 12-cel assets are producer-installed, not
+   // external URLs. Missing artwork leaves the existing simple HUD operational.
+   // Only these exact four fixed names can ever be served publicly.
+@@ -62,16 +68,46 @@ export async function serveRemotePanel({action, publicOrigin, scratch, token=ran
+       const operator=matches(token),viewer=matches(viewToken);
+       if(!operator&&!viewer)return send(401,{error:'Reopen the private launcher supplied by your producer.'});
+       const localOrigin='http://127.0.0.1:'+server.address().port;
++      // A tunnel also connects from loopback. Its forwarded requests must
++      // never acquire the local producer's publishing capability.
++      const localProducer=allowLocalPreview&&operator&&req.headers.host===new URL(localOrigin).host&&
++        ['127.0.0.1','::ffff:127.0.0.1','::1'].includes(req.socket.remoteAddress)&&
++        !Object.keys(req.headers).some(h=>h==='forwarded'||h==='x-real-ip'||h.startsWith('x-forwarded-')||h.startsWith('cf-'));
+       if(req.headers.origin&&req.headers.origin!==origin.origin&&!(allowLocalPreview&&req.headers.origin===localOrigin))return send(403,{error:'Origin rejected.'});
++      if(req.method==='GET'&&req.url==='/api/http-stage/config'){
++        const status=httpStage?.info()||(httpStageProxy?await action({action:'media-http-status'}).catch(()=>({enabled:false})):{enabled:false});
++        return send(200,{enabled:status.enabled===true,can_publish:localProducer&&status.enabled===true,
++          transport:'http-fmp4',default_enabled:false});
++      }
++      if(req.url.startsWith('/api/http-stage/')){
++        if(httpRoutes)return await httpRoutes(req,res,{role:allowLocalPreview?'all':'receiver',
++          operator,viewer,localOrigin});
++        if(httpStageProxy)return await httpStageProxy(req,res);
++        return send(503,{error:'HTTP stage transport is not enabled.'});
++      }
+       if(req.method==='POST'&&req.url==='/api/media'){
+         let size=0;const parts=[];
+         for await(const chunk of req){size+=chunk.length;if(size>64000)throw new Error('Stage message too large');parts.push(chunk);}
+         const input=JSON.parse(Buffer.concat(parts).toString('utf8'));
+-        if(!['media-status','media-open','media-offer','media-poll','media-close','media-presented','media-rain-started','media-rain-ended','media-rain-failed'].includes(input?.action)||Object.keys(input).some(k=>!['action','id','sdp','nonce'].includes(k)))return send(400,{error:'Unsupported stage request'});
+-        return send(200,await action({...input,viewer_role:viewer?'obs':'preview'}));
++        if(!['media-status','media-open','media-offer','media-poll','media-close','media-presented','media-rain-started','media-rain-ended','media-rain-failed'].includes(input?.action)||Object.keys(input).some(k=>!['action','id','sdp','nonce','ingest'].includes(k)))return send(400,{error:'Unsupported stage request'});
++        if(input.ingest!==undefined&&(input.ingest!==true||input.action!=='media-open'||!localProducer||
++            req.headers.origin!==localOrigin||!httpStage?.info().enabled))return send(403,{error:'Use the local producer to publish the stage.'});
++        const {ingest,...request}=input;
++        return send(200,await action({...request,viewer_role:ingest?'ingest':viewer?'obs':'preview'}));
+       }
+       if(!operator)return send(403,{error:'This OBS link is view-only.'});
+-      if(req.method==='GET'&&req.url==='/api/obs-link')return send(200,{url:(allowLocalPreview?localOrigin:origin.origin)+'/stage#key='+viewToken});
++      if(req.method==='GET'&&req.url==='/api/http-stage-link')
++        return send(200,{url:(allowLocalPreview?localOrigin:origin.origin)+'/stage#transport=http&key='+viewToken,
++          watch_url:(allowLocalPreview?localOrigin:origin.origin)+'/watch#transport=http&key='+viewToken});
++      if(req.method==='GET'&&req.url==='/api/http-stage-source-link'){
++        if(!localProducer||!httpStage?.info().enabled)return send(403,{error:'Use the local producer to publish the stage.'});
++        return send(200,{url:localOrigin+'/stage#source=http&key='+token});
++      }
++      if(req.method==='GET'&&req.url==='/api/obs-link'){
++        const enabled=httpStage?.info().enabled===true||
++          (httpStageProxy?(await action({action:'media-http-status'}).catch(()=>({}))).enabled===true:false);
++        return send(200,{url:(allowLocalPreview?localOrigin:origin.origin)+'/stage#'+(enabled?'transport=http&':'')+'key='+viewToken});
++      }
+       if(req.method==='GET'&&req.url==='/api/animations')return send(200,await action({action:'animations'}));
+       if(req.method==='GET'&&req.url==='/api/status') {
+         const s=await action({action:'status'});
+@@ -154,7 +190,8 @@ if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
+   const config=JSON.parse(await readFile(resolve(process.argv[2]),'utf8'));
+   const upstream=new URL(config.endpoint);
+   if(upstream.protocol!=='http:'||upstream.hostname!=='127.0.0.1'||upstream.pathname!=='/action')throw new Error('Local producer backend required');
+-  const app=await serveRemotePanel({...config,action:async data=>{
++  const app=await serveRemotePanel({...config,
++    httpStageProxy:createHttpStageProxy({endpoint:config.endpoint,token:config.upstreamToken}),action:async data=>{
+     const reply=await fetch(upstream,{method:'POST',headers:{Authorization:'Bearer '+config.upstreamToken,'Content-Type':'application/json'},body:JSON.stringify(data),signal:AbortSignal.timeout(75000),redirect:'error'});
+     const result=await readJson(reply,256000);if(!reply.ok)throw new Error('Producer action failed');return result;
+   }});
+diff --git a/src/remote-web/index.html b/src/remote-web/index.html
+index 7420f32..bc5a4ed 100644
+--- a/src/remote-web/index.html
++++ b/src/remote-web/index.html
+@@ -1,6 +1,6 @@
+ <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Buff launcher</title><link rel="stylesheet" href="/panel.css"><script src="/panel.js" type="module"></script></head>
+ <body><main><p class="eyebrow">STRANGE MACHINERY · PRIVATE CONNECTION</p><h1>Buff launcher</h1><p>Your producer runs the models. You control the tests here.</p><p id="status" role="status">Connecting to your producer…</p>
+-<section><h2>StankTank</h2><video id="stage-preview" autoplay playsinline muted></video><p id="stage-status" role="status">Stage feed not connected.</p><p id="stage-quality"></p><div class="buttons"><button id="connect-stage">Connect preview</button><button id="stage-sound">Enable preview sound</button><button id="copy-obs">Copy OBS link</button></div><p>In OBS, add a Browser source, paste the link, and set 1920 × 1080. Keep preview sound off when OBS is playing the same feed.</p><input id="obs-link" aria-label="OBS browser source link" readonly hidden></section>
++<section><h2>StankTank</h2><video id="stage-preview" autoplay playsinline muted></video><p id="stage-status" role="status">Stage feed not connected.</p><p id="stage-quality"></p><div class="buttons"><button id="connect-stage">Connect preview</button><button id="stage-sound">Enable preview sound</button><button id="copy-obs">Copy OBS link</button></div><p>In OBS, add a Browser source, paste the link, and set 1920 × 1080. Keep preview sound off when OBS is playing the same feed.</p><input id="obs-link" aria-label="OBS browser source link" readonly hidden><div id="http-stage-tools" class="buttons" hidden><button id="open-http-show">Open show</button><button id="open-http-source" hidden>Start Buff feed</button></div></section>
+ <section id="donation-controls"><h2>Automatic donations</h2><p id="donation-status" role="status">Waiting for producer account connections…</p>
+ <label><input type="checkbox" id="make-it-rain"> Make it rain — Rev showers cash while Shanny twerks</label>
+ <p>Off: normal donations prepare voices invisibly, then sit at the desk and read/reply. On: paired money rain starts immediately with the approved music while voices prepare; after the music ends they sit down and read TTS. Verified USD $100+ always selects rain, regardless of this checkbox.</p>
+diff --git a/src/remote-web/panel.js b/src/remote-web/panel.js
+index e2d7e38..cb5d8d5 100644
+--- a/src/remote-web/panel.js
++++ b/src/remote-web/panel.js
+@@ -1,16 +1,39 @@
+ import {StagePlayer} from './stage-player.js';
++import {HttpStagePlayer} from './http-stage-player.js';
+ const $=id=>document.getElementById(id);
+ const key=new URLSearchParams(location.hash.slice(1)).get('key')||'';
+ history.replaceState(null,'',location.pathname);
+-const stage=new StagePlayer({video:$('stage-preview'),key,onStatus:text=>$('stage-status').textContent=text,onStats:s=>{
++const stageOptions={video:$('stage-preview'),key,onStatus:text=>$('stage-status').textContent=text,onStats:s=>{
+   $('stage-quality').textContent=[s.width&&s.height?s.width+' × '+s.height:'',s.fps?Math.round(s.fps)+' fps':'',s.codec||'',Number.isFinite(s.rtt_ms)?'Network round trip '+Math.round(s.rtt_ms)+' ms':''].filter(Boolean).join(' · ');
+-}});
+-$('connect-stage').onclick=()=>void stage.connect();
++}};
++let stage=new StagePlayer(stageOptions);
++$('connect-stage').onclick=async()=>{
++  try{
++    const config=await api('http-stage/config');
++    if(config.enabled&&!(stage instanceof HttpStagePlayer)){
++      await stage.close({permanent:true});stage=new HttpStagePlayer({...stageOptions,viewerRole:'preview'});
++    }
++    await stage.connect();
++  }catch(error){$('stage-status').textContent=error.message;}
++};
+ $('stage-sound').onclick=async()=>{const video=$('stage-preview');video.muted=!video.muted;try{await video.play();$('stage-sound').textContent=video.muted?'Enable preview sound':'Mute preview sound';}catch{$('stage-status').textContent='Connect the preview first.';}};
+ $('copy-obs').onclick=async()=>{try{const result=await api('obs-link');try{await navigator.clipboard.writeText(result.url);$('stage-status').textContent='OBS link copied. Paste into a 1920 × 1080 Browser source.';}catch{$('obs-link').hidden=false;$('obs-link').value=result.url;$('obs-link').select();$('stage-status').textContent='Copy this link into your OBS Browser source.';}}catch(error){$('stage-status').textContent=error.message;}};
+ window.addEventListener('pagehide',()=>void stage.close());
+ let revision=0,request=null,stream=null,context=null,recording=false,starting=false,chunks=[],frames=0,timer=null,online=false,donationsEnabled=false,stageBusy=false,stageAvailable=false,lastQueueDepth=0;
+ async function api(path,body,signal){const response=await fetch('/api/'+path,{method:body?'POST':'GET',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,signal,redirect:'error',cache:'no-store'});const result=await response.json();if(!response.ok)throw new Error(result.error||'Connection failed');return result;}
++async function openStagePage(path,field='url'){
++  const page=window.open('about:blank','_blank');
++  if(page)page.opener=null;
++  try{const result=await api(path);if(page)page.location.href=result[field];
++    else{$('obs-link').hidden=false;$('obs-link').value=result[field];$('obs-link').select();}}
++  catch(error){page?.close();$('stage-status').textContent=error.message;}
++}
++$('open-http-show').onclick=()=>void openStagePage('http-stage-link','watch_url');
++$('open-http-source').onclick=()=>void openStagePage('http-stage-source-link');
++void api('http-stage/config').then(config=>{
++  $('http-stage-tools').hidden=!config.enabled;
++  $('open-http-source').hidden=!config.can_publish;
++}).catch(()=>{});
+ function stopCapture(){recording=false;starting=false;clearTimeout(timer);stream?.getTracks().forEach(track=>track.stop());stream=null;void context?.close();context=null;$('mic').textContent='Test microphone';}
+ function stop(){revision++;request?.abort();stopCapture();chunks=[];frames=0;donationsEnabled=false;
+  $('result').textContent='Stopped. Microphone off.';void api('action',{action:'stop'}).catch(()=>{});
+diff --git a/src/remote-web/stage-page.js b/src/remote-web/stage-page.js
+index bbb22f4..96b5f42 100644
+--- a/src/remote-web/stage-page.js
++++ b/src/remote-web/stage-page.js
+@@ -1,8 +1,14 @@
+ import {StagePlayer} from './stage-player.js';
+ import {popupView} from './popup-view.js';
+ import {createMessageScroller} from './message-scroll.js';
++import {HttpStagePlayer} from './http-stage-player.js';
++import {LocalMediaPublisher} from './local-media-publisher.js';
+ 
+-const key=new URLSearchParams(location.hash.slice(1)).get('key')||'';
++const parameters=new URLSearchParams(location.hash.slice(1));
++const key=parameters.get('key')||'';
++const sourceMode=parameters.get('source')==='http';
++const httpMode=!sourceMode&&parameters.get('transport')==='http';
++const watchMode=location.pathname==='/watch';
+ history.replaceState(null,'',location.pathname);
+ const $=id=>document.getElementById(id);
+ const video=$('stage'),popup=$('stank-popup'),rainCue=$('rain-cue');
+@@ -26,9 +32,46 @@ const subtitle=$('actor-caption'),subtitleActor=$('subtitle-actor'),subtitleWord
+ const strap=$('painted-strap');
+ let activePresentationNonce=null;
+ let activeRainNonce=null;
++let publisher=null,publisherWanted=true,publisherNeedsClick=false,publisherStopping=false;
++let lastSourceNonce=null,lastSourceEpoch=null,lastSourceStatus=null,publisherSource=null,publisherTask=null;
++async function startPublisher(){
++  if(!publisher||publisherTask||publisher.starting||publisherNeedsClick||lastSourceStatus?.available!==true)return;
++  const stream=video.srcObject;
++  if(publisher.running&&publisherSource===stream)return;
++  if(!publisherWanted&&!publisher.running)return;
++  if(!stream?.getVideoTracks?.().length||!stream?.getAudioTracks?.().length)return;
++  const task=(async()=>{
++    if(publisher.running)await publisher.stop();
++    publisherWanted=false;publisherSource=stream;
++    try{
++      await publisher.start();
++      if(video.srcObject!==stream){await publisher.stop();publisherWanted=!publisherNeedsClick;}
++    }catch(error){state.textContent=error.message;}
++  })();
++  publisherTask=task;
++  try{await task;}finally{if(publisherTask===task)publisherTask=null;}
++}
++async function stopPublisher(){
++  if(!publisher||publisherStopping)return;
++  publisherStopping=true;publisherWanted=!publisherNeedsClick;
++  const pending=publisherTask;
++  const task=(async()=>{
++    // Cancel an in-flight start immediately, then wait for its cleanup before
++    // admitting another source. No reconnect may race the old publisher close.
++    await publisher.stop();
++    await pending?.catch(()=>{});
++    publisherSource=null;
++  })();
++  publisherTask=task;
++  try{await task;}finally{
++    if(publisherTask===task)publisherTask=null;
++    publisherStopping=false;
++  }
++  if(publisherWanted)void startPublisher();
++}
+ // Do not mix the celebration soundtrack into a stale/hotmic/seated popup.
+-// This audio element is captured by OBS Browser Source separately from the
+-// native WebRTC TTS; test OBS "Control audio via OBS" before going live.
++// Legacy WebRTC captures this element separately. The HTTP publisher mixes it
++// once into the program track; the remote HTTP receiver never plays it again.
+ function stopRain(){
+   if(activeRainNonce===null&&rainCue.paused)return;
+   activeRainNonce=null;
+@@ -40,6 +83,8 @@ function activeRain(nonce){
+ }
+ function reportRain(action,nonce){
+   if(!activeRain(nonce))return Promise.resolve();
++  if(sourceMode)publisher?.setRainPlayback({nonce,state:action==='media-rain-started'?'playing':
++    action==='media-rain-ended'?'ended':'failed'});
+   return player.api({action,id:player.id,nonce}).catch(()=>{
+     if(activeRain(nonce))
+       state.textContent='OBS rain playback receipt failed. Check the producer stage and audio connection.';
+@@ -50,7 +95,7 @@ function startRain(nonce){
+   stopRain();
+   activeRainNonce=nonce;
+   rainCue.currentTime=0;
+-  rainCue.muted=false;
++  rainCue.muted=sourceMode;
+   // MUST follow the accepted OBS media-presented receipt. The host will
+   // not count this as "playing" until HTMLMediaElement.play() resolves.
+   void Promise.resolve().then(()=>{
+@@ -99,9 +144,28 @@ function hide(){
+   subtitleActor.textContent='';subtitleWords.textContent='';
+ }
+ function renderPresentation(visible,status){
+-  const view=popupView(status);
+-  const mediaReady=Boolean(player.pc?.connectionState==='connected'&&video.readyState>=2);
+-  if(!visible||!view.visible||!mediaReady){hide();return;}
++  if(sourceMode){
++    if(Number.isSafeInteger(status?.control_epoch)){
++      if(lastSourceEpoch!==null&&lastSourceEpoch!==status.control_epoch){
++        // STOP is observable independently of upload errors. A simultaneous
++        // source loss must not swallow the 409 and silently restart the feed.
++        publisherNeedsClick=true;publisherWanted=false;
++        state.textContent='Feed stopped. Click Start Buff feed to resume.';
++        void stopPublisher();
++      }
++      lastSourceEpoch=status.control_epoch;
++    }
++    lastSourceStatus=status;publisher?.setPresentation(status);
++    if(status?.available!==true&&(publisher?.running||publisher?.starting))void stopPublisher();
++    if(status?.presentation_nonce&&status.presentation_nonce!==lastSourceNonce){
++      lastSourceNonce=status.presentation_nonce;publisherWanted=!publisherNeedsClick;void startPublisher();
++    }
++  }
++  let view=popupView(status);
++  const mediaReady=Boolean((httpMode?player.isReady:player.pc?.connectionState==='connected')&&video.readyState>=2);
++  if(watchMode&&status?.available&&mediaReady&&!view.visible)
++    view={visible:true,kind:'hotmic',heading:'LIVE SHOW',donor:'',amount:'',message:''};
++  if((!visible&&!watchMode)||!view.visible||!mediaReady){hide();return;}
+   popup.dataset.kind=view.kind;
+   popup.dataset.art=painted.has(imageForKind(view.kind))?'painted':'fallback';
+   let scrollText=null;
+@@ -144,7 +208,10 @@ function renderPresentation(visible,status){
+       message.textContent=scrollText;
+     }else scroller.show({text:scrollText,nonce:status?.presentation_nonce});
+   }
+-  video.muted=false;
++  video.muted=sourceMode;
++  // The HTTP stream already contains the source soundtrack. Starting a second
++  // HTML audio element here would double it and lose the shared media clock.
++  if(httpMode){stopRain();if(video.paused)void video.play().catch(()=>{state.textContent='Click Enable sound to play the show.';});return;}
+   // Sound never begins before the OBS viewer acknowledges a visible,
+   // unmuted video frame. This allows the host to validate music receipts
+   // as belonging to the same exact presentation nonce.
+@@ -156,9 +223,9 @@ function renderPresentation(visible,status){
+     activePresentationNonce=nonce;
+     const playing=video.paused?video.play():Promise.resolve();
+     void Promise.resolve(playing).then(async()=>{
+-      if(activePresentationNonce!==nonce||popup.hidden||video.muted)return;
++      if(activePresentationNonce!==nonce||popup.hidden||(!sourceMode&&video.muted))return;
+       await player.api({action:'media-presented',id:player.id,nonce});
+-      if(activePresentationNonce===nonce&&!popup.hidden&&!video.muted&&status?.presentation_mode==='rain')
++      if(activePresentationNonce===nonce&&!popup.hidden&&(sourceMode||!video.muted)&&status?.presentation_mode==='rain')
+         startRain(nonce);
+     }).catch(()=>{
+       if(activePresentationNonce===nonce)activePresentationNonce=null;
+@@ -169,15 +236,43 @@ function renderPresentation(visible,status){
+   }
+ }
+ hide();
+-connection.hidden=true;
++connection.hidden=!sourceMode&&!watchMode;
++if(sourceMode||watchMode){connection.dataset.interactive='true';connection.setAttribute('aria-hidden','false');}
+ // No debug/error billboard in the publicly streamed 1920x1080 OBS source.
+-const player=new StagePlayer({
+-  video,key,
++const Player=httpMode?HttpStagePlayer:StagePlayer;
++const player=new Player({
++  video,key,ingest:sourceMode,
+   onStatus:text=>{state.textContent=text;},
+   onPresentation:renderPresentation,
+-  onStats:stats=>{window.stageStats=stats;}
++  onStats:stats=>{window.stageStats=stats;if(sourceMode)void startPublisher();}
+ });
+-video.onplaying=()=>{connection.hidden=true;};
++video.onplaying=()=>{connection.hidden=!sourceMode&&!watchMode;};
+ video.onpause=()=>{hide();};
+-window.addEventListener('pagehide',()=>{hide();void player.close({permanent:true});});
+-void player.connect();
++window.addEventListener('pagehide',()=>{hide();void publisher?.stop();void player.close({permanent:true});});
++if(sourceMode){
++  $('sound').textContent='Start Buff feed';$('sound').tabIndex=0;
++  $('sound').onclick=()=>{publisherNeedsClick=false;publisherWanted=true;void publisher?.context?.resume();void startPublisher();};
++  void (async()=>{
++    const reply=await fetch('/api/http-stage/config',{headers:{Authorization:'Bearer '+key},cache:'no-store',redirect:'error'});
++    const config=await reply.json();
++    if(!reply.ok||!config.can_publish)throw new Error('Open the publisher from the local producer panel.');
++    publisher=new LocalMediaPublisher({video,rainAudio:rainCue,key,
++      onStatus:text=>{state.textContent=text;},onError:error=>{
++        publisherNeedsClick=error.status===409;
++        state.textContent=publisherNeedsClick?'Feed stopped. Click Start Buff feed to resume.':error.message;
++        publisherWanted=!publisherNeedsClick;
++        // Wait for a fresh native status before restarting after an epoch
++        // change; stale local presentation state may never restore old audio.
++        lastSourceStatus={available:false,presentation_visible:false};
++        publisher.setPresentation(lastSourceStatus);
++      }});
++    if(lastSourceStatus)publisher.setPresentation(lastSourceStatus);
++    await player.connect();
++  })().catch(error=>{state.textContent=error.message;});
++}else{
++  if(watchMode){
++    $('sound').tabIndex=0;$('sound').onclick=()=>{video.muted=false;void video.play().catch(()=>{});};
++    $('reconnect').tabIndex=0;$('reconnect').onclick=()=>{void player.connect();};
++  }
++  void player.connect();
++}
+diff --git a/src/remote-web/stage-player.js b/src/remote-web/stage-player.js
+index 6056885..9ba6d51 100644
+--- a/src/remote-web/stage-player.js
++++ b/src/remote-web/stage-player.js
+@@ -4,8 +4,8 @@
+  * controls video reveal and muting based on authenticated presentation state.
+  */
+ export class StagePlayer {
+-  constructor({video,key,onStatus=()=>{},onStats=()=>{},onPresentation=()=>{},autoReconnect=true}){
+-    Object.assign(this,{video,key,onStatus,onStats,onPresentation,autoReconnect});
++  constructor({video,key,onStatus=()=>{},onStats=()=>{},onPresentation=()=>{},autoReconnect=true,ingest=false}){
++    Object.assign(this,{video,key,onStatus,onStats,onPresentation,autoReconnect,ingest});
+     this.revision=0;this.pc=null;this.id=null;this.timer=null;this.reconnectTimer=null;
+     this.connectionLossTimer=null;this.lastVideo=null;this.closed=false;this.retries=0;
+   }
+@@ -47,7 +47,7 @@ export class StagePlayer {
+     const revision=this.revision;
+     this.onStatus('Connecting to Stank Tank…');
+     try{
+-      const setup=await this.api({action:'media-open'});
++      const setup=await this.api({action:'media-open',...(this.ingest?{ingest:true}:{})});
+       if(revision!==this.revision){await this.api({action:'media-close',id:setup.id}).catch(()=>{});return;}
+       this.id=setup.id;
+       const pc=new RTCPeerConnection({iceServers:setup.iceServers,bundlePolicy:'max-bundle'});
+diff --git a/src/remote-web/stage.css b/src/remote-web/stage.css
+index aa8dcd5..9df46e8 100644
+--- a/src/remote-web/stage.css
++++ b/src/remote-web/stage.css
+@@ -306,3 +306,11 @@ body{position:relative;font-family:Arial,"Segoe UI",sans-serif}
+ }
+ /* Debug controls never render in the public OBS frame. */
+ #connection{display:none!important}
++#connection[data-interactive="true"]:not([hidden]){
++  display:flex!important;position:fixed;left:12px;right:12px;bottom:12px;
++  z-index:100;align-items:center;gap:10px;padding:10px 14px;
++  background:rgba(12,16,20,.94);border:1px solid #869a90;border-radius:8px;
++  color:#fff;font:14px/1.4 Arial,sans-serif;
++}
++#connection[data-interactive="true"] p{margin:0;flex:1}
++#connection[data-interactive="true"] button{padding:7px 12px;cursor:pointer}
+diff --git a/src/stage-media.mjs b/src/stage-media.mjs
+index 8b4547a..2c430a9 100644
+--- a/src/stage-media.mjs
++++ b/src/stage-media.mjs
+@@ -3,13 +3,13 @@ import {randomUUID,timingSafeEqual} from 'node:crypto';
+ import {setTimeout as delay} from 'node:timers/promises';
+ 
+ /** Signaling only. Camera/audio travel directly over encrypted WebRTC. */
+-export async function createStageMedia({token,iceServers=[],now=Date.now,maxViewers=2}={}){
++export async function createStageMedia({token,iceServers=[],now=Date.now,maxViewers=2,onStop=()=>{}}={}){
+   if(typeof token!=='string'||token.length<32||!Array.isArray(iceServers)||iceServers.length>8)throw new Error('Invalid stage media configuration');
+   for(const server of iceServers){
+     if(!Array.isArray(server.urls)||!server.urls.length||server.urls.length>4||server.urls.some(u=>typeof u!=='string'||u.length>500||!/^turns?:|^stun:/.test(u)))throw new Error('Invalid ICE service');
+   }
+   const peers=new Map(),commands=new Map();let controlEpoch=0,closed=false,lastSource=0,sourceState='starting',presentationVisible=false,presentationMode='seated',popup=null,caption=null,presentationNonce=null,rainPlayback=null;
+-  const stopAnimations=()=>{controlEpoch++;presentationVisible=false;popup=null;caption=null;presentationNonce=null;rainPlayback=null;for(const c of commands.values())c.finish(new Error('Animation stopped'));commands.clear();};
++  const stopAnimations=()=>{controlEpoch++;presentationVisible=false;popup=null;caption=null;presentationNonce=null;rainPlayback=null;onStop();for(const c of commands.values())c.finish(new Error('Animation stopped'));commands.clear();};
+   const animate=({targets,id,signal})=>new Promise((resolve,reject)=>{
+     const presentation=['make_it_rain','seated_response','presentation_end'].includes(id);
+     const incensedCameraFlip=id==='flip_camera';
+@@ -33,7 +33,7 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
+   const sweep=()=>{for(const [id,p] of peers)if(now()-p.seen>15000)peers.delete(id);};
+   const timer=setInterval(sweep,1000);timer.unref();
+   const info=()=>({available:!closed&&lastSource>0&&now()-lastSource<5000&&sourceState==='ready',state:sourceState,
+-    width:1920,height:1080,fps:30,max_bitrate:12000000,
++    width:1920,height:1080,fps:30,max_bitrate:12000000,control_epoch:controlEpoch,
+     presentation_visible:presentationVisible&&now()-lastSource<5000,presentation_mode:presentationMode,
+     popup:presentationVisible&&now()-lastSource<5000?popup:null,
+     caption:presentationVisible&&now()-lastSource<5000?caption:null,
+@@ -48,7 +48,7 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
+       if(!info().available)throw new Error('Stage camera is not ready');
+       if(peers.size>=maxViewers)throw new Error('Stage viewer limit reached; close an unused preview');
+       const id=randomUUID();peers.set(id,{id,seen:now(),offer:null,answer:null,error:null,
+-        role:input.viewer_role==='obs'?'obs':'preview',presentedNonce:null});
++        role:input.viewer_role==='ingest'?'ingest':input.viewer_role==='obs'?'obs':'preview',presentedNonce:null});
+       if(input.viewer_role==='obs'&&rainPlayback)rainPlayback.hadObsViewer=true;
+       return {id,iceServers,...info()};
+     }
+@@ -56,6 +56,16 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
+     if(input.action==='media-close'){peers.delete(p.id);return {closed:true};}
+     p.seen=now();
+     if(['media-presented','media-rain-started','media-rain-ended','media-rain-failed'].includes(input.action)){
++      // The loopback HTTP publisher observes the native stage and soundtrack.
++      // Its local receipts never count as a remote OBS presentation/music end.
++      if(p.role==='ingest'){
++        if(!presentationVisible||input.nonce!==presentationNonce)
++          throw new Error('Stale local source presentation receipt');
++        if(input.action==='media-presented')p.presentedNonce=input.nonce;
++        else if(p.presentedNonce!==input.nonce||presentationMode!=='rain')
++          throw new Error('Local source must present the active rain first');
++        return {accepted:true,ingest_only:true};
++      }
+       if(p.role!=='obs'||!presentationVisible||input.nonce!==presentationNonce)
+         throw new Error('Stale or unauthorized OBS presentation receipt');
+       if(input.action==='media-presented'){

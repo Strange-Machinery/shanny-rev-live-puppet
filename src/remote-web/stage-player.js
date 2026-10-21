@@ -4,8 +4,8 @@
  * controls video reveal and muting based on authenticated presentation state.
  */
 export class StagePlayer {
-  constructor({video,key,onStatus=()=>{},onStats=()=>{},onPresentation=()=>{},autoReconnect=true}){
-    Object.assign(this,{video,key,onStatus,onStats,onPresentation,autoReconnect});
+  constructor({video,key,onStatus=()=>{},onStats=()=>{},onPresentation=()=>{},autoReconnect=true,ingest=false}){
+    Object.assign(this,{video,key,onStatus,onStats,onPresentation,autoReconnect,ingest});
     this.revision=0;this.pc=null;this.id=null;this.timer=null;this.reconnectTimer=null;
     this.connectionLossTimer=null;this.lastVideo=null;this.closed=false;this.retries=0;
   }
@@ -47,7 +47,7 @@ export class StagePlayer {
     const revision=this.revision;
     this.onStatus('Connecting to Stank Tank…');
     try{
-      const setup=await this.api({action:'media-open'});
+      const setup=await this.api({action:'media-open',...(this.ingest?{ingest:true}:{})});
       if(revision!==this.revision){await this.api({action:'media-close',id:setup.id}).catch(()=>{});return;}
       this.id=setup.id;
       const pc=new RTCPeerConnection({iceServers:setup.iceServers,bundlePolicy:'max-bundle'});

@@ -306,3 +306,11 @@ body{position:relative;font-family:Arial,"Segoe UI",sans-serif}
 }
 /* Debug controls never render in the public OBS frame. */
 #connection{display:none!important}
+#connection[data-interactive="true"]:not([hidden]){
+  display:flex!important;position:fixed;left:12px;right:12px;bottom:12px;
+  z-index:100;align-items:center;gap:10px;padding:10px 14px;
+  background:rgba(12,16,20,.94);border:1px solid #869a90;border-radius:8px;
+  color:#fff;font:14px/1.4 Arial,sans-serif;
+}
+#connection[data-interactive="true"] p{margin:0;flex:1}
+#connection[data-interactive="true"] button{padding:7px 12px;cursor:pointer}

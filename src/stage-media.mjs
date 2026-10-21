@@ -3,13 +3,13 @@ import {randomUUID,timingSafeEqual} from 'node:crypto';
 import {setTimeout as delay} from 'node:timers/promises';
 
 /** Signaling only. Camera/audio travel directly over encrypted WebRTC. */
-export async function createStageMedia({token,iceServers=[],now=Date.now,maxViewers=2}={}){
+export async function createStageMedia({token,iceServers=[],now=Date.now,maxViewers=2,onStop=()=>{}}={}){
   if(typeof token!=='string'||token.length<32||!Array.isArray(iceServers)||iceServers.length>8)throw new Error('Invalid stage media configuration');
   for(const server of iceServers){
     if(!Array.isArray(server.urls)||!server.urls.length||server.urls.length>4||server.urls.some(u=>typeof u!=='string'||u.length>500||!/^turns?:|^stun:/.test(u)))throw new Error('Invalid ICE service');
   }
   const peers=new Map(),commands=new Map();let controlEpoch=0,closed=false,lastSource=0,sourceState='starting',presentationVisible=false,presentationMode='seated',popup=null,caption=null,presentationNonce=null,rainPlayback=null;
-  const stopAnimations=()=>{controlEpoch++;presentationVisible=false;popup=null;caption=null;presentationNonce=null;rainPlayback=null;for(const c of commands.values())c.finish(new Error('Animation stopped'));commands.clear();};
+  const stopAnimations=()=>{controlEpoch++;presentationVisible=false;popup=null;caption=null;presentationNonce=null;rainPlayback=null;onStop();for(const c of commands.values())c.finish(new Error('Animation stopped'));commands.clear();};
   const animate=({targets,id,signal})=>new Promise((resolve,reject)=>{
     const presentation=['make_it_rain','seated_response','presentation_end'].includes(id);
     const incensedCameraFlip=id==='flip_camera';
@@ -33,7 +33,7 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
   const sweep=()=>{for(const [id,p] of peers)if(now()-p.seen>15000)peers.delete(id);};
   const timer=setInterval(sweep,1000);timer.unref();
   const info=()=>({available:!closed&&lastSource>0&&now()-lastSource<5000&&sourceState==='ready',state:sourceState,
-    width:1920,height:1080,fps:30,max_bitrate:12000000,
+    width:1920,height:1080,fps:30,max_bitrate:12000000,control_epoch:controlEpoch,
     presentation_visible:presentationVisible&&now()-lastSource<5000,presentation_mode:presentationMode,
     popup:presentationVisible&&now()-lastSource<5000?popup:null,
     caption:presentationVisible&&now()-lastSource<5000?caption:null,
@@ -48,7 +48,7 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
       if(!info().available)throw new Error('Stage camera is not ready');
       if(peers.size>=maxViewers)throw new Error('Stage viewer limit reached; close an unused preview');
       const id=randomUUID();peers.set(id,{id,seen:now(),offer:null,answer:null,error:null,
-        role:input.viewer_role==='obs'?'obs':'preview',presentedNonce:null});
+        role:input.viewer_role==='ingest'?'ingest':input.viewer_role==='obs'?'obs':'preview',presentedNonce:null});
       if(input.viewer_role==='obs'&&rainPlayback)rainPlayback.hadObsViewer=true;
       return {id,iceServers,...info()};
     }
@@ -56,6 +56,16 @@ export async function createStageMedia({token,iceServers=[],now=Date.now,maxView
     if(input.action==='media-close'){peers.delete(p.id);return {closed:true};}
     p.seen=now();
     if(['media-presented','media-rain-started','media-rain-ended','media-rain-failed'].includes(input.action)){
+      // The loopback HTTP publisher observes the native stage and soundtrack.
+      // Its local receipts never count as a remote OBS presentation/music end.
+      if(p.role==='ingest'){
+        if(!presentationVisible||input.nonce!==presentationNonce)
+          throw new Error('Stale local source presentation receipt');
+        if(input.action==='media-presented')p.presentedNonce=input.nonce;
+        else if(p.presentedNonce!==input.nonce||presentationMode!=='rain')
+          throw new Error('Local source must present the active rain first');
+        return {accepted:true,ingest_only:true};
+      }
       if(p.role!=='obs'||!presentationVisible||input.nonce!==presentationNonce)
         throw new Error('Stale or unauthorized OBS presentation receipt');
       if(input.action==='media-presented'){
