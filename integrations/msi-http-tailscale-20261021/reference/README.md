@@ -28,4 +28,4 @@ Tailscale Serve maps private HTTP port 17862 to the loopback-only receiver gatew
 
 A producer-side browser check does not establish Buff acceptance. Buff must observe picture/audio from his own network in his actual OBS Browser Source, both voices, a complete rain track, final speech, idle transparency, Shut up/STOP and reconnect without stale audio, with OBS off air and paid/chat intake off. Record the exact limitation if OBS cannot be observed.
 
-The original private candidate is PR14 at commit `1ab071425b43f0c216e8789fbfd9f6ad3f3b2bd1`. The deployed MSI integration includes newer installed behavior, the first-frame Edge retry, WebM ingress preference, launcher changes and a Tailscale-only gateway. Never copy the baseline wholesale over an existing production installation.
+The original candidate is PR14 at commit `1ab071425b43f0c216e8789fbfd9f6ad3f3b2bd1`. The deployed MSI integration includes newer installed behavior, the first-frame Edge retry, WebM ingress preference, launcher changes and a Tailscale-only gateway. Never copy the baseline wholesale over an existing production installation.
