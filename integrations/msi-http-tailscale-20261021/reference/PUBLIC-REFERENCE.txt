@@ -1,0 +1,6 @@
+Public source repository: https://github.com/Strange-Machinery/shanny-rev-live-puppet
+Handoff branch: rd/buff-msi-http-tailscale-handoff-20261021
+See integrations/msi-http-tailscale-20261021/README.md and docs/BUFF_RECEIVER_ASTRA_HANDOFF.txt on that branch. Pin the exact fetched commit when using this reference.
+Original HTTP candidate: 1ab071425b43f0c216e8789fbfd9f6ad3f3b2bd1 (PR14, unmerged).
+The selected reference source reflects the narrowly deployed MSI integration, including the Edge recorder fix and receiver gateway. It is not a full standalone installation or permission to overwrite an existing production.
+Private profiles, show keys, actual connection hostname, device invitations, runtime logs and show assets remain local.
